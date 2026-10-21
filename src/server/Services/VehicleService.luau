@@ -235,9 +235,12 @@ local function explode(model: Model, attacker: Player?)
 			HealthService.Damage(humanoid, 1000, attacker)
 		end
 	end
-	-- Explosión solo visual: no rompe nada ni empuja (el daño ya se aplicó arriba)
+	-- La explosión de Roblox es solo visual: no rompe nada ni empuja;
+	-- el daño lo calculamos nosotros para que respete escudos, equipos y bajas
+	local center = chassis.Position
 	local explosion = Instance.new("Explosion")
-	explosion.Position = chassis.Position
+	explosion.Position = center
+	explosion.BlastRadius = stats.blastRadius
 	explosion.BlastPressure = 0
 	explosion.DestroyJointRadiusPercent = 0
 	explosion.Parent = workspace
@@ -245,6 +248,39 @@ local function explode(model: Model, attacker: Player?)
 	local spawnCFrame = model:GetAttribute("SpawnCFrame") :: CFrame
 	jeeps[model] = nil
 	model:Destroy()
+
+	-- Daño a quien esté cerca: máximo en el centro y 0 en el borde del radio.
+	-- No daña a los compañeros del atacante, pero sí al atacante si está demasiado cerca.
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		local teammate = attacker
+			and player ~= attacker
+			and not player.Neutral
+			and not attacker.Neutral
+			and player.Team == attacker.Team
+		if humanoid and root and not teammate then
+			local distance = (root.Position - center).Magnitude
+			if distance < stats.blastRadius then
+				HealthService.Damage(
+					humanoid,
+					stats.blastDamage * (1 - distance / stats.blastRadius),
+					attacker
+				)
+			end
+		end
+	end
+	-- Otros jeeps cercanos también reciben daño (puede haber explosiones en cadena)
+	for other in jeeps do
+		local otherChassis = other.PrimaryPart
+		if otherChassis then
+			local distance = (otherChassis.Position - center).Magnitude
+			if distance < stats.blastRadius then
+				VehicleService.Damage(other, stats.blastDamage * (1 - distance / stats.blastRadius), attacker)
+			end
+		end
+	end
 	task.delay(stats.respawnTime, function()
 		VehicleService.Spawn(spawnCFrame)
 	end)

@@ -58,7 +58,8 @@ En la torreta tu rifle se guarda solo, para que un clic no dispare las dos armas
 
 - La vida del jeep es el atributo `Health` del modelo (600). El HUD la muestra cuando vas dentro.
 - `VehicleService.Damage` resta vida, salvo que dentro vaya el atacante o alguien de su equipo.
-- A 0, `explode` mata a quien va dentro (la baja cuenta para quien destruyó el jeep), crea una explosión solo visual y borra el modelo.
+- A 0, `explode` mata a quien va dentro (la baja cuenta para quien destruyó el jeep), crea una explosión visual y borra el modelo.
+- La explosión hace daño a quien esté a menos de 16 studs: 150 en el centro, bajando hasta 0 en el borde. Se calcula con la distancia, `blastDamage * (1 - distancia / blastRadius)`. No daña a los compañeros del atacante, pero sí al atacante si está demasiado cerca, y también daña a otros jeeps, así que puede haber explosiones en cadena.
 - `task.delay(stats.respawnTime, ...)` lo vuelve a crear en su sitio a los 45 segundos.
 
 ## 6. Llantas ponchadas
