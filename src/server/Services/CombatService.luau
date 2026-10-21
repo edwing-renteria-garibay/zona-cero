@@ -6,13 +6,17 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Vehicles = require(ReplicatedStorage.Shared.Config.Vehicles)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local HealthService = require(script.Parent.HealthService)
+local VehicleService = require(script.Parent.VehicleService)
 
 local remotes = ReplicatedStorage.Remotes
 local fireWeapon = remotes.FireWeapon :: RemoteEvent
+local fireTurret = remotes.FireTurret :: RemoteEvent
 local reloadWeapon = remotes.ReloadWeapon :: RemoteEvent
 local shotFired = remotes.ShotFired :: RemoteEvent
+local hitConfirmed = remotes.HitConfirmed :: RemoteEvent
 
 local MAX_ORIGIN_DISTANCE = 10 -- studs permitidos entre la cabeza y el origen del disparo
 local FIRE_RATE_TOLERANCE = 0.8 -- acepta disparos un poco más seguidos por la latencia de la red
@@ -20,6 +24,7 @@ local FIRE_RATE_TOLERANCE = 0.8 -- acepta disparos un poco más seguidos por la 
 local CombatService = {}
 
 local lastShot: { [Player]: number } = {}
+local lastTurretShot: { [Player]: number } = {}
 local reloading: { [Player]: boolean } = {}
 
 -- Devuelve el arma que el jugador tiene en la mano y sus datos de Config/Weapons
@@ -49,6 +54,30 @@ local function isEnemy(shooter: Player, target: Player?): boolean
 		return true
 	end
 	return shooter.Team ~= target.Team
+end
+
+-- Aplica el daño de un impacto (a un jeep o a un personaje enemigo) y avisa al tirador
+local function applyHit(attacker: Player, result: RaycastResult, damage: number, headshotMultiplier: number?)
+	local model = result.Instance:FindFirstAncestorOfClass("Model")
+	if not model then
+		return
+	end
+	local vehicle = VehicleService.GetVehicle(result.Instance)
+	if vehicle then
+		if VehicleService.Damage(vehicle, damage, attacker, result.Instance :: BasePart) then
+			hitConfirmed:FireClient(attacker) -- la mira del tirador se pone roja
+		end
+		return
+	end
+	local targetHumanoid = model:FindFirstChildOfClass("Humanoid")
+	if not targetHumanoid or not isEnemy(attacker, Players:GetPlayerFromCharacter(model)) then
+		return
+	end
+	if result.Instance.Name == "Head" and headshotMultiplier then
+		damage *= headshotMultiplier
+	end
+	HealthService.Damage(targetHumanoid, damage, attacker)
+	hitConfirmed:FireClient(attacker)
 end
 
 local function onFire(player: Player, origin: any, direction: any)
@@ -90,7 +119,13 @@ local function onFire(player: Player, origin: any, direction: any)
 	-- Raycast: una línea invisible desde el origen; devuelve lo primero que toca
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { character } -- no dispararse a uno mismo
+	-- No dispararse a uno mismo ni al jeep en el que vas sentado
+	local filter: { Instance } = { character }
+	local myVehicle = VehicleService.GetVehicle(humanoid.SeatPart)
+	if myVehicle then
+		table.insert(filter, myVehicle)
+	end
+	params.FilterDescendantsInstances = filter
 	local ray = direction.Unit * stats.range
 	local result = workspace:Raycast(origin, ray, params)
 	local hitPosition = if result then result.Position else origin + ray
@@ -99,23 +134,48 @@ local function onFire(player: Player, origin: any, direction: any)
 	local handle = tool:FindFirstChild("Handle") :: BasePart?
 	shotFired:FireAllClients(if handle then handle.Position else origin, hitPosition)
 
-	if not result then
+	if result then
+		applyHit(player, result, stats.damage, stats.headshotMultiplier)
+	end
+end
+
+-- Disparo de la ametralladora del jeep: sale del cañón, no de la cabeza
+local function onFireTurret(player: Player, direction: any)
+	if typeof(direction) ~= "Vector3" or direction ~= direction or direction.Magnitude < 0.01 then
 		return
 	end
-	local model = result.Instance:FindFirstAncestorOfClass("Model")
-	local targetHumanoid = model and model:FindFirstChildOfClass("Humanoid")
-	if not targetHumanoid then
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not humanoid or humanoid.Health <= 0 then
 		return
 	end
-	if not isEnemy(player, Players:GetPlayerFromCharacter(model)) then
+	-- Solo quien está sentado en el asiento de la torreta puede dispararla
+	local seat = humanoid.SeatPart
+	local vehicle = VehicleService.GetVehicle(seat)
+	if not vehicle or not (seat :: BasePart):GetAttribute("Turret") then
 		return
 	end
 
-	local damage = stats.damage
-	if result.Instance.Name == "Head" and stats.headshotMultiplier then
-		damage *= stats.headshotMultiplier
+	local turret = Vehicles.TurretJeep.turret
+	local now = os.clock()
+	if now - (lastTurretShot[player] or 0) < FIRE_RATE_TOLERANCE / turret.fireRate then
+		return
 	end
-	HealthService.Damage(targetHumanoid, damage, player)
+	lastTurretShot[player] = now
+
+	VehicleService.AimTurret(vehicle, direction)
+	local barrel = vehicle:FindFirstChild("TurretBarrel") :: BasePart
+	local origin = (barrel.CFrame * CFrame.new(0, 0, -2)).Position -- punta del cañón
+
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { vehicle, character :: Model }
+	local ray = direction.Unit * turret.range
+	local result = workspace:Raycast(origin, ray, params)
+	shotFired:FireAllClients(origin, if result then result.Position else origin + ray)
+	if result then
+		applyHit(player, result, turret.damage)
+	end
 end
 
 local function onReload(player: Player)
@@ -133,9 +193,11 @@ end
 
 function CombatService.Start()
 	fireWeapon.OnServerEvent:Connect(onFire)
+	fireTurret.OnServerEvent:Connect(onFireTurret)
 	reloadWeapon.OnServerEvent:Connect(onReload)
 	Players.PlayerRemoving:Connect(function(player)
 		lastShot[player] = nil
+		lastTurretShot[player] = nil
 		reloading[player] = nil
 	end)
 end
