@@ -64,7 +64,7 @@ local result = workspace:Raycast(origin, direction.Unit * stats.range, params)
 
 `Raycast` traza una línea recta y devuelve lo primero que toca (`result.Instance`) y dónde (`result.Position`). Los `params` le dicen que ignore tu propio personaje.
 
-Si lo que tocó pertenece a un modelo con `Humanoid` de otro equipo, se llama a `HealthService.Damage`. Un tiro en la cabeza (`Head`) multiplica el daño solo en armas que tengan `headshotMultiplier`, como la pistola.
+Si lo que tocó pertenece a un modelo con `Humanoid` de otro equipo, se llama a `HealthService.Damage`. Un tiro en la cabeza (`Head`) multiplica el daño por el `headshotMultiplier` del arma (más detalles en [03-pistola-cabeza-golpe.md](03-pistola-cabeza-golpe.md)).
 
 ## 6. Atributos: datos pegados a un objeto
 
