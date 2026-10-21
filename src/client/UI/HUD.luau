@@ -49,7 +49,12 @@ function HUD.Start()
 
 		local vehicle = VehicleController.GetVehicle()
 		if vehicle then
-			vehicleLabel.Text = string.format("Jeep %d", math.ceil(vehicle:GetAttribute("Health") or 0))
+			local flats = vehicle:GetAttribute("FlatTires") or 0
+			vehicleLabel.Text = string.format(
+				"Jeep %d  ·  Llantas %d/4",
+				math.ceil(vehicle:GetAttribute("Health") or 0),
+				4 - flats
+			)
 		else
 			vehicleLabel.Text = ""
 		end

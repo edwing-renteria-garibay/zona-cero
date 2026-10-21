@@ -71,11 +71,17 @@ local function buildJeep(spawnCFrame: CFrame): Model
 			CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0),
 		}
 	end
+	-- Cada llanta tiene su propia vida; "Front" marca las delanteras (las que dirigen)
 	for _, x in { -3.9, 3.9 } do
 		for _, z in { -3.8, 3.8 } do
-			addPart(model, chassis, wheelProps(), CFrame.new(x, -0.8, z))
+			local wheel = addPart(model, chassis, wheelProps(), CFrame.new(x, -0.8, z))
+			wheel.Name = "Wheel"
+			wheel:SetAttribute("TireHealth", stats.tireHealth)
+			wheel:SetAttribute("Front", z < 0)
 		end
 	end
+	model:SetAttribute("FlatTires", 0)
+	model:SetAttribute("FlatFrontTires", 0)
 
 	-- Carrocería: capó delante y barra antivuelco detrás de los asientos
 	addPart(
@@ -162,6 +168,26 @@ local function buildJeep(spawnCFrame: CFrame): Model
 	steering.AngularVelocity = Vector3.zero
 	steering.Parent = chassis
 
+	-- Barra de vida sobre el jeep, visible para todos los jugadores cercanos
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "HealthBar"
+	billboard.Size = UDim2.fromOffset(120, 10)
+	billboard.StudsOffset = Vector3.new(0, 7, 0)
+	billboard.MaxDistance = 150
+	billboard.Adornee = chassis
+	local background = Instance.new("Frame")
+	background.Size = UDim2.fromScale(1, 1)
+	background.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	background.BorderSizePixel = 0
+	background.Parent = billboard
+	local fill = Instance.new("Frame")
+	fill.Name = "Fill"
+	fill.Size = UDim2.fromScale(1, 1)
+	fill.BackgroundColor3 = Color3.fromRGB(90, 200, 90)
+	fill.BorderSizePixel = 0
+	fill.Parent = background
+	billboard.Parent = chassis
+
 	model.Parent = workspace
 	-- El servidor maneja la física del jeep, aunque haya jugadores cerca
 	chassis:SetNetworkOwner(nil)
@@ -224,12 +250,49 @@ local function explode(model: Model, attacker: Player?)
 	end)
 end
 
-function VehicleService.Damage(model: Model, amount: number, attacker: Player?)
+local function updateHealthBar(model: Model, health: number)
+	local chassis = model.PrimaryPart :: BasePart
+	local billboard = chassis:FindFirstChild("HealthBar")
+	local fill = billboard and billboard:FindFirstChild("Fill", true) :: Frame?
+	if fill then
+		local ratio = math.clamp(health / stats.health, 0, 1)
+		fill.Size = UDim2.fromScale(ratio, 1)
+		-- Verde con mucha vida, rojo con poca
+		fill.BackgroundColor3 = Color3.fromRGB(90, 200, 90):Lerp(Color3.fromRGB(220, 60, 50), 1 - ratio)
+	end
+end
+
+-- Una llanta recibe daño; al llegar a 0 se poncha: se ve aplastada y el jeep va más lento
+local function damageTire(model: Model, wheel: BasePart, amount: number)
+	local tireHealth = wheel:GetAttribute("TireHealth") :: number?
+	if not tireHealth or tireHealth <= 0 then
+		return
+	end
+	tireHealth -= amount
+	wheel:SetAttribute("TireHealth", math.max(tireHealth, 0))
+	if tireHealth > 0 then
+		return
+	end
+	wheel.Size = Vector3.new(1.2, 2.3, 2.3)
+	wheel.Color = Color3.fromRGB(70, 70, 70)
+	model:SetAttribute("FlatTires", (model:GetAttribute("FlatTires") :: number) + 1)
+	if wheel:GetAttribute("Front") then
+		model:SetAttribute("FlatFrontTires", (model:GetAttribute("FlatFrontTires") :: number) + 1)
+	end
+end
+
+-- hitPart es la pieza del jeep que recibió el disparo (para saber si fue una llanta)
+function VehicleService.Damage(model: Model, amount: number, attacker: Player?, hitPart: BasePart?)
 	if not jeeps[model] or not canDamage(model, attacker) then
 		return
 	end
+	if hitPart and hitPart.Name == "Wheel" then
+		damageTire(model, hitPart, amount)
+		amount *= stats.tireHitShare
+	end
 	local health = (model:GetAttribute("Health") :: number) - amount
 	model:SetAttribute("Health", math.max(health, 0))
+	updateHealthBar(model, health)
 	if health <= 0 then
 		explode(model, attacker)
 	end
@@ -273,7 +336,14 @@ local function updateJeep(model: Model)
 
 	local throttle = seat.ThrottleFloat -- W = 1, S = -1
 	local steer = seat.SteerFloat -- D = 1, A = -1
+	-- Las llantas ponchadas restan velocidad y giro (nunca por debajo de 0)
+	local flats = model:GetAttribute("FlatTires") :: number
+	local flatFronts = model:GetAttribute("FlatFrontTires") :: number
+	local speedScale = math.max(1 - flats * stats.flatSpeedPenalty, 0)
+	local turnScale = math.max(1 - flatFronts * stats.flatTurnPenalty, 0)
+
 	local forward = if throttle >= 0 then throttle * stats.maxSpeed else throttle * stats.reverseSpeed
+	forward *= speedScale
 	-- Hacia delante del chasis, pero sin componente vertical; la velocidad lateral
 	-- queda en 0, así que el jeep no derrapa
 	local look = chassis.CFrame.LookVector
@@ -285,7 +355,7 @@ local function updateJeep(model: Model)
 	-- Como un coche: gira más cuanto más rápido va, y al revés en marcha atrás
 	local speed = chassis.AssemblyLinearVelocity:Dot(chassis.CFrame.LookVector)
 	local turnFactor = math.clamp(math.abs(speed) / 12, 0, 1) * math.sign(speed)
-	steering.AngularVelocity = Vector3.new(0, -steer * stats.turnRate * turnFactor, 0)
+	steering.AngularVelocity = Vector3.new(0, -steer * stats.turnRate * turnScale * turnFactor, 0)
 end
 
 function VehicleService.Start()

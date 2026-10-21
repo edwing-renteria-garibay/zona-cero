@@ -61,12 +61,25 @@ En la torreta tu rifle se guarda solo, para que un clic no dispare las dos armas
 - A 0, `explode` mata a quien va dentro (la baja cuenta para quien destruyó el jeep), crea una explosión solo visual y borra el modelo.
 - `task.delay(stats.respawnTime, ...)` lo vuelve a crear en su sitio a los 45 segundos.
 
-## 6. Prueba a cambiar cosas
+## 6. Llantas ponchadas
+
+Cada llanta (`Wheel`) guarda su propia vida en el atributo `TireHealth` (60). Cuando un disparo toca una llanta, `CombatService` pasa a `VehicleService.Damage` la pieza que recibió el impacto (`hitPart`), y así se sabe que fue una llanta:
+
+1. `damageTire` le resta el daño a esa llanta.
+2. El jeep recibe solo la mitad (`tireHitShare`), porque una llanta es más fácil de romper que el motor.
+3. Cuando la llanta llega a 0 se poncha: se hace más pequeña y gris, y suben los contadores `FlatTires` y `FlatFrontTires` del jeep.
+
+En `updateJeep`, cada llanta ponchada quita un 20 % de velocidad, y cada delantera un 30 % de giro. Con las cuatro ponchadas el jeep apenas avanza. Al reaparecer, el jeep sale con llantas nuevas.
+
+La barra sobre el jeep es un `BillboardGui`: una interfaz que flota en el mundo 3D pegada a una pieza. El servidor cambia el ancho y el color de la barra con cada daño, y todos los jugadores lo ven.
+
+## 7. Prueba a cambiar cosas
 
 En `src/shared/Config/Vehicles.luau`:
 
 - Sube `maxSpeed` a 90 para un jeep más rápido.
 - Cambia `turnRate` a 3 para que gire más cerrado.
 - Baja `health` a 100 para probar la explosión sin disparar tanto.
+- Baja `tireHealth` a 20 para poncharlas con 3 disparos.
 
 Para que los jeeps aparezcan en otro lugar, crea en Workspace una carpeta `VehicleSpawns` con una pieza por jeep, orientada hacia donde debe mirar el jeep.

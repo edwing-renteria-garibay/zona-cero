@@ -63,7 +63,7 @@ local function applyHit(attacker: Player, result: RaycastResult, damage: number,
 	end
 	local vehicle = VehicleService.GetVehicle(result.Instance)
 	if vehicle then
-		VehicleService.Damage(vehicle, damage, attacker)
+		VehicleService.Damage(vehicle, damage, attacker, result.Instance :: BasePart)
 		return
 	end
 	local targetHumanoid = model:FindFirstChildOfClass("Humanoid")
