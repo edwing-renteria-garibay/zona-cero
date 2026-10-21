@@ -64,7 +64,7 @@ local result = workspace:Raycast(origin, direction.Unit * stats.range, params)
 
 `Raycast` traza una línea recta y devuelve lo primero que toca (`result.Instance`) y dónde (`result.Position`). Los `params` le dicen que ignore tu propio personaje.
 
-Si lo que tocó pertenece a un modelo con `Humanoid` de otro equipo, se llama a `HealthService.Damage`. Un tiro en la cabeza (`Head`) multiplica el daño solo en armas que tengan `headshotMultiplier`, como la pistola.
+Si lo que tocó pertenece a un modelo con `Humanoid` de otro equipo, se llama a `HealthService.Damage`. Un tiro en la cabeza (`Head`) multiplica el daño por el `headshotMultiplier` del arma (más detalles en [03-pistola-cabeza-golpe.md](03-pistola-cabeza-golpe.md)).
 
 ## 6. Atributos: datos pegados a un objeto
 
@@ -88,7 +88,7 @@ El cliente guarda la hora del aviso y pinta la mira de rojo durante 0.15 segundo
 
 Abre `src/shared/Config/Weapons.luau` con `rojo serve` corriendo y prueba:
 
-- Sube `damage` del rifle de 8 a 20 y fíjate cuántos disparos hacen falta ahora.
+- Sube `damage` del rifle de 7 a 20 y fíjate cuántos disparos hacen falta ahora.
 - Cambia `automatic = true` a `false`: tendrás que hacer clic por cada bala.
 - Baja `magazine` a 10 para ver la recarga automática más seguido.
 

@@ -25,6 +25,9 @@
         },
         "HitConfirmed": {
           "$className": "RemoteEvent"
+        },
+        "Melee": {
+          "$className": "RemoteEvent"
         }
       }
     },
@@ -52,6 +55,22 @@
           "$properties": {
             "Size": [0.4, 0.8, 3],
             "Color": [0.2, 0.2, 0.2],
+            "CanCollide": false,
+            "Massless": true
+          }
+        }
+      },
+      "Pistol": {
+        "$className": "Tool",
+        "$properties": {
+          "ToolTip": "Pistola",
+          "CanBeDropped": false
+        },
+        "Handle": {
+          "$className": "Part",
+          "$properties": {
+            "Size": [0.4, 0.9, 1.6],
+            "Color": [0.15, 0.15, 0.15],
             "CanCollide": false,
             "Massless": true
           }

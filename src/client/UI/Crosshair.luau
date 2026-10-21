@@ -1,5 +1,6 @@
 -- Mira que sigue al mouse. Con el rifle es una cruz; en la torreta, un círculo.
--- Se pone roja un instante cuando el servidor confirma que acertaste.
+-- Se pone roja un instante cuando el servidor confirma que acertaste,
+-- y naranja (y más grande) si fue un tiro a la cabeza o un golpe por la espalda.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,6 +16,7 @@ local player = Players.LocalPlayer
 
 local NORMAL_COLOR = Color3.new(1, 1, 1)
 local HIT_COLOR = Color3.fromRGB(255, 60, 60)
+local HEAD_COLOR = Color3.fromRGB(255, 170, 0)
 local HIT_TIME = 0.15 -- segundos que dura el rojo al acertar
 
 local Crosshair = {}
@@ -44,6 +46,8 @@ function Crosshair.Start()
 	rifle.BackgroundTransparency = 1
 	rifle.Size = UDim2.fromOffset(0, 0)
 	rifle.Parent = gui
+	local uiScale = Instance.new("UIScale")
+	uiScale.Parent = rifle
 	local rifleParts = {
 		makeBar(rifle, 0, -10, 2, 8),
 		makeBar(rifle, 0, 10, 2, 8),
@@ -67,10 +71,14 @@ function Crosshair.Start()
 	stroke.Color = NORMAL_COLOR
 	stroke.Parent = ring
 	local turretDot = makeBar(turret, 0, 0, 3, 3)
+	local turretScale = Instance.new("UIScale")
+	turretScale.Parent = turret
 
 	local lastHit = -math.huge
-	hitConfirmed.OnClientEvent:Connect(function()
+	local lastHitColor = HIT_COLOR
+	hitConfirmed.OnClientEvent:Connect(function(kind: string)
 		lastHit = os.clock()
+		lastHitColor = if kind == "head" then HEAD_COLOR else HIT_COLOR
 	end)
 
 	RunService.RenderStepped:Connect(function()
@@ -85,7 +93,12 @@ function Crosshair.Start()
 		rifle.Position = UDim2.fromOffset(mouse.X, mouse.Y)
 		turret.Position = UDim2.fromOffset(mouse.X, mouse.Y)
 
-		local color = if os.clock() - lastHit < HIT_TIME then HIT_COLOR else NORMAL_COLOR
+		local hitActive = os.clock() - lastHit < HIT_TIME
+		local color = if hitActive then lastHitColor else NORMAL_COLOR
+		-- En tiros a la cabeza la mira crece un poco para que se note más
+		local scale = if hitActive and lastHitColor == HEAD_COLOR then 1.5 else 1
+		uiScale.Scale = scale
+		turretScale.Scale = scale
 		for _, part in rifleParts do
 			part.BackgroundColor3 = color
 		end
