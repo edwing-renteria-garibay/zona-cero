@@ -16,9 +16,11 @@ local Vehicles = {
 		flatSpeedPenalty = 0.2,
 		flatTurnPenalty = 0.3,
 		tireHitShare = 0.5,
-		-- Explosión al ser destruido: blastDamage en el centro, que baja hasta 0
-		-- en el borde del radio blastRadius (studs). También daña a otros jeeps.
-		blastDamage = 150,
+		-- Explosión al ser destruido: blastDamage completo hasta blastInnerRadius (studs)
+		-- desde el centro del jeep, y luego baja hasta 0 en blastRadius.
+		-- Un jugador tiene 200 en total (100 de escudo + 100 de vida). También daña a otros jeeps.
+		blastDamage = 250,
+		blastInnerRadius = 6,
 		blastRadius = 16,
 		-- La ametralladora de la torreta no gasta munición
 		turret = { damage = 12, fireRate = 10, range = 400 },

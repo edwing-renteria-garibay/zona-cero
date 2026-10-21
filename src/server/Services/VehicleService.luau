@@ -226,6 +226,12 @@ local function canDamage(model: Model, attacker: Player?): boolean
 	return true
 end
 
+-- Daño de la explosión según la distancia al centro del jeep
+local function blastDamageAt(distance: number): number
+	local falloff = (distance - stats.blastInnerRadius) / (stats.blastRadius - stats.blastInnerRadius)
+	return stats.blastDamage * (1 - math.clamp(falloff, 0, 1))
+end
+
 local function explode(model: Model, attacker: Player?)
 	local chassis = model.PrimaryPart :: BasePart
 	-- Quien vaya dentro muere, y la baja es para quien destruyó el jeep
@@ -249,7 +255,7 @@ local function explode(model: Model, attacker: Player?)
 	jeeps[model] = nil
 	model:Destroy()
 
-	-- Daño a quien esté cerca: máximo en el centro y 0 en el borde del radio.
+	-- Daño a quien esté cerca: completo junto al jeep y 0 en el borde del radio.
 	-- No daña a los compañeros del atacante, pero sí al atacante si está demasiado cerca.
 	for _, player in Players:GetPlayers() do
 		local character = player.Character
@@ -263,11 +269,7 @@ local function explode(model: Model, attacker: Player?)
 		if humanoid and root and not teammate then
 			local distance = (root.Position - center).Magnitude
 			if distance < stats.blastRadius then
-				HealthService.Damage(
-					humanoid,
-					stats.blastDamage * (1 - distance / stats.blastRadius),
-					attacker
-				)
+				HealthService.Damage(humanoid, blastDamageAt(distance), attacker)
 			end
 		end
 	end
@@ -277,7 +279,7 @@ local function explode(model: Model, attacker: Player?)
 		if otherChassis then
 			local distance = (otherChassis.Position - center).Magnitude
 			if distance < stats.blastRadius then
-				VehicleService.Damage(other, stats.blastDamage * (1 - distance / stats.blastRadius), attacker)
+				VehicleService.Damage(other, blastDamageAt(distance), attacker)
 			end
 		end
 	end
