@@ -16,6 +16,7 @@ local fireWeapon = remotes.FireWeapon :: RemoteEvent
 local fireTurret = remotes.FireTurret :: RemoteEvent
 local reloadWeapon = remotes.ReloadWeapon :: RemoteEvent
 local shotFired = remotes.ShotFired :: RemoteEvent
+local hitConfirmed = remotes.HitConfirmed :: RemoteEvent
 
 local MAX_ORIGIN_DISTANCE = 10 -- studs permitidos entre la cabeza y el origen del disparo
 local FIRE_RATE_TOLERANCE = 0.8 -- acepta disparos un poco más seguidos por la latencia de la red
@@ -55,7 +56,7 @@ local function isEnemy(shooter: Player, target: Player?): boolean
 	return shooter.Team ~= target.Team
 end
 
--- Aplica el daño de un impacto: a un jeep, o a un personaje enemigo
+-- Aplica el daño de un impacto (a un jeep o a un personaje enemigo) y avisa al tirador
 local function applyHit(attacker: Player, result: RaycastResult, damage: number, headshotMultiplier: number?)
 	local model = result.Instance:FindFirstAncestorOfClass("Model")
 	if not model then
@@ -63,7 +64,9 @@ local function applyHit(attacker: Player, result: RaycastResult, damage: number,
 	end
 	local vehicle = VehicleService.GetVehicle(result.Instance)
 	if vehicle then
-		VehicleService.Damage(vehicle, damage, attacker, result.Instance :: BasePart)
+		if VehicleService.Damage(vehicle, damage, attacker, result.Instance :: BasePart) then
+			hitConfirmed:FireClient(attacker) -- la mira del tirador se pone roja
+		end
 		return
 	end
 	local targetHumanoid = model:FindFirstChildOfClass("Humanoid")
@@ -74,6 +77,7 @@ local function applyHit(attacker: Player, result: RaycastResult, damage: number,
 		damage *= headshotMultiplier
 	end
 	HealthService.Damage(targetHumanoid, damage, attacker)
+	hitConfirmed:FireClient(attacker)
 end
 
 local function onFire(player: Player, origin: any, direction: any)

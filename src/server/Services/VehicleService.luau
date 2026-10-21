@@ -317,10 +317,11 @@ local function damageTire(model: Model, wheel: BasePart, amount: number)
 	end
 end
 
--- hitPart es la pieza del jeep que recibió el disparo (para saber si fue una llanta)
-function VehicleService.Damage(model: Model, amount: number, attacker: Player?, hitPart: BasePart?)
+-- hitPart es la pieza del jeep que recibió el disparo (para saber si fue una llanta).
+-- Devuelve true si el daño se aplicó (false si el jeep es de tu equipo)
+function VehicleService.Damage(model: Model, amount: number, attacker: Player?, hitPart: BasePart?): boolean
 	if not jeeps[model] or not canDamage(model, attacker) then
-		return
+		return false
 	end
 	if hitPart and hitPart.Name == "Wheel" then
 		damageTire(model, hitPart, amount)
@@ -332,6 +333,7 @@ function VehicleService.Damage(model: Model, amount: number, attacker: Player?, 
 	if health <= 0 then
 		explode(model, attacker)
 	end
+	return true
 end
 
 -- El jeep al que pertenece un asiento (o una pieza), si es un jeep vivo

@@ -22,6 +22,9 @@
         },
         "FireTurret": {
           "$className": "RemoteEvent"
+        },
+        "HitConfirmed": {
+          "$className": "RemoteEvent"
         }
       }
     },

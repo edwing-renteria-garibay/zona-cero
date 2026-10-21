@@ -72,7 +72,19 @@ La munición se guarda como **atributo** del arma: `tool:SetAttribute("Ammo", 31
 
 Lo mismo pasa con `Reloading` en el arma y `Shield` en el personaje.
 
-## 7. Prueba a cambiar cosas
+## 7. La mira y el aviso de acierto
+
+`src/client/UI/Crosshair.luau` dibuja la mira con `Frame` (rectángulos de interfaz) y en cada fotograma la mueve a la posición del mouse. Con el rifle es una cruz; en la torreta del jeep, un círculo hecho con `UICorner` y `UIStroke`. Mientras se ve la mira, se oculta la flecha del mouse con `UserInputService.MouseIconEnabled`.
+
+Cuando el servidor aplica daño en `applyHit`, avisa solo al tirador:
+
+```lua
+hitConfirmed:FireClient(attacker)
+```
+
+El cliente guarda la hora del aviso y pinta la mira de rojo durante 0.15 segundos. Como el aviso viene del servidor, la mira solo se pone roja si el daño fue real.
+
+## 8. Prueba a cambiar cosas
 
 Abre `src/shared/Config/Weapons.luau` con `rojo serve` corriendo y prueba:
 

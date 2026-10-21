@@ -31,6 +31,11 @@ local function getTurretSeat(): Seat?
 	return nil
 end
 
+-- ¿Vas sentado en la torreta? (para la mira)
+function VehicleController.IsInTurret(): boolean
+	return getTurretSeat() ~= nil
+end
+
 -- El asiento actual del jugador (para el HUD)
 function VehicleController.GetVehicle(): Model?
 	local character = player.Character

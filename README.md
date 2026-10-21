@@ -10,6 +10,7 @@ Documento de diseño: https://claude.ai/artifact/Db9y3BWdNtESCJbiRrMR1z
 - Ciclo de partida de Team Slayer: espera, cuenta regresiva, marcador, ganador (`MatchService.luau`)
 - Rifle de asalto: disparo con clic o toque, recarga con **R**, daño validado en el servidor
 - HUD con escudo, vida y munición; columna de **Bajas** en la lista de jugadores
+- Mira para el rifle y la torreta, que se pone roja al acertar
 - Jeep con torreta: conductor (W/A/S/D), artillero con ametralladora y pasajero; llantas que se ponchan, barra de vida, se destruye y reaparece
 - Configuración de armas, vehículos y modos en `src/shared/Config/`
 
