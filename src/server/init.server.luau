@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local Teams = game:GetService("Teams")
 
 local Services = script.Services
+local CombatService = require(Services.CombatService)
 local HealthService = require(Services.HealthService)
 local MatchService = require(Services.MatchService)
 
@@ -18,7 +19,17 @@ for name, color in { Rojo = BrickColor.new("Bright red"), Azul = BrickColor.new(
 	team.Parent = Teams
 end
 
+CombatService.Start()
+
 Players.PlayerAdded:Connect(function(player)
+	-- "leaderstats" es una carpeta especial: Roblox muestra sus valores en la lista de jugadores
+	local leaderstats = Instance.new("Folder")
+	leaderstats.Name = "leaderstats"
+	local kills = Instance.new("IntValue")
+	kills.Name = "Bajas"
+	kills.Parent = leaderstats
+	leaderstats.Parent = player
+
 	player.CharacterAdded:Connect(function(character)
 		HealthService.SetupCharacter(player, character)
 		-- Protección breve al reaparecer
