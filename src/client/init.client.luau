@@ -1,7 +1,12 @@
--- Punto de entrada del cliente. Por ahora muestra en la salida (Output) el estado de la partida.
--- Aquí irán el HUD, la cámara y los controles.
+-- Punto de entrada del cliente: arranca los controles del arma y el HUD.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local WeaponController = require(script.Controllers.WeaponController)
+local HUD = require(script.UI.HUD)
+
+WeaponController.Start()
+HUD.Start()
 
 local matchState = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("MatchState") :: RemoteEvent
 

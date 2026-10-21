@@ -18,15 +18,31 @@ local function broadcast(state: string, data: any?)
 	matchState:FireAllClients(state, data)
 end
 
+-- El contador "Bajas" que se ve en la lista de jugadores
+local function getKills(player: Player): IntValue?
+	local leaderstats = player:FindFirstChild("leaderstats")
+	return leaderstats and leaderstats:FindFirstChild("Bajas") :: IntValue?
+end
+
 local function resetScores()
 	for _, team in Teams:GetTeams() do
 		scores[team] = 0
+	end
+	for _, player in Players:GetPlayers() do
+		local kills = getKills(player)
+		if kills then
+			kills.Value = 0
+		end
 	end
 end
 
 HealthService.Killed:Connect(function(victim: Player, killer: Player?)
 	if not running or not killer or killer == victim or killer.Team == victim.Team then
 		return
+	end
+	local kills = getKills(killer)
+	if kills then
+		kills.Value += 1
 	end
 	local team = killer.Team
 	if team then

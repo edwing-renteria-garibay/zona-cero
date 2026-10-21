@@ -13,6 +13,12 @@
         },
         "MatchState": {
           "$className": "RemoteEvent"
+        },
+        "ReloadWeapon": {
+          "$className": "RemoteEvent"
+        },
+        "ShotFired": {
+          "$className": "RemoteEvent"
         }
       }
     },
@@ -25,6 +31,24 @@
       "StarterPlayerScripts": {
         "Client": {
           "$path": "src/client"
+        }
+      }
+    },
+    "StarterPack": {
+      "AssaultRifle": {
+        "$className": "Tool",
+        "$properties": {
+          "ToolTip": "Rifle de asalto",
+          "CanBeDropped": false
+        },
+        "Handle": {
+          "$className": "Part",
+          "$properties": {
+            "Size": [0.4, 0.8, 3],
+            "Color": [0.2, 0.2, 0.2],
+            "CanCollide": false,
+            "Massless": true
+          }
         }
       }
     }
