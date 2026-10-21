@@ -8,6 +8,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
+local Aim = require(script.Parent.Aim)
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local fireWeapon = remotes:WaitForChild("FireWeapon") :: RemoteEvent
@@ -46,16 +47,7 @@ local function aim(): (Vector3?, Vector3?)
 	if not head then
 		return nil, nil
 	end
-	local camera = workspace.CurrentCamera
-	local mouse = UserInputService:GetMouseLocation()
-	local ray = camera:ViewportPointToRay(mouse.X, mouse.Y)
-
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { character }
-	local result = workspace:Raycast(ray.Origin, ray.Direction * 1000, params)
-	local target = if result then result.Position else ray.Origin + ray.Direction * 1000
-	return head.Position, target - head.Position
+	return head.Position, Aim.GetTarget() - head.Position
 end
 
 local function tryFire()

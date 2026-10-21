@@ -1,0 +1,72 @@
+# Aprende: cómo funciona el jeep con torreta
+
+Esta guía explica el código del jeep. Antes conviene haber leído [01-rifle.md](01-rifle.md), porque el jeep reutiliza las mismas ideas: el cliente pide y el servidor decide.
+
+| Archivo | Dónde corre | Qué hace |
+| --- | --- | --- |
+| `src/server/Services/VehicleService.luau` | Servidor | Construye el jeep, lo mueve, le quita vida, lo hace explotar y reaparecer |
+| `src/server/Services/CombatService.luau` | Servidor | Valida los disparos de la torreta y aplica el daño a jeeps y jugadores |
+| `src/client/Controllers/VehicleController.luau` | Cliente | Envía los disparos de la torreta mientras mantienes el clic |
+| `src/client/Controllers/Aim.luau` | Cliente | Calcula a qué punto apuntas (lo usan el rifle y la torreta) |
+| `src/shared/Config/Vehicles.luau` | Los dos | Vida, velocidad, giro y daño de la torreta |
+
+## 1. El jeep se construye con código
+
+`buildJeep` crea cada pieza con `Instance.new("Part")`, la coloca respecto al chasis y la une con una `WeldConstraint` (una soldadura). Así el jeep entero se mueve como un solo objeto.
+
+```lua
+addPart(model, chassis, wheelProps(), CFrame.new(x, -0.8, z))
+```
+
+`CFrame.new(x, y, z)` es una posición relativa: `x` es izquierda/derecha, `y` arriba/abajo y `z` delante/detrás. En Roblox **el frente es -Z**, por eso el capó está en `z = -3.8` y la torreta atrás, en `z = 2.2`.
+
+Hacerlo con código en vez de en Studio tiene una ventaja: todo vive en Git y se puede revisar en un pull request.
+
+## 2. Asientos
+
+- `DriverSeat` es un `VehicleSeat`: cuando te sientas, Roblox lee W/A/S/D y los guarda en `ThrottleFloat` (adelante/atrás) y `SteerFloat` (izquierda/derecha). No hace falta código en el cliente para conducir.
+- `TurretSeat` y `PassengerSeat` son `Seat` normales. El de la torreta tiene el atributo `Turret`, que es como el código lo reconoce.
+- Para subir, camina hacia un asiento. Para bajar, pulsa **Espacio** (saltar).
+
+## 3. Conducción arcade
+
+En vez de simular motor, ruedas y suspensión, dos **restricciones** de física empujan el chasis:
+
+- `LinearVelocity` en modo plano fija la velocidad hacia delante y deja la lateral en 0, así el jeep no derrapa. La vertical queda libre para que la gravedad funcione.
+- `AngularVelocity` fija la rotación: solo gira sobre el eje vertical, y por eso **el jeep no vuelca**.
+
+En cada fotograma `updateJeep` lee el asiento y ajusta las dos restricciones:
+
+```lua
+drive.PlaneVelocity = Vector2.new(forward, 0)
+steering.AngularVelocity = Vector3.new(0, -steer * stats.turnRate * grip, 0)
+```
+
+`grip` hace que, como un coche, no gire estando parado y gire al revés en marcha atrás.
+
+Limitación actual: como nunca se inclina, en rampas o cuestas el jeep se mantiene horizontal. Para el mapa en greybox es suficiente; más adelante se puede cambiar por algo más realista.
+
+## 4. La torreta
+
+1. El cliente (`VehicleController`) comprueba en cada fotograma si vas en el asiento de la torreta. Si mantienes el clic, envía `FireTurret` con la dirección hacia donde apuntas, a 10 disparos por segundo.
+2. El servidor (`onFireTurret` en `CombatService`) revisa que estés vivo, sentado en ese asiento y respetando la cadencia.
+3. Gira el cañón hacia la dirección del disparo, lanza un raycast **desde la punta del cañón** (no desde tu cabeza) y aplica el daño con `applyHit`, la misma función que usa el rifle.
+
+En la torreta tu rifle se guarda solo, para que un clic no dispare las dos armas.
+
+## 5. Vida, explosión y reaparición
+
+- La vida del jeep es el atributo `Health` del modelo (600). El HUD la muestra cuando vas dentro.
+- `VehicleService.Damage` resta vida, salvo que dentro vaya el atacante o alguien de su equipo.
+- A 0, `explode` mata a quien va dentro (la baja cuenta para quien destruyó el jeep), crea una explosión solo visual y borra el modelo.
+- `task.delay(stats.respawnTime, ...)` lo vuelve a crear en su sitio a los 45 segundos.
+
+## 6. Prueba a cambiar cosas
+
+En `src/shared/Config/Vehicles.luau`:
+
+- Sube `maxSpeed` a 90 para un jeep más rápido.
+- Cambia `turnRate` a 3 para que gire más cerrado.
+- Baja `health` a 100 para probar la explosión sin disparar tanto.
+
+Para que los jeeps aparezcan en otro lugar, crea en Workspace una carpeta `VehicleSpawns` con una pieza por jeep, orientada hacia donde debe mirar el jeep.

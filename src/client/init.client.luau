@@ -1,11 +1,13 @@
--- Punto de entrada del cliente: arranca los controles del arma y el HUD.
+-- Punto de entrada del cliente: arranca los controles del arma, del jeep y el HUD.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local VehicleController = require(script.Controllers.VehicleController)
 local WeaponController = require(script.Controllers.WeaponController)
 local HUD = require(script.UI.HUD)
 
 WeaponController.Start()
+VehicleController.Start()
 HUD.Start()
 
 local matchState = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("MatchState") :: RemoteEvent

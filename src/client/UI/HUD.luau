@@ -1,9 +1,10 @@
--- HUD sencillo: escudo y vida abajo a la izquierda, munición abajo a la derecha.
+-- HUD sencillo: escudo, vida y vida del jeep abajo a la izquierda; munición abajo a la derecha.
 -- Se crea desde código para no depender de archivos de Studio.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
+local VehicleController = require(script.Parent.Parent.Controllers.VehicleController)
 local WeaponController = require(script.Parent.Parent.Controllers.WeaponController)
 
 local player = Players.LocalPlayer
@@ -33,6 +34,7 @@ function HUD.Start()
 
 	local healthLabel = makeLabel(gui, Vector2.new(0, 1), UDim2.new(0, 24, 1, -24))
 	local ammoLabel = makeLabel(gui, Vector2.new(1, 1), UDim2.new(1, -24, 1, -24))
+	local vehicleLabel = makeLabel(gui, Vector2.new(0, 1), UDim2.new(0, 24, 1, -64))
 
 	-- Se actualiza en cada fotograma; es barato porque solo cambia texto
 	RunService.RenderStepped:Connect(function()
@@ -43,6 +45,13 @@ function HUD.Start()
 			healthLabel.Text = string.format("Escudo %d  ·  Vida %d", shield, math.ceil(humanoid.Health))
 		else
 			healthLabel.Text = ""
+		end
+
+		local vehicle = VehicleController.GetVehicle()
+		if vehicle then
+			vehicleLabel.Text = string.format("Jeep %d", math.ceil(vehicle:GetAttribute("Health") or 0))
+		else
+			vehicleLabel.Text = ""
 		end
 
 		local tool, stats = WeaponController.GetEquipped()

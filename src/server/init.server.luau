@@ -7,6 +7,7 @@ local Services = script.Services
 local CombatService = require(Services.CombatService)
 local HealthService = require(Services.HealthService)
 local MatchService = require(Services.MatchService)
+local VehicleService = require(Services.VehicleService)
 
 Players.RespawnTime = 5
 
@@ -20,6 +21,7 @@ for name, color in { Rojo = BrickColor.new("Bright red"), Azul = BrickColor.new(
 end
 
 CombatService.Start()
+VehicleService.Start()
 
 Players.PlayerAdded:Connect(function(player)
 	-- "leaderstats" es una carpeta especial: Roblox muestra sus valores en la lista de jugadores
