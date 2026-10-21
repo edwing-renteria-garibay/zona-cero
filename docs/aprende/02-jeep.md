@@ -32,13 +32,13 @@ Hacerlo con código en vez de en Studio tiene una ventaja: todo vive en Git y se
 
 En vez de simular motor, ruedas y suspensión, dos **restricciones** de física empujan el chasis:
 
-- Dos `LinearVelocity` en modo línea: `Drive` fija la velocidad hacia delante y `Grip` deja la lateral en 0, así el jeep no derrapa. La vertical queda libre para que la gravedad funcione.
+- `LinearVelocity` fija la velocidad horizontal: hacia donde mira el jeep, y 0 de lado, así no derrapa. Como su fuerza en el eje vertical es 0, la gravedad sigue funcionando.
 - `AngularVelocity` fija la rotación: solo gira sobre el eje vertical, y por eso **el jeep no vuelca**.
 
 En cada fotograma `updateJeep` lee el asiento y ajusta el motor de avance y el giro:
 
 ```lua
-drive.LineVelocity = forward
+drive.VectorVelocity = flatForward.Unit * forward
 steering.AngularVelocity = Vector3.new(0, -steer * stats.turnRate * turnFactor, 0)
 ```
 
