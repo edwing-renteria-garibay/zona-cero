@@ -5,6 +5,7 @@ local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
@@ -75,19 +76,54 @@ local function tryFire()
 	end
 end
 
--- Una línea brillante muy breve entre el arma y el impacto
+-- Color del destello del impacto según lo que tocó la bala
+local IMPACT_COLORS = {
+	shield = Color3.fromRGB(90, 200, 255), -- azul: el escudo absorbió el disparo
+	flesh = Color3.fromRGB(200, 30, 30), -- rojo: el disparo llegó a la vida
+	metal = Color3.fromRGB(255, 200, 80), -- chispas amarillas: el jeep
+}
+local WORLD_IMPACT_COLOR = Color3.fromRGB(150, 140, 120) -- polvo: el suelo o una pared
+
+-- Una línea brillante que se desvanece entre el arma y el impacto
 local function drawTracer(from: Vector3, to: Vector3)
 	local length = (to - from).Magnitude
 	local tracer = Instance.new("Part")
 	tracer.Anchored = true
 	tracer.CanCollide = false
 	tracer.CanQuery = false
+	tracer.CastShadow = false
 	tracer.Material = Enum.Material.Neon
 	tracer.Color = Color3.fromRGB(255, 220, 120)
-	tracer.Size = Vector3.new(0.1, 0.1, length)
+	tracer.Size = Vector3.new(0.12, 0.12, length)
 	tracer.CFrame = CFrame.lookAt(from, to) * CFrame.new(0, 0, -length / 2)
 	tracer.Parent = workspace
-	Debris:AddItem(tracer, 0.05)
+	TweenService:Create(tracer, TweenInfo.new(0.1), { Transparency = 1 }):Play()
+	Debris:AddItem(tracer, 0.1)
+end
+
+-- Una bolita que crece y se desvanece donde pegó la bala
+local function drawImpact(position: Vector3, surface: string?)
+	local impact = Instance.new("Part")
+	impact.Shape = Enum.PartType.Ball
+	impact.Anchored = true
+	impact.CanCollide = false
+	impact.CanQuery = false
+	impact.CastShadow = false
+	impact.Material = Enum.Material.Neon
+	impact.Color = if surface then IMPACT_COLORS[surface] or WORLD_IMPACT_COLOR else WORLD_IMPACT_COLOR
+	impact.Size = Vector3.one * 0.3
+	impact.Position = position
+	impact.Parent = workspace
+	local grow = if surface then 1.6 else 0.8 -- los impactos en jugadores se ven más grandes
+	TweenService:Create(impact, TweenInfo.new(0.2), { Size = Vector3.one * grow, Transparency = 1 }):Play()
+	Debris:AddItem(impact, 0.2)
+end
+
+local function onShotFired(from: Vector3, to: Vector3, hit: boolean?, surface: string?)
+	drawTracer(from, to)
+	if hit then
+		drawImpact(to, surface)
+	end
 end
 
 -- Tool.Activated funciona igual con clic, toque en móvil o gatillo del mando
@@ -127,7 +163,7 @@ function WeaponController.Start()
 		end
 	end)
 
-	shotFired.OnClientEvent:Connect(drawTracer)
+	shotFired.OnClientEvent:Connect(onShotFired)
 end
 
 return WeaponController

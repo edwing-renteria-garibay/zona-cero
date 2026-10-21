@@ -51,7 +51,20 @@ Si llevas un arma en la mano, el servidor crea un `StringValue` llamado `toolani
 
 El servidor envía `HitConfirmed` con `"hit"` (cuerpo o jeep) o `"head"` (cabeza o golpe por la espalda). La mira se pone roja con un acierto normal, y naranja y un poco más grande con uno a la cabeza.
 
-## 5. Prueba a cambiar cosas
+## 5. ¿Hice daño? Los avisos de acierto
+
+Con la pistola, el cuerpo recibe 30 de daño. El escudo (100) aguanta 3 disparos, y el cuarto lo rompe y empieza a bajar la vida. Por eso antes parecía que los primeros tiros no hacían nada: la barra de Roblox solo muestra la vida. Ahora hay cuatro avisos:
+
+| Aviso | Quién lo ve | Archivo |
+| --- | --- | --- |
+| Barras sobre la cabeza: escudo (azul) y vida (verde) | Todos | `src/client/UI/OverheadBars.luau` |
+| El enemigo brilla en azul al recibir un golpe en el escudo, y en blanco cuando se rompe | Todos | `src/client/UI/OverheadBars.luau` |
+| Destello en el impacto: azul (escudo), rojo (vida), amarillo (jeep), gris (escenario) | Todos | `src/client/Controllers/WeaponController.luau` |
+| Número de daño que flota y un "ping" (más agudo en la cabeza) | Solo quien dispara | `src/client/UI/HitFeedback.luau` |
+
+`HealthService.Damage` ahora devuelve dos números: cuánto se llevó el escudo y cuánto la vida. `CombatService` los usa para elegir el color del destello y del número.
+
+## 6. Prueba a cambiar cosas
 
 - Sube el `headshotMultiplier` del rifle a 3 y mira cuánto más rápido matas apuntando a la cabeza.
 - Cambia `backstabDamage` en `src/shared/Config/Melee.luau` a 100 si el golpe por la espalda te parece demasiado fuerte.

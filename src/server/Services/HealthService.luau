@@ -37,10 +37,11 @@ function HealthService.SetupCharacter(player: Player, character: Model)
 	end)
 end
 
-function HealthService.Damage(humanoid: Humanoid, amount: number, attacker: Player?)
+-- Devuelve cuánto daño se llevó el escudo y cuánto la vida (0, 0 si no se pudo dañar)
+function HealthService.Damage(humanoid: Humanoid, amount: number, attacker: Player?): (number, number)
 	local character = humanoid.Parent :: Model
 	if humanoid.Health <= 0 or character:GetAttribute("SpawnProtected") then
-		return
+		return 0, 0
 	end
 	lastHit[humanoid] = os.clock()
 	lastAttacker[humanoid] = attacker
@@ -49,6 +50,7 @@ function HealthService.Damage(humanoid: Humanoid, amount: number, attacker: Play
 	local absorbed = math.min(shield, amount)
 	character:SetAttribute("Shield", shield - absorbed)
 	humanoid:TakeDamage(amount - absorbed)
+	return absorbed, amount - absorbed
 end
 
 -- Recarga de escudo en cada paso de la simulación
