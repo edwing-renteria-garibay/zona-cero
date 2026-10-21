@@ -32,17 +32,17 @@ Hacerlo con código en vez de en Studio tiene una ventaja: todo vive en Git y se
 
 En vez de simular motor, ruedas y suspensión, dos **restricciones** de física empujan el chasis:
 
-- `LinearVelocity` en modo plano fija la velocidad hacia delante y deja la lateral en 0, así el jeep no derrapa. La vertical queda libre para que la gravedad funcione.
+- Dos `LinearVelocity` en modo línea: `Drive` fija la velocidad hacia delante y `Grip` deja la lateral en 0, así el jeep no derrapa. La vertical queda libre para que la gravedad funcione.
 - `AngularVelocity` fija la rotación: solo gira sobre el eje vertical, y por eso **el jeep no vuelca**.
 
-En cada fotograma `updateJeep` lee el asiento y ajusta las dos restricciones:
+En cada fotograma `updateJeep` lee el asiento y ajusta el motor de avance y el giro:
 
 ```lua
-drive.PlaneVelocity = Vector2.new(forward, 0)
-steering.AngularVelocity = Vector3.new(0, -steer * stats.turnRate * grip, 0)
+drive.LineVelocity = forward
+steering.AngularVelocity = Vector3.new(0, -steer * stats.turnRate * turnFactor, 0)
 ```
 
-`grip` hace que, como un coche, no gire estando parado y gire al revés en marcha atrás.
+`turnFactor` hace que, como un coche, no gire estando parado y gire al revés en marcha atrás.
 
 Limitación actual: como nunca se inclina, en rampas o cuestas el jeep se mantiene horizontal. Para el mapa en greybox es suficiente; más adelante se puede cambiar por algo más realista.
 

@@ -142,18 +142,22 @@ local function buildJeep(spawnCFrame: CFrame): Model
 	local attachment = Instance.new("Attachment")
 	attachment.Parent = chassis
 
-	local drive = Instance.new("LinearVelocity")
-	drive.Name = "Drive"
-	drive.Attachment0 = attachment
-	drive.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
-	-- Plano: controla la velocidad hacia delante y la lateral (0 = no derrapa);
-	-- la vertical queda libre para que la gravedad siga funcionando
-	drive.VelocityConstraintMode = Enum.VelocityConstraintMode.Plane
-	drive.PrimaryTangentAxis = Vector3.new(0, 0, -1) -- hacia delante del chasis
-	drive.SecondaryTangentAxis = Vector3.new(1, 0, 0) -- hacia la derecha
-	drive.MaxForce = 1e6
-	drive.PlaneVelocity = Vector2.zero
-	drive.Parent = chassis
+	-- Dos líneas: una controla la velocidad hacia delante y la otra deja la lateral
+	-- en 0 para que no derrape. La vertical queda libre para que la gravedad funcione.
+	local function lineMotor(name: string, direction: Vector3): LinearVelocity
+		local motor = Instance.new("LinearVelocity")
+		motor.Name = name
+		motor.Attachment0 = attachment
+		motor.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
+		motor.VelocityConstraintMode = Enum.VelocityConstraintMode.Line
+		motor.LineDirection = direction
+		motor.LineVelocity = 0
+		motor.MaxForce = 1e6
+		motor.Parent = chassis
+		return motor
+	end
+	lineMotor("Drive", Vector3.new(0, 0, -1)) -- hacia delante del chasis
+	lineMotor("Grip", Vector3.new(1, 0, 0)) -- hacia la derecha
 
 	local steering = Instance.new("AngularVelocity")
 	steering.Name = "Steering"
@@ -275,12 +279,12 @@ local function updateJeep(model: Model)
 	local throttle = seat.ThrottleFloat -- W = 1, S = -1
 	local steer = seat.SteerFloat -- D = 1, A = -1
 	local forward = if throttle >= 0 then throttle * stats.maxSpeed else throttle * stats.reverseSpeed
-	drive.PlaneVelocity = Vector2.new(forward, 0)
+	drive.LineVelocity = forward
 
 	-- Como un coche: gira más cuanto más rápido va, y al revés en marcha atrás
 	local speed = chassis.AssemblyLinearVelocity:Dot(chassis.CFrame.LookVector)
-	local grip = math.clamp(math.abs(speed) / 20, 0, 1) * math.sign(speed)
-	steering.AngularVelocity = Vector3.new(0, -steer * stats.turnRate * grip, 0)
+	local turnFactor = math.clamp(math.abs(speed) / 12, 0, 1) * math.sign(speed)
+	steering.AngularVelocity = Vector3.new(0, -steer * stats.turnRate * turnFactor, 0)
 end
 
 function VehicleService.Start()

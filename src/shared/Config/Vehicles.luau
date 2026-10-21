@@ -7,7 +7,7 @@ local Vehicles = {
 		respawnTime = 45,
 		maxSpeed = 60,
 		reverseSpeed = 25,
-		turnRate = 1.8,
+		turnRate = 2.4,
 		-- La ametralladora de la torreta no gasta munición
 		turret = { damage = 12, fireRate = 10, range = 400 },
 	},
