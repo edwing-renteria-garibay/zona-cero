@@ -1,4 +1,4 @@
--- Disparos y recarga. El cliente solo avisa "disparé desde aquí hacia allá";
+-- Disparos, recarga y golpes cuerpo a cuerpo. El cliente solo avisa "disparé desde aquí hacia allá";
 -- el servidor comprueba que el disparo sea posible (arma en la mano, munición,
 -- cadencia, origen cerca del jugador) y es el único que hace daño.
 -- Así nadie puede hacer trampa enviando disparos imposibles.
@@ -6,6 +6,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Melee = require(ReplicatedStorage.Shared.Config.Melee)
 local Vehicles = require(ReplicatedStorage.Shared.Config.Vehicles)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local HealthService = require(script.Parent.HealthService)
@@ -17,6 +18,7 @@ local fireTurret = remotes.FireTurret :: RemoteEvent
 local reloadWeapon = remotes.ReloadWeapon :: RemoteEvent
 local shotFired = remotes.ShotFired :: RemoteEvent
 local hitConfirmed = remotes.HitConfirmed :: RemoteEvent
+local meleeRemote = remotes.Melee :: RemoteEvent
 
 local MAX_ORIGIN_DISTANCE = 10 -- studs permitidos entre la cabeza y el origen del disparo
 local FIRE_RATE_TOLERANCE = 0.8 -- acepta disparos un poco más seguidos por la latencia de la red
@@ -26,6 +28,7 @@ local CombatService = {}
 local lastShot: { [Player]: number } = {}
 local lastTurretShot: { [Player]: number } = {}
 local reloading: { [Player]: boolean } = {}
+local lastMelee: { [Player]: number } = {}
 
 -- Devuelve el arma que el jugador tiene en la mano y sus datos de Config/Weapons
 local function getEquippedWeapon(player: Player): (Tool?, any)
@@ -56,7 +59,22 @@ local function isEnemy(shooter: Player, target: Player?): boolean
 	return shooter.Team ~= target.Team
 end
 
+-- ¿La pieza es la cabeza? También cuenta un sombrero o gorro (un Accessory)
+-- pegado a la cabeza, para que el gorro no "proteja" del tiro a la cabeza
+local function isHeadPart(part: BasePart): boolean
+	if part.Name == "Head" then
+		return true
+	end
+	if part.Parent and part.Parent:IsA("Accessory") then
+		local weld = part:FindFirstChild("AccessoryWeld") :: Weld?
+		local attachedTo = weld and weld.Part1
+		return attachedTo ~= nil and attachedTo.Name == "Head"
+	end
+	return false
+end
+
 -- Aplica el daño de un impacto (a un jeep o a un personaje enemigo) y avisa al tirador
+-- para que su mira cambie de color: "hit" en el cuerpo o en un jeep, "head" en la cabeza
 local function applyHit(attacker: Player, result: RaycastResult, damage: number, headshotMultiplier: number?)
 	local model = result.Instance:FindFirstAncestorOfClass("Model")
 	if not model then
@@ -65,7 +83,7 @@ local function applyHit(attacker: Player, result: RaycastResult, damage: number,
 	local vehicle = VehicleService.GetVehicle(result.Instance)
 	if vehicle then
 		if VehicleService.Damage(vehicle, damage, attacker, result.Instance :: BasePart) then
-			hitConfirmed:FireClient(attacker) -- la mira del tirador se pone roja
+			hitConfirmed:FireClient(attacker, "hit")
 		end
 		return
 	end
@@ -73,11 +91,12 @@ local function applyHit(attacker: Player, result: RaycastResult, damage: number,
 	if not targetHumanoid or not isEnemy(attacker, Players:GetPlayerFromCharacter(model)) then
 		return
 	end
-	if result.Instance.Name == "Head" and headshotMultiplier then
-		damage *= headshotMultiplier
+	local headshot = headshotMultiplier ~= nil and isHeadPart(result.Instance :: BasePart)
+	if headshot then
+		damage *= headshotMultiplier :: number
 	end
 	HealthService.Damage(targetHumanoid, damage, attacker)
-	hitConfirmed:FireClient(attacker)
+	hitConfirmed:FireClient(attacker, if headshot then "head" else "hit")
 end
 
 local function onFire(player: Player, origin: any, direction: any)
@@ -174,7 +193,7 @@ local function onFireTurret(player: Player, direction: any)
 	local result = workspace:Raycast(origin, ray, params)
 	shotFired:FireAllClients(origin, if result then result.Position else origin + ray)
 	if result then
-		applyHit(player, result, turret.damage)
+		applyHit(player, result, turret.damage, turret.headshotMultiplier)
 	end
 end
 
@@ -191,13 +210,74 @@ local function onReload(player: Player)
 	reloading[player] = nil
 end
 
+-- Golpe cuerpo a cuerpo: busca al enemigo más cercano justo delante del jugador.
+-- Si lo golpeas por la espalda (él mira hacia el mismo lado que tú), muere de un golpe.
+local function onMelee(player: Player)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not humanoid or not root or humanoid.Health <= 0 or humanoid.SeatPart then
+		return
+	end
+	local now = os.clock()
+	if now - (lastMelee[player] or 0) < Melee.cooldown * FIRE_RATE_TOLERANCE then
+		return
+	end
+	lastMelee[player] = now
+
+	-- Si lleva un arma en la mano, Roblox reproduce la animación de "estocada"
+	local tool = (character :: Model):FindFirstChildOfClass("Tool")
+	if tool then
+		local anim = Instance.new("StringValue")
+		anim.Name = "toolanim"
+		anim.Value = "Lunge"
+		anim.Parent = tool
+	end
+
+	-- Una esfera invisible delante del pecho: ¿qué piezas toca?
+	local params = OverlapParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { character :: Model }
+	local center = root.Position + root.CFrame.LookVector * (Melee.range / 2)
+	local parts = workspace:GetPartBoundsInRadius(center, Melee.range / 2, params)
+
+	local target: Humanoid? = nil
+	local targetRoot: BasePart? = nil
+	local closest = math.huge
+	for _, part in parts do
+		local model = part:FindFirstAncestorOfClass("Model")
+		local otherHumanoid = model and model:FindFirstChildOfClass("Humanoid")
+		local otherRoot = model and model:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if otherHumanoid and otherRoot and otherHumanoid.Health > 0 then
+			if isEnemy(player, Players:GetPlayerFromCharacter(model)) then
+				local distance = (otherRoot.Position - root.Position).Magnitude
+				if distance < closest then
+					closest = distance
+					target = otherHumanoid
+					targetRoot = otherRoot
+				end
+			end
+		end
+	end
+	if not target or not targetRoot then
+		return
+	end
+
+	local toTarget = (targetRoot.Position - root.Position).Unit
+	local backstab = targetRoot.CFrame.LookVector:Dot(toTarget) > 0.5
+	HealthService.Damage(target, if backstab then Melee.backstabDamage else Melee.damage, player)
+	hitConfirmed:FireClient(player, if backstab then "head" else "hit")
+end
+
 function CombatService.Start()
 	fireWeapon.OnServerEvent:Connect(onFire)
 	fireTurret.OnServerEvent:Connect(onFireTurret)
 	reloadWeapon.OnServerEvent:Connect(onReload)
+	meleeRemote.OnServerEvent:Connect(onMelee)
 	Players.PlayerRemoving:Connect(function(player)
 		lastShot[player] = nil
 		lastTurretShot[player] = nil
+		lastMelee[player] = nil
 		reloading[player] = nil
 	end)
 end
