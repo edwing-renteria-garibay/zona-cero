@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local Teams = game:GetService("Teams")
 
 local Services = script.Services
+local AssaultService = require(Services.AssaultService)
 local CombatService = require(Services.CombatService)
 local FlagService = require(Services.FlagService)
 local HealthService = require(Services.HealthService)
@@ -32,6 +33,7 @@ end
 local map = MapService.Build()
 PickupService.Start(map)
 FlagService.Setup(map)
+AssaultService.Setup(map)
 HillService.Setup(map)
 LoadoutService.Start()
 InfectionService.Start()

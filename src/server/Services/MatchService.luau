@@ -1,7 +1,8 @@
 -- Ciclo de partida: esperar jugadores, cuenta regresiva, jugar, mostrar ganador.
 -- Modos: Team Slayer (puntos por bajas), Asesino en solitario (todos contra todos, gana el
 -- primer jugador en llegar a las bajas), Captura la bandera (puntos por capturas), Rey de la
--- colina (puntos por segundo en la colina) e Infección (zombis contra sobrevivientes).
+-- colina (puntos por segundo en la colina), Infección (zombis contra sobrevivientes) y Asalto
+-- (puntos por bomba detonada).
 --
 -- El estado de la partida se guarda en atributos de ReplicatedStorage para que la pantalla
 -- de cada jugador lo lea (también quien entra a mitad de partida):
@@ -18,6 +19,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Teams = game:GetService("Teams")
 
 local Modes = require(ReplicatedStorage.Shared.Config.Modes)
+local AssaultService = require(script.Parent.AssaultService)
 local FlagService = require(script.Parent.FlagService)
 local HealthService = require(script.Parent.HealthService)
 local HillService = require(script.Parent.HillService)
@@ -197,7 +199,10 @@ local function chooseMode(): string
 		warn("[Match] No existe el modo", name, "- juego TeamSlayer")
 		name = "TeamSlayer"
 	end
-	if name == "CaptureTheFlag" and not FlagService.HasFlags() then
+	if
+		(name == "CaptureTheFlag" and not FlagService.HasFlags())
+		or (name == "Assault" and not AssaultService.HasBases())
+	then
 		warn("[Match] El mapa no tiene bases de bandera - juego TeamSlayer")
 		name = "TeamSlayer"
 	end
@@ -337,6 +342,13 @@ function MatchService.Run()
 				end
 			end)
 		end
+		if rules.scoreBy == "bombs" then
+			AssaultService.Begin(rules, function(team)
+				if running then
+					setScore(team, scores[team] + 1)
+				end
+			end)
+		end
 		if rules.scoreBy == "captures" then
 			FlagService.Begin(function(_player, team)
 				if running then
@@ -361,6 +373,7 @@ function MatchService.Run()
 		FlagService.Stop()
 		HillService.Stop()
 		InfectionService.Stop()
+		AssaultService.Stop()
 		setPhase("Ended")
 		broadcast("Ended", buildResults(rules, winningSide))
 		task.wait(common.resultsTime)
