@@ -14,7 +14,8 @@ export type Blast = {
 	innerRadius: number, -- studs con daño completo
 	radius: number, -- studs hasta donde llega el daño (0 en el borde)
 	vehicleDamage: number?, -- daño máximo a un jeep (si no se indica, el mismo que a un jugador)
-	sound: string?, -- qué sonido de Sounds.explosion usar ("rocket", "grenade" o "jeep")
+	sound: string?, -- qué sonido de Sounds.explosion usar ("rocket", "grenade" o "jeep");
+	-- también es la causa de muerte en el registro de bajas
 }
 
 -- Un jugador al que le llegó la explosión (para avisar al atacante)
@@ -74,8 +75,12 @@ function ExplosionService.Blast(center: Vector3, attacker: Player?, blast: Blast
 		if humanoid and root and not teammate then
 			local distance = (root.Position - center).Magnitude
 			if distance < blast.radius then
-				local toShield, toHealth =
-					HealthService.Damage(humanoid, ExplosionService.DamageAt(blast, distance), attacker)
+				local toShield, toHealth = HealthService.Damage(
+					humanoid,
+					ExplosionService.DamageAt(blast, distance),
+					attacker,
+					blast.sound or "rocket"
+				)
 				if toShield + toHealth > 0 then
 					table.insert(hits, {
 						player = player,

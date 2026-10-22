@@ -13,12 +13,16 @@ local REGEN_RATE = MAX_SHIELD / REGEN_TIME -- puntos de escudo por segundo
 
 local HealthService = {}
 
--- Se dispara cuando alguien muere: (victima: Player, asesino: Player?)
+-- Se dispara cuando alguien muere: (victima: Player, asesino: Player?, causa: string?, cabeza: boolean)
+-- causa es con qué fue el último golpe: el nombre del arma, "Turret", "Melee", "Backstab",
+-- "rocket", "grenade" o "jeep". cabeza es true si ese golpe fue un tiro a la cabeza.
 local killedEvent = Instance.new("BindableEvent")
 HealthService.Killed = killedEvent.Event
 
 local lastHit: { [Humanoid]: number } = {}
 local lastAttacker: { [Humanoid]: Player? } = {}
+local lastCause: { [Humanoid]: string? } = {}
+local lastHeadshot: { [Humanoid]: boolean } = {}
 
 function HealthService.SetupCharacter(player: Player, character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
@@ -33,20 +37,31 @@ function HealthService.SetupCharacter(player: Player, character: Model)
 	lastHit[humanoid] = 0
 
 	humanoid.Died:Connect(function()
-		killedEvent:Fire(player, lastAttacker[humanoid])
+		killedEvent:Fire(player, lastAttacker[humanoid], lastCause[humanoid], lastHeadshot[humanoid] == true)
 		lastHit[humanoid] = nil
 		lastAttacker[humanoid] = nil
+		lastCause[humanoid] = nil
+		lastHeadshot[humanoid] = nil
 	end)
 end
 
--- Devuelve cuánto daño se llevó el escudo y cuánto la vida (0, 0 si no se pudo dañar)
-function HealthService.Damage(humanoid: Humanoid, amount: number, attacker: Player?): (number, number)
+-- Devuelve cuánto daño se llevó el escudo y cuánto la vida (0, 0 si no se pudo dañar).
+-- cause y headshot sirven para el registro de bajas (ver Killed arriba)
+function HealthService.Damage(
+	humanoid: Humanoid,
+	amount: number,
+	attacker: Player?,
+	cause: string?,
+	headshot: boolean?
+): (number, number)
 	local character = humanoid.Parent :: Model
 	if humanoid.Health <= 0 or character:GetAttribute("SpawnProtected") then
 		return 0, 0
 	end
 	lastHit[humanoid] = os.clock()
 	lastAttacker[humanoid] = attacker
+	lastCause[humanoid] = cause
+	lastHeadshot[humanoid] = headshot == true
 
 	local shield = character:GetAttribute("Shield") or 0
 	local absorbed = math.min(shield, amount)

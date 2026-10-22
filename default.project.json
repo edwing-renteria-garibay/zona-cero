@@ -31,6 +31,9 @@
         },
         "ThrowGrenade": {
           "$className": "RemoteEvent"
+        },
+        "KillFeed": {
+          "$className": "RemoteEvent"
         }
       }
     },

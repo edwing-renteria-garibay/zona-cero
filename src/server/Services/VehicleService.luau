@@ -241,7 +241,7 @@ local function explode(model: Model, attacker: Player?)
 	for _, occupant in VehicleService.GetOccupants(model) do
 		local humanoid = occupant.Character and occupant.Character:FindFirstChildOfClass("Humanoid")
 		if humanoid then
-			HealthService.Damage(humanoid, 1000, attacker)
+			HealthService.Damage(humanoid, 1000, attacker, "jeep")
 		end
 	end
 	local center = chassis.Position
