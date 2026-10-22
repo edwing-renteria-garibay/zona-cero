@@ -9,7 +9,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Melee = require(ReplicatedStorage.Shared.Config.Melee)
 local Vehicles = require(ReplicatedStorage.Shared.Config.Vehicles)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
+local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
+local ExplosionService = require(script.Parent.ExplosionService)
 local HealthService = require(script.Parent.HealthService)
+local ProjectileService = require(script.Parent.ProjectileService)
 local VehicleService = require(script.Parent.VehicleService)
 
 local remotes = ReplicatedStorage.Remotes
@@ -185,6 +188,14 @@ local function onFire(player: Player, origin: any, direction: any)
 		table.insert(filter, myVehicle)
 	end
 	params.FilterDescendantsInstances = filter
+
+	-- Armas de proyectil (lanzacohetes): en vez de un raycast, sale un cohete que vuela
+	if stats.projectile then
+		ExplosionService.PlaySoundAt(Sounds.fire[tool.Name], origin)
+		ProjectileService.FireRocket(player, origin, direction, stats, filter)
+		return
+	end
+
 	local ray = direction.Unit * stats.range
 	local result = workspace:Raycast(origin, ray, params)
 	local hitPosition = if result then result.Position else origin + ray

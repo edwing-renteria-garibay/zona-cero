@@ -7,6 +7,7 @@ local Services = script.Services
 local CombatService = require(Services.CombatService)
 local HealthService = require(Services.HealthService)
 local MatchService = require(Services.MatchService)
+local ProjectileService = require(Services.ProjectileService)
 local VehicleService = require(Services.VehicleService)
 
 Players.RespawnTime = 5
@@ -22,6 +23,7 @@ end
 
 CombatService.Start()
 VehicleService.Start()
+ProjectileService.Start()
 
 Players.PlayerAdded:Connect(function(player)
 	-- "leaderstats" es una carpeta especial: Roblox muestra sus valores en la lista de jugadores
@@ -34,6 +36,7 @@ Players.PlayerAdded:Connect(function(player)
 
 	player.CharacterAdded:Connect(function(character)
 		HealthService.SetupCharacter(player, character)
+		ProjectileService.SetupCharacter(character)
 		-- Protección breve al reaparecer
 		character:SetAttribute("SpawnProtected", true)
 		task.delay(2, function()

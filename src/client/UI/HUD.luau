@@ -6,6 +6,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Vehicles = require(ReplicatedStorage.Shared.Config.Vehicles)
+local GrenadeController = require(script.Parent.Parent.Controllers.GrenadeController)
 local VehicleController = require(script.Parent.Parent.Controllers.VehicleController)
 local WeaponController = require(script.Parent.Parent.Controllers.WeaponController)
 
@@ -17,7 +18,7 @@ local function makeLabel(parent: Instance, anchor: Vector2, position: UDim2): Te
 	local label = Instance.new("TextLabel")
 	label.AnchorPoint = anchor
 	label.Position = position
-	label.Size = UDim2.fromOffset(240, 40)
+	label.Size = UDim2.fromOffset(360, 40)
 	label.BackgroundTransparency = 1
 	label.Font = Enum.Font.GothamBold
 	label.TextSize = 24
@@ -44,7 +45,12 @@ function HUD.Start()
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		if humanoid then
 			local shield = math.floor(character:GetAttribute("Shield") or 0)
-			healthLabel.Text = string.format("Escudo %d  ·  Vida %d", shield, math.ceil(humanoid.Health))
+			healthLabel.Text = string.format(
+				"Escudo %d  ·  Vida %d  ·  Granadas %d",
+				shield,
+				math.ceil(humanoid.Health),
+				GrenadeController.GetCount()
+			)
 		else
 			healthLabel.Text = ""
 		end
