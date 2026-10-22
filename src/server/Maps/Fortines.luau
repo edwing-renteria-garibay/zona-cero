@@ -1,15 +1,14 @@
 -- Mapa "Fortines": dos fuertes amurallados, uno frente al otro, con una plaza en medio.
--- Diseño de edwing (SketchUp). Mapa de infantería: aquí no hay jeeps.
+-- Diseño de edwing (SketchUp). Mide 200 × 200 studs. Mapa de infantería: aquí no hay jeeps.
 --
 -- Vista desde arriba del fuerte Rojo (+X). El Azul es el mismo, girado 180°.
 -- "d" es la distancia desde la entrada del fuerte hacia el fondo:
 --
---   d=124  ============================ muro del fondo ============================
---          [spawn]       [spawn]  rampa /plataforma\ rampa  [spawn]       [spawn]
+--   d=80  ============================ muro del fondo ============================
+--         [spawn]        [spawn]  rampa /plataforma\ rampa  [spawn]        [spawn]
 --                                       (bandera, 8)
---   d=86            ================= muro bajo (10) =================
---   d=64  ==========brazo==========                        ==========brazo==========
---   d=40      [  muro de en medio  ]                       [  muro de en medio  ]
+--   d=52  ==========brazo==   ====== muro bajo (10) ======   ==brazo==========
+--   d=26      [  muro de en medio  ]                       [  muro de en medio  ]
 --                                         [granadas]
 --   d=0   |   [   muro de enfrente   ]                 [   muro de enfrente   ]   |
 --         ^ acceso lateral                ^ acceso central                acceso lateral ^
@@ -26,11 +25,12 @@ local PLATE, SANDBAG, WOOD = Builder.PLATE, Builder.SANDBAG, Builder.WOOD
 
 local Fortines = {}
 
--- Medidas principales, en studs
-local PLAZA = 24 -- del centro del mapa a la entrada de cada fuerte (eje X)
-local DEPTH = 124 -- de la entrada al muro del fondo, por dentro
-local INNER = 77 -- del centro a cada muro de los lados, por dentro (eje Z)
-local THICK = 6 -- grosor de los muros de afuera
+-- Medidas principales, en studs. Todo el mapa mide (PLAZA + DEPTH + THICK) * 2 = 200
+-- de largo y (INNER + THICK) * 2 = 200 de ancho.
+local PLAZA = 16 -- del centro del mapa a la entrada de cada fuerte (eje X)
+local DEPTH = 80 -- de la entrada al muro del fondo, por dentro
+local INNER = 96 -- del centro a cada muro de los lados, por dentro (eje Z)
+local THICK = 4 -- grosor de los muros de afuera
 local OUTER_HEIGHT = 20 -- muros de afuera y brazos
 local INNER_HEIGHT = 12 -- muros de dentro
 local LOW_HEIGHT = 10 -- muro bajo frente a la plataforma: desde arriba se ve por encima
@@ -113,41 +113,42 @@ local function buildFort(map: Folder, team)
 			wallBox(half, name, d0, d1, math.min(z0, z1), math.max(z0, z1), height, style)
 		end
 		-- Brazos que salen de los muros de los lados (la "T" del dibujo)
-		box("Arm", 64, 78, 40, INNER, OUTER_HEIGHT, CONCRETE)
-		half.add("TeamStripe", Vector3.new(14.4, 2, 0.4), pos(71, OUTER_HEIGHT - 4, 39.8 * side), half.stripe)
-		-- Muro de enfrente: entre él y el de en medio pasa un pasillo de 12 studs
-		box("FrontWall", 0, 28, 8, 63, INNER_HEIGHT, DARK)
+		box("Arm", 42, 50, 50, INNER, OUTER_HEIGHT, CONCRETE)
+		half.add("TeamStripe", Vector3.new(8.4, 2, 0.4), pos(46, OUTER_HEIGHT - 4, 49.8 * side), half.stripe)
+		-- Muro de enfrente: entre él y el de en medio pasa un pasillo de 10 studs.
+		-- Acceso central de 20 studs (z de -10 a 10) y laterales de 18 (z de 78 a 96)
+		box("FrontWall", 0, 16, 10, 78, INNER_HEIGHT, DARK)
 		-- Muro de en medio
-		box("MiddleWall", 40, 54, 8, 62, INNER_HEIGHT, DARK)
+		box("MiddleWall", 26, 34, 10, 76, INNER_HEIGHT, DARK)
 
-		-- Plataforma del fondo: rampa (de z=38 a z=14), bloque (de 14 a 4) y el puente en medio
-		half.slope("PlatformRamp", pos(106, 0, 38 * side), pos(106, PLATFORM_HEIGHT, 14 * side), 12, PLATE)
-		box("PlatformBlock", 100, 112, 4, 14, PLATFORM_HEIGHT, DARK)
+		-- Plataforma del fondo: rampa (de z=44 a z=18), bloque (de 18 a 5) y el puente en medio
+		half.slope("PlatformRamp", pos(66, 0, 44 * side), pos(66, PLATFORM_HEIGHT, 18 * side), 8, PLATE)
+		box("PlatformBlock", 62, 70, 5, 18, PLATFORM_HEIGHT, DARK)
 
 		-- Puntos de aparición: detrás de la plataforma y en los rincones de los brazos
-		half.spawn(pos(118, 0.5, 26 * side))
-		half.spawn(pos(100, 0.5, 62 * side))
+		half.spawn(pos(75, 0.5, 30 * side))
+		half.spawn(pos(68, 0.5, 76 * side))
 		-- Algo de cobertura en los rincones
-		half.add("Sandbags", Vector3.new(2, 3, 10), pos(90, 1.5, 62 * side), SANDBAG)
-		half.add("Crate", Vector3.new(4, 4, 4), pos(32, 2, 70 * side), WOOD, 20)
+		half.add("Sandbags", Vector3.new(2, 3, 10), pos(58, 1.5, 76 * side), SANDBAG)
+		half.add("Crate", Vector3.new(4, 4, 4), pos(21, 2, 88 * side), WOOD, 20)
 	end
 
 	-- Muro bajo frente a la plataforma
-	wallBox(half, "LowWall", 86, 92, -46, 46, LOW_HEIGHT, DARK)
-	-- Puente de la plataforma: por abajo queda un paso de 8 studs de ancho y 7 de alto
-	half.add("PlatformBridge", Vector3.new(12, 1, 8), pos(106, PLATFORM_HEIGHT - 0.5, 0), DARK)
+	wallBox(half, "LowWall", 52, 56, -48, 48, LOW_HEIGHT, DARK)
+	-- Puente de la plataforma: por abajo queda un paso de 10 studs de ancho y 7 de alto
+	half.add("PlatformBridge", Vector3.new(8, 1, 10), pos(66, PLATFORM_HEIGHT - 0.5, 0), DARK)
 	-- Base de la bandera, arriba del puente (para Captura la bandera)
 	local flagStand =
-		half.add("FlagStand", Vector3.new(4, 0.2, 4), pos(106, PLATFORM_HEIGHT + 0.1, 0), half.stripe)
+		half.add("FlagStand", Vector3.new(4, 0.2, 4), pos(66, PLATFORM_HEIGHT + 0.1, 0), half.stripe)
 	flagStand.Material = Enum.Material.Neon
 	flagStand:SetAttribute("Team", team.name)
 
 	-- Cobertura en la plaza, del lado de este fuerte
-	half.add("Sandbags", Vector3.new(2, 3, 12), pos(-10, 1.5, 30), SANDBAG)
-	half.add("Barrier", Vector3.new(2, 3.5, 8), pos(-14, 1.75, -48), CONCRETE, 20)
+	half.add("Sandbags", Vector3.new(2, 3, 12), pos(-8, 1.5, 30), SANDBAG)
+	half.add("Barrier", Vector3.new(2, 3.5, 8), pos(-11, 1.75, -55), CONCRETE, 20)
 
 	-- Granadas en el cruce del pasillo central, entre los muros de enfrente y los de en medio
-	half.pickup("GrenadePad", pos(34, 0.2, 0), "Pickup", "Grenades")
+	half.pickup("GrenadePad", pos(21, 0.2, 0), "Pickup", "Grenades")
 end
 
 -- Construye todo el mapa dentro de la carpeta map

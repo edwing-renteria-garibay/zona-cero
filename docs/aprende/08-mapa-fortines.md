@@ -1,6 +1,6 @@
 # Aprende: el mapa Fortines y cómo elegir mapa
 
-**Fortines** es el segundo mapa, hecho a partir del diseño de edwing en SketchUp: dos fuertes amurallados, uno frente al otro, con una plaza en medio. Cada fuerte tiene tres accesos (dos laterales y uno central), muros por dentro para cubrirse y, al fondo, una plataforma con rampas y un puente. Arriba del puente está la base de la bandera para el futuro modo Captura la bandera.
+**Fortines** es el segundo mapa (200 × 200 studs), hecho a partir del diseño de edwing en SketchUp: dos fuertes amurallados, uno frente al otro, con una plaza en medio. Cada fuerte tiene tres accesos (dos laterales y uno central), muros por dentro para cubrirse y, al fondo, una plataforma con rampas y un puente. Arriba del puente está la base de la bandera para el futuro modo Captura la bandera.
 
 ## 1. Elegir el mapa
 
@@ -30,7 +30,7 @@ Para hacer un mapa nuevo: copia `Fortines.luau` con otro nombre (por ejemplo `De
 
 En `Fortines.luau` las piezas se colocan con `pos(d, y, z)`:
 
-- **d**: distancia desde la entrada del fuerte hacia el fondo (0 = la entrada, 124 = el muro del fondo).
+- **d**: distancia desde la entrada del fuerte hacia el fondo (0 = la entrada, 80 = el muro del fondo).
 - **y**: altura.
 - **z**: hacia los lados (0 = el pasillo central).
 
@@ -51,6 +51,6 @@ Un personaje salta unos 7 studs, así que no puede subirse a los muros de dentro
 
 ## 5. Prueba a cambiar cosas
 
-- Cambia `PLAZA` a 40 para separar más los fuertes.
+- Cambia `PLAZA` a 30 para separar más los fuertes (el mapa crece de largo).
 - Cambia `LOW_HEIGHT` a 6 para que el muro bajo sea solo una cobertura.
-- Mueve las granadas: busca `GrenadePad` y cambia `pos(34, 0.2, 0)`.
+- Mueve las granadas: busca `GrenadePad` y cambia `pos(21, 0.2, 0)`.
