@@ -23,6 +23,8 @@ local Modes = {
 		hillRadius = 16, -- radio de la colina en studs (32 de ancho)
 		moveEvery = 60, -- segundos antes de que la colina cambie de lugar (0 = no se mueve)
 		minSpawnDistance = 40, -- qué tan lejos de cualquier punto de aparición debe quedar
+		minMoveDistance = 120, -- al moverse, qué tan lejos debe quedar de los lugares anteriores
+		rememberSpots = 2, -- cuántos lugares anteriores evita (así no regresa a la misma zona)
 	},
 }
 

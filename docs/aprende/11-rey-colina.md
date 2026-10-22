@@ -22,6 +22,8 @@ En casi todos los juegos la colina está en el centro. Aquí aparece en **un lug
 2. **Lejos de los spawns.** Debe quedar a más de `minSpawnDistance` (40 studs) de cualquier punto de aparición.
 3. **Se puede llegar.** `PathfindingService` busca un camino caminando desde un spawn de cada equipo. Si no hay camino (por ejemplo, encima de un muro o de un techo), el lugar no sirve.
 
+4. **En otra zona.** Al moverse, el nuevo lugar debe quedar a más de `minMoveDistance` (120 studs) de los últimos `rememberSpots` (2) lugares de la colina. Así, si salió en el cuarto este, la siguiente sale en otro lado del mapa.
+
 Si en 150 intentos no encuentra nada, la pone en el centro.
 
 ## 3. Elegir el modo

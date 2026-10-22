@@ -178,8 +178,20 @@ local function mapBounds(mapRoot: Instance): { number }
 	return bounds
 end
 
--- Busca un lugar al azar que cumpla todo; si no encuentra, regresa el centro del mapa
-local function chooseSpot(previous: Vector3?): Vector3
+-- ¿Está lejos de los lugares donde estuvo la colina hace poco?
+local function farFromRecent(spot: Vector3, recent: { Vector3 }): boolean
+	for _, old in recent do
+		local flat = Vector3.new(spot.X - old.X, 0, spot.Z - old.Z)
+		if flat.Magnitude < rules.minMoveDistance then
+			return false
+		end
+	end
+	return true
+end
+
+-- Busca un lugar al azar que cumpla todo; si no encuentra, regresa el centro del mapa.
+-- recent: los últimos lugares de la colina, para que la nueva salga en otra zona del mapa
+local function chooseSpot(recent: { Vector3 }): Vector3
 	local mapRoot = map :: Instance
 	local spawns: { SpawnLocation } = {}
 	for _, item in mapRoot:GetDescendants() do
@@ -203,13 +215,17 @@ local function chooseSpot(previous: Vector3?): Vector3
 	end
 
 	local bounds = mapBounds(mapRoot)
-	for _ = 1, MAX_TRIES do
-		local x = bounds[1] + math.random() * (bounds[2] - bounds[1])
-		local z = bounds[3] + math.random() * (bounds[4] - bounds[3])
-		local spot = tryPlace(x, z, ignore, spawns)
-		local farFromLast = not previous or (spot and (spot - previous).Magnitude > rules.hillRadius * 4)
-		if spot and farFromLast and reachable(spot, spawns) then
-			return spot
+	-- Primero se exige que esté lejos de los lugares recientes; si el mapa es muy chico y no
+	-- se encuentra, se intenta de nuevo solo lejos del último
+	for pass = 1, 2 do
+		local avoid = if pass == 1 then recent else { recent[#recent] }
+		for _ = 1, MAX_TRIES do
+			local x = bounds[1] + math.random() * (bounds[2] - bounds[1])
+			local z = bounds[3] + math.random() * (bounds[4] - bounds[3])
+			local spot = tryPlace(x, z, ignore, spawns)
+			if spot and farFromRecent(spot, avoid) and reachable(spot, spawns) then
+				return spot
+			end
 		end
 	end
 	warn("[Hill] No encontré un lugar al azar; pongo la colina en el centro")
@@ -268,7 +284,8 @@ function HillService.Begin(score: (Team, number) -> ())
 	running += 1
 	local myRun = running
 	task.spawn(function()
-		local spot = chooseSpot(nil)
+		local spot = chooseSpot({})
+		local recent = { spot } -- los últimos lugares, del más viejo al más nuevo
 		if myRun ~= running then
 			return
 		end
@@ -299,9 +316,13 @@ function HillService.Begin(score: (Team, number) -> ())
 			end
 			-- La colina se mueve a otro lugar al azar
 			if rules.moveEvery > 0 and os.clock() - placedAt >= rules.moveEvery then
-				spot = chooseSpot(spot)
+				spot = chooseSpot(recent)
 				if myRun ~= running then
 					break
+				end
+				table.insert(recent, spot)
+				if #recent > rules.rememberSpots then
+					table.remove(recent, 1)
 				end
 				placeZone(spot)
 				placedAt = os.clock()
