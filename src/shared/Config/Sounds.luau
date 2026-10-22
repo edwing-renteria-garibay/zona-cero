@@ -10,7 +10,7 @@ return {
 		AssaultRifle = "rbxassetid://128799811976358",
 		Pistol = "rbxassetid://127604219525464",
 		Turret = "rbxassetid://138382899505069",
-		RocketLauncher = "", -- aún sin elegir
+		RocketLauncher = "rbxassetid://123619882242196",
 	},
 	-- Armas cuyo audio es una ráfaga larga y no un solo disparo: el audio se repite
 	-- mientras disparas y se corta al soltar el gatillo, en vez de sonar entero cada bala
@@ -26,9 +26,13 @@ return {
 	-- Aviso de acierto: solo lo oye quien dispara
 	hit = "rbxasset://sounds/electronicpingshort.wav",
 	headshot = "rbxassetid://93187250058836",
-	-- Explosiones (jeep, cohete y granada) y el lanzamiento de una granada
-	explosion = "", -- aún sin elegir
-	grenadeThrow = "", -- aún sin elegir
+	-- Explosiones: cada una con su sonido (el jeep usa el del cohete)
+	explosion = {
+		rocket = "rbxassetid://134201956270955",
+		grenade = "rbxassetid://87630300241395",
+		jeep = "rbxassetid://134201956270955",
+	},
+	grenadeThrow = "rbxassetid://118254779238351",
 	-- Clic al intentar disparar sin balas (todas las armas y la torreta)
 	empty = "rbxassetid://136205387185309",
 }

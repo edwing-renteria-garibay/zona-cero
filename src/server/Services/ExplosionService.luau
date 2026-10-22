@@ -14,6 +14,7 @@ export type Blast = {
 	innerRadius: number, -- studs con daño completo
 	radius: number, -- studs hasta donde llega el daño (0 en el borde)
 	vehicleDamage: number?, -- daño máximo a un jeep (si no se indica, el mismo que a un jugador)
+	sound: string?, -- qué sonido de Sounds.explosion usar ("rocket", "grenade" o "jeep")
 }
 
 -- Un jugador al que le llegó la explosión (para avisar al atacante)
@@ -58,7 +59,7 @@ function ExplosionService.Blast(center: Vector3, attacker: Player?, blast: Blast
 	explosion.BlastPressure = 0
 	explosion.DestroyJointRadiusPercent = 0
 	explosion.Parent = workspace
-	ExplosionService.PlaySoundAt(Sounds.explosion, center)
+	ExplosionService.PlaySoundAt(Sounds.explosion[blast.sound or "rocket"], center)
 
 	local hits: { BlastHit } = {}
 	for _, player in Players:GetPlayers() do

@@ -41,17 +41,20 @@ Como usa el mismo arma, cadencia y munición que el rifle, `CombatService.onFire
 
 ## 3. La granada: física de verdad
 
-La granada sí usa la física de Roblox: una bola con velocidad inicial (`AssemblyLinearVelocity`) que cae, rebota y rueda. `CustomPhysicalProperties` controla cuánto pesa, cuánto rebota y cuánto frena.
+La granada sí usa la física de Roblox: una bola con velocidad inicial (`AssemblyLinearVelocity`) que vuela en arco y cae.
+
+Explota al chocar con algo. El evento `Touched` avisa cuando la granada toca otra pieza; se ignoran las piezas de quien la lanzó, porque sale de su mano. Si no toca nada, explota sola cuando se acaba la mecha.
 
 `grenade:SetNetworkOwner(nil)` hace que el servidor calcule su física. Si no, Roblox le daría el control al cliente más cercano, y cada jugador podría verla en un lugar un poco distinto.
 
-`task.delay(fuse, ...)` es la mecha: pasados 2.5 segundos, la granada explota donde esté.
+`task.delay(fuse, ...)` es la mecha: pasados 1.5 segundos, la granada explota donde esté. La variable `exploded` evita que explote dos veces (por el choque y por la mecha).
+
+Cada explosión elige su sonido con el campo `sound` de su `blast`: `"rocket"`, `"grenade"` o `"jeep"` (en `Config/Sounds.luau`).
 
 Las granadas que te quedan se guardan en el atributo `Grenades` de tu personaje. Al reaparecer vuelves a tener 2.
 
 ## 4. Prueba a cambiar cosas
 
 - Sube `speed` del lanzacohetes a 300 y verás que ya casi no se puede esquivar.
-- Cambia `fuse` de la granada a 1 para que explote casi al tocar el suelo.
+- Cambia `fuse` de la granada a 3 y lánzala al cielo: tardará más en explotar.
 - Dale `count = 4` en `Grenades.luau` para tener más granadas.
-- Pon la elasticidad de la granada (el tercer número de `PhysicalProperties.new`) en 0.8 para que rebote como pelota.

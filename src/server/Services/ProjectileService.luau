@@ -3,7 +3,7 @@
 --
 -- Cohete: el servidor lo mueve en cada paso de la simulación (Heartbeat) y hace un
 -- raycast corto desde donde está hasta donde va a estar. Si toca algo, explota ahí.
--- Granada: una bola con física real de Roblox; rebota y explota cuando se acaba la mecha.
+-- Granada: una bola con física real de Roblox; explota al chocar con algo o al acabarse la mecha.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -111,8 +111,6 @@ local function onThrowGrenade(player: Player, direction: any)
 	grenade.Size = Vector3.one * 0.8
 	grenade.Color = Color3.fromRGB(60, 70, 45)
 	grenade.Material = Enum.Material.Metal
-	-- Pesada, con algo de rebote y bastante fricción para que no ruede demasiado lejos
-	grenade.CustomPhysicalProperties = PhysicalProperties.new(2, 0.8, 0.3)
 	grenade.CFrame = CFrame.new(head.Position + aim * 2)
 	-- Un poco hacia arriba, para que haga un arco
 	grenade.AssemblyLinearVelocity = aim * Grenades.throwSpeed + Vector3.new(0, 12, 0)
@@ -125,13 +123,24 @@ local function onThrowGrenade(player: Player, direction: any)
 	grenade:SetNetworkOwner(nil)
 	ExplosionService.PlaySoundAt(Sounds.grenadeThrow, head.Position)
 
-	task.delay(Grenades.fuse, function()
-		if grenade.Parent then
-			local position = grenade.Position
-			grenade:Destroy()
-			explodeAt(position, player, Grenades.blast)
+	-- Explota una sola vez: al chocar con algo o al acabarse la mecha, lo que pase primero
+	local exploded = false
+	local function detonate()
+		if exploded or not grenade.Parent then
+			return
+		end
+		exploded = true
+		local position = grenade.Position
+		grenade:Destroy()
+		explodeAt(position, player, Grenades.blast)
+	end
+	-- Touched se dispara al chocar; se ignora a quien la lanzó (sale de su mano)
+	grenade.Touched:Connect(function(other: BasePart)
+		if not other:IsDescendantOf(character :: Model) then
+			detonate()
 		end
 	end)
+	task.delay(Grenades.fuse, detonate)
 end
 
 -- Cada vida empieza con las granadas de Config/Grenades

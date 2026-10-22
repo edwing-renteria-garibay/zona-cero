@@ -14,7 +14,7 @@ Documento de diseño: https://claude.ai/artifact/Db9y3BWdNtESCJbiRrMR1z
 - Pistola tipo Desert Eagle; más daño en la cabeza que en el cuerpo en todas las armas
 - Golpe cuerpo a cuerpo con **F** (o botón en móvil); por la espalda mata de un golpe
 - Lanzacohetes (tecla **3**): el cohete vuela y explota; un impacto directo mata y dos destruyen un jeep
-- Granadas con **G** (2 por vida): rebotan y explotan a los 2.5 s
+- Granadas con **G** (2 por vida): explotan al chocar con algo, o a los 1.5 s
 - Jeep con torreta: conductor (W/A/S/D), artillero con ametralladora y pasajero; llantas que se ponchan, barra de vida, se destruye y reaparece
 - Configuración de armas, vehículos y modos en `src/shared/Config/`
 

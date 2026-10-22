@@ -41,6 +41,7 @@ local Weapons = {
 			innerRadius = 4,
 			radius = 14,
 			vehicleDamage = 350,
+			sound = "rocket",
 		},
 	},
 }

@@ -232,6 +232,7 @@ local jeepBlast: ExplosionService.Blast = {
 	damage = stats.blastDamage,
 	innerRadius = stats.blastInnerRadius,
 	radius = stats.blastRadius,
+	sound = "jeep",
 }
 
 local function explode(model: Model, attacker: Player?)
