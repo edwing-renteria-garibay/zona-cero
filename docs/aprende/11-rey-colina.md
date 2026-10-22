@@ -13,7 +13,12 @@ En casi todos los juegos la colina está en el centro. Aquí aparece en **un lug
 
 `HillService.luau` prueba lugares al azar dentro del mapa hasta encontrar uno que cumpla:
 
-1. **Piso plano y abierto.** Lanza un rayo hacia abajo en el centro y 8 más alrededor de la orilla, a `hillRadius` de distancia. Todos deben chocar con piso a la misma altura, así la colina no queda pegada a un muro ni encima de una columna.
+1. **Piso plano y abierto, al aire libre o en un túnel.** Busca todos los pisos que hay en ese punto, de arriba hacia abajo, así también encuentra los de dentro de los túneles. Luego revisa:
+   - que haya espacio para estar de pie;
+   - que hacia los 8 lados no haya un muro cerca;
+   - que el piso siga a la misma altura.
+
+   La colina puede rozar paredes. Quien esté del otro lado de un muro no cuenta como dentro.
 2. **Lejos de los spawns.** Debe quedar a más de `minSpawnDistance` (40 studs) de cualquier punto de aparición.
 3. **Se puede llegar.** `PathfindingService` busca un camino caminando desde un spawn de cada equipo. Si no hay camino (por ejemplo, encima de un muro o de un techo), el lugar no sirve.
 

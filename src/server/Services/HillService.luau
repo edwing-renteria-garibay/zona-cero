@@ -1,8 +1,9 @@
 -- La colina del modo Rey de la colina.
 --
 -- En lugar de estar siempre en el centro, la colina aparece en un lugar al azar del mapa
--- y se mueve cada moveEvery segundos. Para que sea justa, un lugar solo sirve si:
---   * es piso plano y abierto (cabe la colina completa y no queda pegada a un muro),
+-- y se mueve cada moveEvery segundos. Puede salir al aire libre o dentro de un túnel.
+-- Para que sea justa, un lugar solo sirve si:
+--   * es piso plano y abierto, con espacio para estar de pie (la colina puede rozar paredes),
 --   * no está demasiado cerca de los puntos de aparición de ningún equipo,
 --   * se puede llegar caminando desde la base de los dos equipos (lo revisa
 --     PathfindingService, el mismo sistema que usan los personajes que caminan solos).
@@ -69,25 +70,63 @@ local function buildZone(): (Part, TextLabel)
 	return part, text
 end
 
-local function rayDown(origin: Vector3, ignore: { Instance }): RaycastResult?
+local function cast(origin: Vector3, direction: Vector3, ignore: { Instance }): RaycastResult?
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = ignore
-	return workspace:Raycast(origin, Vector3.new(0, -200, 0), params)
+	return workspace:Raycast(origin, direction, params)
+end
+
+local function rayDown(origin: Vector3, ignore: { Instance }): RaycastResult?
+	return cast(origin, Vector3.new(0, -200, 0), ignore)
+end
+
+-- Todos los pisos que hay en una columna (x, z), de arriba hacia abajo: así también se
+-- encuentran los pisos que están bajo un techo, como los túneles. Un rayo que empieza
+-- dentro de una pieza no choca con ella, así que se sigue bajando desde cada choque.
+local function floorsAt(x: number, z: number, ignore: { Instance }): { Vector3 }
+	local floors = {}
+	local origin = Vector3.new(x, 150, z)
+	for _ = 1, 6 do
+		local hit = rayDown(origin, ignore)
+		if not hit then
+			break
+		end
+		if hit.Normal.Y > 0.7 then -- una superficie de piso (no la pared de una rampa)
+			table.insert(floors, hit.Position)
+		end
+		origin = hit.Position - Vector3.new(0, 0.05, 0)
+	end
+	return floors
 end
 
 -- ¿Este lugar sirve para la colina? Devuelve el punto sobre el piso, o nil
 local function tryPlace(x: number, z: number, ignore: { Instance }, spawns: { SpawnLocation }): Vector3?
-	local hit = rayDown(Vector3.new(x, 150, z), ignore)
-	if not hit then
+	local floors = floorsAt(x, z, ignore)
+	if #floors == 0 then
 		return nil
 	end
-	local center = hit.Position
-	-- Piso plano y abierto: alrededor de la orilla el piso debe estar a la misma altura
+	local center = floors[math.random(#floors)]
+	local chest = center + Vector3.new(0, 3, 0)
+	-- Espacio para estar de pie: nada encima en los primeros 6 studs. Esto también descarta
+	-- un "piso" que quedó enterrado dentro de un bloque macizo.
+	local overlap = OverlapParams.new()
+	overlap.FilterType = Enum.RaycastFilterType.Exclude
+	overlap.FilterDescendantsInstances = ignore
+	local standingRoom = CFrame.new(center + Vector3.new(0, 3.5, 0))
+	if #workspace:GetPartBoundsInBox(standingRoom, Vector3.new(2, 6, 2), overlap) > 0 then
+		return nil
+	end
+	-- Piso plano y abierto alrededor: hacia cada lado no hay muro cerca y el piso sigue a
+	-- la misma altura. Basta con la mitad del radio: la colina puede rozar paredes, así
+	-- también cabe en túneles y pasillos.
 	for i = 0, 7 do
 		local angle = i * math.pi / 4
-		local edge = center + Vector3.new(math.cos(angle), 0, math.sin(angle)) * rules.hillRadius
-		local edgeHit = rayDown(Vector3.new(edge.X, center.Y + ZONE_HEIGHT, edge.Z), ignore)
+		local offset = Vector3.new(math.cos(angle), 0, math.sin(angle)) * rules.hillRadius * 0.5
+		if cast(chest, offset, ignore) then
+			return nil
+		end
+		local edgeHit = rayDown(chest + offset, ignore)
 		if not edgeHit or math.abs(edgeHit.Position.Y - center.Y) > 1.5 then
 			return nil
 		end
@@ -187,6 +226,12 @@ end
 -- ¿Quiénes están dentro? Devuelve los equipos que tienen al menos un jugador vivo adentro
 local function teamsInside(spot: Vector3): { Team }
 	local found: { [Team]: boolean } = {}
+	local sightIgnore: { Instance } = { zone :: Part }
+	for _, player in Players:GetPlayers() do
+		if player.Character then
+			table.insert(sightIgnore, player.Character)
+		end
+	end
 	for _, player in Players:GetPlayers() do
 		local character = player.Character
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -194,8 +239,13 @@ local function teamsInside(spot: Vector3): { Team }
 		if player.Team and humanoid and humanoid.Health > 0 and root then
 			local offset = root.Position - spot
 			local flat = Vector3.new(offset.X, 0, offset.Z).Magnitude
+			-- Dentro del círculo y sin un muro de por medio (la colina puede rozar paredes:
+			-- quien está del otro lado de un muro no cuenta)
 			if flat <= rules.hillRadius and offset.Y > -2 and offset.Y < ZONE_HEIGHT then
-				found[player.Team] = true
+				local eye = spot + Vector3.new(0, 3, 0)
+				if not cast(eye, root.Position - eye, sightIgnore) then
+					found[player.Team] = true
+				end
 			end
 		end
 	end
