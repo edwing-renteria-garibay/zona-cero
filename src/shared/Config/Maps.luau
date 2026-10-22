@@ -3,7 +3,7 @@
 -- selected: el nombre de un mapa de la lista, o "Aleatorio" para que el servidor elija uno.
 
 return {
-	selected = "Cruce",
+	selected = "Aleatorio",
 
 	-- Nombre del archivo en src/server/Maps/ = nombre que se muestra
 	list = {

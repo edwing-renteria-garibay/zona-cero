@@ -51,6 +51,7 @@ Players.PlayerAdded:Connect(function(player)
 		HealthService.SetupCharacter(player, character)
 		ProjectileService.SetupCharacter(character)
 		task.spawn(TeamMarkers.SetupCharacter, player, character) -- brazaletes del equipo
+		task.spawn(MatchService.SetupCharacter, player, character) -- en solitario: punto al azar
 		-- Protección breve al reaparecer
 		character:SetAttribute("SpawnProtected", true)
 		task.delay(2, function()

@@ -1,13 +1,15 @@
 -- Ciclo de partida: esperar jugadores, cuenta regresiva, jugar, mostrar ganador.
--- Modos: Team Slayer (puntos por bajas), Captura la bandera (puntos por capturas) y
--- Rey de la colina (puntos por segundo en la colina).
+-- Modos: Team Slayer (puntos por bajas), Asesino en solitario (todos contra todos, gana el
+-- primer jugador en llegar a las bajas), Captura la bandera (puntos por capturas) y Rey de la
+-- colina (puntos por segundo en la colina).
 --
 -- El estado de la partida se guarda en atributos de ReplicatedStorage para que la pantalla
 -- de cada jugador lo lea (también quien entra a mitad de partida):
 --   MatchPhase      "Waiting" | "Countdown" | "Playing" | "Ended"
 --   MatchCountdown  segundos que faltan para empezar
 --   MatchEndsAt     cuándo se acaba el tiempo (en el reloj de workspace:GetServerTimeNow())
---   MatchMode       el modo que se juega ("TeamSlayer", "CaptureTheFlag" o "KingOfTheHill")
+--   MatchMode       el modo que se juega ("TeamSlayer", "FreeForAll", "CaptureTheFlag" o
+--                   "KingOfTheHill")
 --   MatchScoreToWin puntos para ganar (bajas, capturas o segundos en la colina)
 -- El marcador de cada equipo es el atributo "Score" del Team.
 
@@ -24,6 +26,9 @@ local matchState = ReplicatedStorage.Remotes.MatchState :: RemoteEvent
 local killFeed = ReplicatedStorage.Remotes.KillFeed :: RemoteEvent
 
 local MatchService = {}
+
+-- En solitario se reaparece en un punto al azar sin enemigos a menos de esta distancia
+local SAFE_SPAWN_DISTANCE = 40
 
 local scores: { [Team]: number } = {}
 local running = false
@@ -62,6 +67,84 @@ local function resetScores()
 	end
 end
 
+-- Los puntos de aparición del mapa (de los dos equipos)
+local function mapSpawns(): { SpawnLocation }
+	local spawns = {}
+	local map = workspace:FindFirstChild("Map")
+	if map then
+		for _, spawn in map:GetDescendants() do
+			if spawn:IsA("SpawnLocation") and spawn.Enabled then
+				table.insert(spawns, spawn)
+			end
+		end
+	end
+	return spawns
+end
+
+-- El equipo con menos jugadores
+local function smallestTeam(): Team?
+	local smallest, count = nil, math.huge
+	for _, team in Teams:GetTeams() do
+		local players = #team:GetPlayers()
+		if players < count then
+			smallest, count = team, players
+		end
+	end
+	return smallest
+end
+
+-- Con equipos, cada jugador va a Rojo o Azul; en solitario nadie tiene equipo
+local function assignTeam(player: Player, rules)
+	if not rules.teams then
+		player.Team = nil :: any -- sin equipo
+		player.Neutral = true
+	elseif player.Neutral or not player.Team then
+		player.Team = smallestTeam() :: any
+		player.Neutral = false
+	end
+end
+
+local function applyTeams(rules)
+	-- Un punto de aparición "Neutral" sirve para cualquiera: en solitario se usan todos
+	for _, spawn in mapSpawns() do
+		spawn.Neutral = not rules.teams
+	end
+	for _, team in Teams:GetTeams() do
+		team.AutoAssignable = rules.teams
+	end
+	for _, player in Players:GetPlayers() do
+		assignTeam(player, rules)
+	end
+end
+
+-- En solitario: un punto de aparición al azar, de los que no tienen enemigos cerca.
+-- Si todos tienen a alguien cerca, el que esté más lejos de todos.
+local function pickSoloSpawn(player: Player): SpawnLocation?
+	local enemies = {}
+	for _, other in Players:GetPlayers() do
+		local character = other.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if other ~= player and character and humanoid and humanoid.Health > 0 then
+			table.insert(enemies, character:GetPivot().Position)
+		end
+	end
+	local safe = {}
+	local farthest, farthestDistance = nil, -1
+	for _, spawn in mapSpawns() do
+		local nearest = math.huge
+		for _, position in enemies do
+			nearest = math.min(nearest, (position - spawn.Position).Magnitude)
+		end
+		if nearest >= SAFE_SPAWN_DISTANCE then
+			table.insert(safe, spawn)
+		end
+		if nearest > farthestDistance then
+			farthest, farthestDistance = spawn, nearest
+		end
+	end
+	return if #safe > 0 then safe[math.random(#safe)] else farthest
+end
+
 local function teamColor(player: Player?): Color3
 	return if player and player.Team then player.TeamColor.Color else Color3.new(1, 1, 1)
 end
@@ -85,7 +168,10 @@ HealthService.Killed:Connect(function(victim: Player, killer: Player?, cause: st
 	if deaths then
 		deaths.Value += 1
 	end
-	if not killer or killer == victim or killer.Team == victim.Team then
+	if not killer or killer == victim then
+		return
+	end
+	if currentRules.teams and killer.Team == victim.Team then
 		return
 	end
 	local kills = getStat(killer, "Bajas")
@@ -93,7 +179,7 @@ HealthService.Killed:Connect(function(victim: Player, killer: Player?, cause: st
 		kills.Value += 1
 	end
 	local team = killer.Team
-	if team and currentRules.scoreBy == "kills" then
+	if team and currentRules.teams and currentRules.scoreBy == "kills" then
 		setScore(team, scores[team] + 1)
 	end
 end)
@@ -115,8 +201,9 @@ local function chooseMode(): string
 	return name
 end
 
--- Tabla de resultados: jugadores ordenados por bajas (y con menos muertes en empate)
-local function buildResults(winningTeam: Team?)
+-- Tabla de resultados: jugadores ordenados por bajas (y con menos muertes en empate).
+-- winner: el equipo ganador, o en solitario el jugador ganador
+local function buildResults(rules, winner: (Team | Player)?)
 	local players = {}
 	for _, player in Players:GetPlayers() do
 		local kills = getStat(player, "Bajas")
@@ -135,21 +222,36 @@ local function buildResults(winningTeam: Team?)
 		return a.deaths < b.deaths
 	end)
 	local teamScores = {}
-	for _, team in Teams:GetTeams() do
+	for _, team in if rules.teams then Teams:GetTeams() else {} do
 		table.insert(
 			teamScores,
 			{ name = team.Name, color = team.TeamColor.Color, score = scores[team] or 0 }
 		)
 	end
+	local winnerColor = nil
+	if winner and winner:IsA("Team") then
+		winnerColor = winner.TeamColor.Color
+	elseif winner then
+		winnerColor = Color3.fromRGB(255, 200, 60) -- dorado para el ganador en solitario
+	end
 	return {
-		winner = if winningTeam then winningTeam.Name else nil,
-		winnerColor = if winningTeam then winningTeam.TeamColor.Color else nil,
+		winner = if winner then winner.Name else nil,
+		winnerColor = winnerColor,
 		teams = teamScores,
 		players = players,
 	}
 end
 
-local function winner(rules): Team?
+local function winner(rules): (Team | Player)?
+	if not rules.teams then
+		for _, player in Players:GetPlayers() do
+			local kills = getStat(player, "Bajas")
+			if kills and kills.Value >= rules.scoreToWin then
+				return player
+			end
+		end
+		return nil
+	end
 	for team, score in scores do
 		if score >= rules.scoreToWin then
 			return team
@@ -158,8 +260,28 @@ local function winner(rules): Team?
 	return nil
 end
 
+-- Lo llama init.server cada vez que aparece un personaje: en solitario lo lleva a un punto
+-- de aparición al azar (no tiene base propia)
+function MatchService.SetupCharacter(player: Player, character: Model)
+	if currentRules.teams then
+		return
+	end
+	local spawn = pickSoloSpawn(player)
+	local root = character:WaitForChild("HumanoidRootPart", 5)
+	if not spawn or not root then
+		return
+	end
+	task.wait() -- deja que Roblox termine de colocarlo antes de moverlo
+	character:PivotTo(spawn.CFrame * CFrame.new(0, 4, 0))
+end
+
 function MatchService.Run()
 	local common = Modes.Common
+
+	-- Quien entra a mitad de partida va a un equipo, o a ninguno en solitario
+	Players.PlayerAdded:Connect(function(player)
+		assignTeam(player, currentRules)
+	end)
 
 	ReplicatedStorage:SetAttribute("MatchPlayersNeeded", common.minPlayers)
 	while true do
@@ -179,6 +301,7 @@ function MatchService.Run()
 		local modeName = chooseMode()
 		local rules = Modes[modeName]
 		currentRules = rules
+		applyTeams(rules)
 		resetScores()
 		running = true
 		ReplicatedStorage:SetAttribute("MatchMode", modeName)
@@ -205,10 +328,10 @@ function MatchService.Run()
 		end
 
 		local startTime = os.clock()
-		local winningTeam = nil
+		local winningSide = nil
 		while os.clock() - startTime < rules.timeLimit do
-			winningTeam = winner(rules)
-			if winningTeam then
+			winningSide = winner(rules)
+			if winningSide then
 				break
 			end
 			task.wait(0.5)
@@ -217,7 +340,7 @@ function MatchService.Run()
 		FlagService.Stop()
 		HillService.Stop()
 		setPhase("Ended")
-		broadcast("Ended", buildResults(winningTeam))
+		broadcast("Ended", buildResults(rules, winningSide))
 		task.wait(common.resultsTime)
 	end
 end
