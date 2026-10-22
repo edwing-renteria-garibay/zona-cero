@@ -94,7 +94,7 @@ function Scoreboard.Start()
 	timer.LayoutOrder = 2
 	local rightBox, rightScore = makeTeamBox(bar, 3)
 
-	local goal = makeLabel(gui, UDim2.fromOffset(420, 20), 14)
+	local goal = makeLabel(gui, UDim2.fromOffset(520, 20), 14)
 	goal.AnchorPoint = Vector2.new(0.5, 0)
 	goal.Position = UDim2.new(0.5, 0, 0, 50)
 	goal.Font = Enum.Font.GothamBold
@@ -144,7 +144,18 @@ function Scoreboard.Start()
 				elseif mode == "KingOfTheHill" then "segundos en la colina"
 				else "bajas"
 			local rules = Modes[mode]
-			if mode == "Infection" then
+			if mode == "Assault" then
+				local attackers = ReplicatedStorage:GetAttribute("AssaultAttackers")
+				local roundEnds = ReplicatedStorage:GetAttribute("AssaultRoundEndsAt") or 0
+				goal.Text = string.format(
+					"Asalto · Ronda %d · %s · %s",
+					ReplicatedStorage:GetAttribute("AssaultRound") or 1,
+					if player.Team and player.Team.Name == attackers
+						then "Atacas: lleva la bomba a su base"
+						else "Defiendes tu base",
+					formatTime(roundEnds - workspace:GetServerTimeNow())
+				)
+			elseif mode == "Infection" then
 				goal.Text = if player:GetAttribute("Side") == "Zombie"
 					then "Infección · Atrapa a todos los sobrevivientes"
 					else "Infección · Sobrevive hasta que se acabe el tiempo"
