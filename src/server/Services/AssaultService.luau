@@ -4,8 +4,8 @@
 --     ellos la toma al tocarla y la lleva en la espalda.
 --   * Para anotar hay que llevarla a la base de bandera enemiga y quedarse ahí armTime
 --     segundos: la bomba explota y los atacantes ganan 1 punto.
---   * Si matan al que la lleva, la bomba cae. Un atacante la vuelve a tomar; si la toca un
---     defensor, regresa a la base de los atacantes. Sola regresa a los bombReturnTime segundos.
+--   * Si matan al que la lleva, la bomba cae y se queda ahí hasta que otro atacante la tome.
+--     Los defensores no la pueden mover: tienen que cuidar que nadie la recoja.
 --   * La ronda termina al explotar la bomba o al acabarse roundTime. Entonces todos
 --     reaparecen y los equipos se cambian los papeles.
 --
@@ -38,7 +38,6 @@ local label: TextLabel? = nil
 local state: "home" | "carried" | "dropped" = "home"
 local carrier: Player? = nil
 local carryWeld: WeldConstraint? = nil
-local droppedAt = 0
 local lastPosition = Vector3.zero
 local armProgress = 0
 
@@ -176,7 +175,6 @@ local function drop()
 	state = "dropped"
 	carrier = nil
 	armProgress = 0
-	droppedAt = os.clock()
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	local ignore: { Instance } = { bomb :: Model }
@@ -227,11 +225,6 @@ local function update(dt: number): boolean
 	end
 
 	text.Text = "BOMBA"
-	if state == "dropped" and os.clock() - droppedAt > rules.bombReturnTime then
-		returnHome()
-		announce("La bomba regresó a su lugar", team)
-		return false
-	end
 	for _, player in Players:GetPlayers() do
 		local root = getRoot(player)
 		if not root or not player.Team then
@@ -242,10 +235,6 @@ local function update(dt: number): boolean
 		end
 		if player.Team == team then
 			pickUp(player)
-			break
-		elseif state == "dropped" then
-			returnHome()
-			announce(string.format("%s regresó la bomba", player.Name), player.Team)
 			break
 		end
 	end

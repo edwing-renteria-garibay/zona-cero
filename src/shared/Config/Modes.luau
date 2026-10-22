@@ -86,10 +86,9 @@ local Modes = {
 		scoreBy = "bombs",
 		roundTime = 150, -- segundos por ronda; si nadie detona, se cambian los papeles
 		roundBreak = 4, -- segundos de pausa entre rondas
-		pickupRadius = 5, -- studs para tomar o regresar la bomba
+		pickupRadius = 5, -- studs para tomar la bomba
 		plantRadius = 6, -- studs de la base enemiga para armarla
 		armTime = 3, -- segundos que hay que quedarse ahí para que explote
-		bombReturnTime = 20, -- segundos que una bomba tirada tarda en volver sola
 	},
 	KingOfTheHill = {
 		name = "Rey de la colina",

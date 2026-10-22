@@ -10,10 +10,8 @@ ronda se cambian los papeles. El código está en `src/server/Services/AssaultSe
 2. Hay que llevarla a la base de bandera enemiga y quedarse ahí **3 segundos**. El letrero
    de la bomba cuenta hacia atrás ("ARMANDO 2.0"). Si te alejas, se reinicia.
 3. Si explota, los atacantes ganan 1 punto y la ronda termina.
-4. Si matan al que la lleva, la bomba cae al piso:
-   - otro atacante la puede tomar;
-   - si la toca un defensor, regresa a la base de los atacantes;
-   - si nadie la toca, regresa sola a los 20 segundos.
+4. Si matan al que la lleva, la bomba cae al piso y se queda ahí hasta que otro atacante
+   la tome. Los defensores no la pueden mover: les toca cuidarla para que nadie la recoja.
 5. Cada ronda dura 2 min 30 s. Si nadie la detona, los defensores aguantaron y se cambian los
    papeles. Entre rondas todos reaparecen en su base.
 6. Gana el primer equipo en detonar **3 bombas** (o el límite de 15 minutos).
