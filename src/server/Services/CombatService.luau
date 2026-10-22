@@ -13,6 +13,7 @@ local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local ExplosionService = require(script.Parent.ExplosionService)
 local HealthService = require(script.Parent.HealthService)
 local ProjectileService = require(script.Parent.ProjectileService)
+local Rules = require(script.Parent.Rules)
 local VehicleService = require(script.Parent.VehicleService)
 
 local remotes = ReplicatedStorage.Remotes
@@ -81,6 +82,11 @@ local function isEnemy(shooter: Player, target: Player?): boolean
 	if target == shooter then
 		return false
 	end
+	-- En Infección: zombis contra sobrevivientes
+	local shooterSide, targetSide = shooter:GetAttribute("Side"), target:GetAttribute("Side")
+	if shooterSide and targetSide then
+		return shooterSide ~= targetSide
+	end
 	if shooter.Neutral or target.Neutral then
 		return true
 	end
@@ -130,6 +136,9 @@ local function applyHit(
 	local headshot = headshotMultiplier ~= nil and isHeadPart(result.Instance :: BasePart)
 	if headshot then
 		damage *= headshotMultiplier :: number
+		if Rules.current.headshotKills then
+			damage = math.max(damage, 1000) -- SWAT: un tiro a la cabeza mata
+		end
 	end
 	local toShield, toHealth = HealthService.Damage(targetHumanoid, damage, attacker, cause, headshot)
 	if toShield + toHealth <= 0 then
@@ -382,12 +391,13 @@ local function onMelee(player: Player)
 
 	local toTarget = (targetRoot.Position - root.Position).Unit
 	local backstab = targetRoot.CFrame.LookVector:Dot(toTarget) > 0.5
-	local toShield, toHealth = HealthService.Damage(
-		target,
-		if backstab then Melee.backstabDamage else Melee.damage,
-		player,
-		if backstab then "Backstab" else "Melee"
-	)
+	local damage = if backstab then Melee.backstabDamage else Melee.damage
+	local cause = if backstab then "Backstab" else "Melee"
+	if player:GetAttribute("Side") == "Zombie" then
+		damage = Rules.current.zombieMeleeDamage or damage -- el machete de un zombi mata
+		cause = "Machete"
+	end
+	local toShield, toHealth = HealthService.Damage(target, damage, player, cause)
 	if toShield + toHealth > 0 then
 		local surface = if toHealth > 0 then "flesh" else "shield"
 		hitConfirmed:FireClient(

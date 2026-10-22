@@ -3,6 +3,7 @@
 --   Weapon = "RocketLauncher"  → da esa arma (se copia de ServerStorage.Weapons);
 --                                si ya la tienes, te rellena la munición
 --   Pickup = "Grenades"        → da granadas (Config/Grenades)
+-- En los modos con pickups = false (SWAT) las plataformas se apagan.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,6 +12,7 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local Grenades = require(ReplicatedStorage.Shared.Config.Grenades)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
+local Rules = require(script.Parent.Rules)
 
 local DEFAULT_RESPAWN = 60 -- segundos, si el objeto no indica otro tiempo
 
@@ -140,12 +142,13 @@ local function setupPad(pad: BasePart)
 		display.CFrame = pad.CFrame
 			* CFrame.new(0, 2 + math.sin(spin * 2) * 0.3, 0)
 			* CFrame.Angles(0, spin, 0)
-		display.Transparency = if available then 0 else 1
-		billboard.Enabled = available
+		local shown = available and Rules.current.pickups ~= false
+		display.Transparency = if shown then 0 else 1
+		billboard.Enabled = shown
 	end)
 
 	pad.Touched:Connect(function(hit: BasePart)
-		if not available then
+		if not available or Rules.current.pickups == false then
 			return
 		end
 		local character = hit.Parent

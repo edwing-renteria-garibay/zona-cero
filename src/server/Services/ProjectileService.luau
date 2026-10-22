@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Grenades = require(ReplicatedStorage.Shared.Config.Grenades)
+local Rules = require(script.Parent.Rules)
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local ExplosionService = require(script.Parent.ExplosionService)
 local VehicleService = require(script.Parent.VehicleService)
@@ -147,9 +148,9 @@ local function onThrowGrenade(player: Player, velocity: any)
 	task.delay(Grenades.fuse, detonate)
 end
 
--- Cada vida empieza con las granadas de Config/Grenades
+-- Cada vida empieza con las granadas de Config/Grenades (o las que diga el modo)
 function ProjectileService.SetupCharacter(character: Model)
-	character:SetAttribute("Grenades", Grenades.count)
+	character:SetAttribute("Grenades", Rules.current.grenades or Grenades.count)
 end
 
 function ProjectileService.Start()

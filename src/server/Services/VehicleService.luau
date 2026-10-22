@@ -27,6 +27,9 @@ local DARK = Color3.fromRGB(35, 35, 35)
 local VehicleService = {}
 
 local jeeps: { [Model]: boolean } = {}
+local spawnPoints: { CFrame } = {} -- dónde aparece cada jeep
+local vehiclesEnabled = true
+local spawnGeneration = 0 -- cambia cada vez que se apagan o prenden los jeeps
 
 -- Crea una pieza soldada al chasis. offset es su posición relativa al chasis
 local function addPart(model: Model, chassis: BasePart, props: { [string]: any }, offset: CFrame): BasePart
@@ -252,8 +255,12 @@ local function explode(model: Model, attacker: Player?)
 	-- Daño a quien esté cerca, y a otros jeeps (puede haber explosiones en cadena)
 	ExplosionService.Blast(center, attacker, jeepBlast)
 	VehicleService.BlastVehicles(center, attacker, jeepBlast)
+	local generation = spawnGeneration
 	task.delay(stats.respawnTime, function()
-		VehicleService.Spawn(spawnCFrame)
+		-- Si mientras tanto se apagaron o reiniciaron los jeeps, este ya no vuelve
+		if generation == spawnGeneration then
+			VehicleService.Spawn(spawnCFrame)
+		end
 	end)
 end
 
@@ -384,6 +391,25 @@ local function updateJeep(model: Model)
 	steering.AngularVelocity = Vector3.new(0, -steer * stats.turnRate * turnScale * turnFactor, 0)
 end
 
+-- Hay jeeps o no, según el modo (vehicles = false en Config/Modes). Al apagarlos se quitan
+-- todos (quien iba sentado se baja); al prenderlos vuelven a sus lugares.
+function VehicleService.SetEnabled(enabled: boolean)
+	if enabled == vehiclesEnabled then
+		return
+	end
+	vehiclesEnabled = enabled
+	spawnGeneration += 1
+	for model in jeeps do
+		jeeps[model] = nil
+		model:Destroy()
+	end
+	if enabled then
+		for _, spawnCFrame in spawnPoints do
+			VehicleService.Spawn(spawnCFrame)
+		end
+	end
+end
+
 function VehicleService.Start()
 	local spawnFolder = workspace:FindFirstChild("VehicleSpawns")
 	if spawnFolder then
@@ -391,13 +417,14 @@ function VehicleService.Start()
 			if spawnPart:IsA("BasePart") then
 				spawnPart.Transparency = 1
 				spawnPart.CanCollide = false
-				VehicleService.Spawn(spawnPart.CFrame + Vector3.new(0, 3, 0))
+				table.insert(spawnPoints, spawnPart.CFrame + Vector3.new(0, 3, 0))
 			end
 		end
 	else
-		for _, spawnCFrame in DEFAULT_SPAWNS do
-			VehicleService.Spawn(spawnCFrame)
-		end
+		spawnPoints = table.clone(DEFAULT_SPAWNS)
+	end
+	for _, spawnCFrame in spawnPoints do
+		VehicleService.Spawn(spawnCFrame)
 	end
 
 	RunService.Heartbeat:Connect(function()

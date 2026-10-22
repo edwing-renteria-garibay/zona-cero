@@ -71,7 +71,7 @@ function Results.Start()
 			item.LayoutOrder = order
 		end
 
-		local title = if data.winner then "¡Gana " .. data.winner .. "!" else "Empate"
+		local title = data.title or if data.winner then "¡Gana " .. data.winner .. "!" else "Empate"
 		add(label(panel, title, UDim2.new(1, 0, 0, 44), 34, data.winnerColor))
 
 		local scores = {}

@@ -4,10 +4,13 @@ local Players = game:GetService("Players")
 local Teams = game:GetService("Teams")
 
 local Services = script.Services
+local AssaultService = require(Services.AssaultService)
 local CombatService = require(Services.CombatService)
 local FlagService = require(Services.FlagService)
 local HealthService = require(Services.HealthService)
 local HillService = require(Services.HillService)
+local InfectionService = require(Services.InfectionService)
+local LoadoutService = require(Services.LoadoutService)
 local MapService = require(Services.MapService)
 local MatchService = require(Services.MatchService)
 local PickupService = require(Services.PickupService)
@@ -30,7 +33,10 @@ end
 local map = MapService.Build()
 PickupService.Start(map)
 FlagService.Setup(map)
+AssaultService.Setup(map)
 HillService.Setup(map)
+LoadoutService.Start()
+InfectionService.Start()
 CombatService.Start()
 VehicleService.Start()
 ProjectileService.Start()
@@ -50,6 +56,8 @@ Players.PlayerAdded:Connect(function(player)
 	player.CharacterAdded:Connect(function(character)
 		HealthService.SetupCharacter(player, character)
 		ProjectileService.SetupCharacter(character)
+		InfectionService.SetupCharacter(player, character) -- zombis: sin armas y más rápidos
+		task.spawn(LoadoutService.SetupCharacter, player) -- armas según el modo
 		task.spawn(TeamMarkers.SetupCharacter, player, character) -- brazaletes del equipo
 		task.spawn(MatchService.SetupCharacter, player, character) -- en solitario: punto al azar
 		-- Protección breve al reaparecer

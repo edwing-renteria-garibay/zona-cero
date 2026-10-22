@@ -67,11 +67,14 @@ function ExplosionService.Blast(center: Vector3, attacker: Player?, blast: Blast
 		local character = player.Character
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		local side = player:GetAttribute("Side") -- en Infección
 		local teammate = attacker
 			and player ~= attacker
-			and not player.Neutral
-			and not attacker.Neutral
-			and player.Team == attacker.Team
+			and (
+				if side
+					then side == attacker:GetAttribute("Side")
+					else not player.Neutral and not attacker.Neutral and player.Team == attacker.Team
+			)
 		if humanoid and root and not teammate then
 			local distance = (root.Position - center).Magnitude
 			if distance < blast.radius then

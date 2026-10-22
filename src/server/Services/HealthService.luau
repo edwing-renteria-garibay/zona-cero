@@ -2,9 +2,12 @@
 -- El escudo (100) absorbe el daño primero. Tras 3.5 s sin recibir daño se recarga,
 -- y tarda 1.5 s en llenarse por completo.
 -- La vida es la del Humanoid (100) y no se recarga sola.
+-- En los modos con shields = false (SWAT) no hay escudo: solo la vida.
 -- Solo el servidor llama a Damage(): así el cliente no puede hacer trampa con la vida.
 
 local RunService = game:GetService("RunService")
+
+local Rules = require(script.Parent.Rules)
 
 local MAX_SHIELD = 100
 local REGEN_DELAY = 3.5 -- segundos sin daño antes de recargar
@@ -33,7 +36,9 @@ function HealthService.SetupCharacter(player: Player, character: Model)
 	if defaultHealth then
 		defaultHealth:Destroy()
 	end
-	character:SetAttribute("Shield", MAX_SHIELD)
+	local maxShield = if Rules.current.shields == false then 0 else MAX_SHIELD
+	character:SetAttribute("MaxShield", maxShield)
+	character:SetAttribute("Shield", maxShield)
 	lastHit[humanoid] = 0
 
 	humanoid.Died:Connect(function()
@@ -77,8 +82,9 @@ RunService.Heartbeat:Connect(function(dt)
 		local character = humanoid.Parent
 		if character and now - hitTime >= REGEN_DELAY then
 			local shield = character:GetAttribute("Shield") or 0
-			if shield < MAX_SHIELD then
-				character:SetAttribute("Shield", math.min(MAX_SHIELD, shield + REGEN_RATE * dt))
+			local maxShield = character:GetAttribute("MaxShield") or MAX_SHIELD
+			if shield < maxShield then
+				character:SetAttribute("Shield", math.min(maxShield, shield + REGEN_RATE * dt))
 			end
 		end
 	end
