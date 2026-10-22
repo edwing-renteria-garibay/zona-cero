@@ -124,8 +124,20 @@ local function drawImpact(position: Vector3, surface: string?)
 	Debris:AddItem(impact, 0.2)
 end
 
-local function onShotFired(from: Vector3, to: Vector3, hit: boolean?, surface: string?, weaponName: string?)
-	Sfx.PlayAt(weaponName and Sounds.fire[weaponName], from)
+local function onShotFired(
+	from: Vector3,
+	to: Vector3,
+	hit: boolean?,
+	surface: string?,
+	weaponName: string?,
+	source: BasePart?
+)
+	local fireSound = weaponName and Sounds.fire[weaponName]
+	if weaponName and Sounds.burst[weaponName] and source then
+		Sfx.KeepBurst(fireSound, source)
+	else
+		Sfx.PlayAt(fireSound, from)
+	end
 	drawTracer(from, to)
 	if hit then
 		drawImpact(to, surface)

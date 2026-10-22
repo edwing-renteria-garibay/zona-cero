@@ -11,6 +11,11 @@ return {
 		Pistol = "rbxassetid://127604219525464",
 		Turret = "rbxassetid://138382899505069",
 	},
+	-- Armas cuyo audio es una ráfaga larga y no un solo disparo: el audio se repite
+	-- mientras disparas y se corta al soltar el gatillo, en vez de sonar entero cada bala
+	burst = {
+		Turret = true,
+	},
 	-- Impacto de la bala en el escenario o en un jeep: lo oyen todos, desde el impacto
 	impact = {
 		concrete = "rbxassetid://131554175554758", -- también suelo, piedra y todo lo demás

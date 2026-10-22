@@ -267,7 +267,8 @@ local function onFireTurret(player: Player, direction: any)
 		if result then result.Position else origin + ray,
 		result ~= nil,
 		surface,
-		"Turret"
+		"Turret",
+		barrel -- el sonido de ráfaga de la torreta se pega al cañón
 	)
 end
 
