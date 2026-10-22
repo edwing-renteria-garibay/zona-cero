@@ -101,10 +101,11 @@ local RAMPS = {
 
 -- Puntos importantes, como {fila, columna} de PLAN
 local SPAWNS = {
-	Azul = { { 4, 6 }, { 4, 27 }, { 17, 6 }, { 17, 27 } },
-	Rojo = { { 55, 28 }, { 55, 68 }, { 55, 47 }, { 46, 68 } },
+	Azul = { { 4, 10 }, { 4, 27 }, { 17, 6 }, { 17, 27 } },
+	Rojo = { { 55, 28 }, { 55, 60 }, { 55, 47 }, { 46, 68 } },
 }
-local FLAGS = { Azul = { 9, 8 }, Rojo = { 48, 65 } } -- base de la bandera (para Captura la bandera)
+-- Base de la bandera: en una esquina de cada base (Azul al noroeste, Rojo al sureste)
+local FLAGS = { Azul = { 3, 5 }, Rojo = { 54, 70 } }
 local GRENADES = { { 31, 3 }, { 22, 61 }, { 10, 4 }, { 49, 27 } }
 local ROCKET = { 27, 35 } -- el lanzacohetes, a medio túnel
 
@@ -242,14 +243,7 @@ local function buildPoints(map: Folder)
 		for _, cell in SPAWNS[team.name] do
 			Builder.spawn(folder, team, onFloor(cell, 0.5), Vector3.zero)
 		end
-		local flagStand = Builder.block(
-			folder,
-			"FlagStand",
-			Vector3.new(4, 0.2, 4),
-			CFrame.new(onFloor(FLAGS[team.name], 0.1)),
-			{ Color = team.color.Color, Material = Enum.Material.Neon }
-		)
-		flagStand:SetAttribute("Team", team.name)
+		Builder.flagStand(folder, team, onFloor(FLAGS[team.name], 0))
 	end
 	for _, cell in GRENADES do
 		Builder.pickupPad(map, "GrenadePad", onFloor(cell, 0.2), "Pickup", "Grenades")

@@ -1,4 +1,5 @@
 -- Registro de bajas arriba a la derecha: "Jugador1 [Pistola · cabeza] Jugador2".
+-- También muestra avisos de la partida, como "Jugador1 tomó la bandera Azul".
 -- Cada línea se borra sola a los pocos segundos; se muestran como máximo MAX_LINES.
 
 local Debris = game:GetService("Debris")
@@ -38,6 +39,23 @@ local function escape(text: string): string
 	return (text:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"))
 end
 
+-- "Jugador1  [Pistola · cabeza]  Jugador2"
+local function describeKill(entry): string
+	local cause = CAUSES[entry.cause or ""] or "Caída"
+	if entry.headshot then
+		cause ..= " · cabeza"
+	end
+	local victim = string.format('<font color="%s">%s</font>', hex(entry.victimColor), escape(entry.victim))
+	if entry.killer then
+		local killer =
+			string.format('<font color="%s">%s</font>', hex(entry.killerColor), escape(entry.killer))
+		return string.format("%s  [%s]  %s", killer, cause, victim)
+	elseif entry.suicide then
+		return string.format("%s  [%s]  se eliminó solo", victim, cause)
+	end
+	return string.format("%s  murió", victim)
+end
+
 function KillFeed.Start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "KillFeed"
@@ -57,24 +75,7 @@ function KillFeed.Start()
 	layout.Parent = list
 
 	local count = 0
-	killFeed.OnClientEvent:Connect(function(entry)
-		local cause = CAUSES[entry.cause or ""] or "Caída"
-		if entry.headshot then
-			cause ..= " · cabeza"
-		end
-		local victim =
-			string.format('<font color="%s">%s</font>', hex(entry.victimColor), escape(entry.victim))
-		local text
-		if entry.killer then
-			local killer =
-				string.format('<font color="%s">%s</font>', hex(entry.killerColor), escape(entry.killer))
-			text = string.format("%s  [%s]  %s", killer, cause, victim)
-		elseif entry.suicide then
-			text = string.format("%s  [%s]  se eliminó solo", victim, cause)
-		else
-			text = string.format("%s  murió", victim)
-		end
-
+	local function addLine(text: string)
 		count += 1
 		local line = Instance.new("TextLabel")
 		line.LayoutOrder = -count -- la más nueva arriba
@@ -111,6 +112,15 @@ function KillFeed.Start()
 			end
 		end)
 		Debris:AddItem(line, LINE_TIME)
+	end
+
+	killFeed.OnClientEvent:Connect(function(entry)
+		if entry.message then
+			-- Aviso de la partida (banderas), del color del equipo
+			addLine(string.format('<font color="%s">%s</font>', hex(entry.color), escape(entry.message)))
+		else
+			addLine(describeKill(entry))
+		end
 	end)
 end
 

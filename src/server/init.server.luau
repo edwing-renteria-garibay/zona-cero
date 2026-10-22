@@ -5,6 +5,7 @@ local Teams = game:GetService("Teams")
 
 local Services = script.Services
 local CombatService = require(Services.CombatService)
+local FlagService = require(Services.FlagService)
 local HealthService = require(Services.HealthService)
 local MapService = require(Services.MapService)
 local MatchService = require(Services.MatchService)
@@ -26,6 +27,7 @@ end
 -- El mapa va primero: VehicleService busca ahí dónde aparecen los jeeps
 local map = MapService.Build()
 PickupService.Start(map)
+FlagService.Setup(map)
 CombatService.Start()
 VehicleService.Start()
 ProjectileService.Start()
@@ -53,4 +55,4 @@ Players.PlayerAdded:Connect(function(player)
 	end)
 end)
 
-task.spawn(MatchService.Run, "TeamSlayer")
+task.spawn(MatchService.Run) -- el modo se elige en Config/Modes
