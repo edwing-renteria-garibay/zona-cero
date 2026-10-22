@@ -22,6 +22,7 @@ Documento de diseño: https://claude.ai/artifact/Db9y3BWdNtESCJbiRrMR1z
 - Lanzacohetes en lo alto del montículo central (reaparece a los 120 s): el cohete vuela y explota; un impacto directo mata y dos destruyen un jeep
 - Granadas con **G** (2 por vida): mantén G para ver dónde caerá y suelta para lanzarla; explotan al chocar o a los 1.5 s
 - Jeep con torreta: conductor (W/A/S/D), artillero con ametralladora y pasajero; llantas que se ponchan, barra de vida, se destruye y reaparece
+- Brazaletes del color del equipo (rojo o azul) en ambos brazos, sin cambiar el avatar
 - Configuración de armas, vehículos y modos en `src/shared/Config/`
 
 Para entender el código paso a paso, lee las guías de [`docs/aprende/`](docs/aprende/).

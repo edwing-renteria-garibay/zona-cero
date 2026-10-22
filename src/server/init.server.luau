@@ -10,6 +10,7 @@ local MapService = require(Services.MapService)
 local MatchService = require(Services.MatchService)
 local PickupService = require(Services.PickupService)
 local ProjectileService = require(Services.ProjectileService)
+local TeamMarkers = require(Services.TeamMarkers)
 local VehicleService = require(Services.VehicleService)
 
 Players.RespawnTime = 5
@@ -45,6 +46,7 @@ Players.PlayerAdded:Connect(function(player)
 	player.CharacterAdded:Connect(function(character)
 		HealthService.SetupCharacter(player, character)
 		ProjectileService.SetupCharacter(character)
+		task.spawn(TeamMarkers.SetupCharacter, player, character) -- brazaletes del equipo
 		-- Protección breve al reaparecer
 		character:SetAttribute("SpawnProtected", true)
 		task.delay(2, function()
