@@ -1,7 +1,7 @@
 -- Ciclo de partida: esperar jugadores, cuenta regresiva, jugar, mostrar ganador.
 -- Modos: Team Slayer (puntos por bajas), Asesino en solitario (todos contra todos, gana el
--- primer jugador en llegar a las bajas), Captura la bandera (puntos por capturas) y Rey de la
--- colina (puntos por segundo en la colina).
+-- primer jugador en llegar a las bajas), Captura la bandera (puntos por capturas), Rey de la
+-- colina (puntos por segundo en la colina) e Infección (zombis contra sobrevivientes).
 --
 -- El estado de la partida se guarda en atributos de ReplicatedStorage para que la pantalla
 -- de cada jugador lo lea (también quien entra a mitad de partida):
@@ -21,6 +21,7 @@ local Modes = require(ReplicatedStorage.Shared.Config.Modes)
 local FlagService = require(script.Parent.FlagService)
 local HealthService = require(script.Parent.HealthService)
 local HillService = require(script.Parent.HillService)
+local InfectionService = require(script.Parent.InfectionService)
 local Rules = require(script.Parent.Rules)
 local VehicleService = require(script.Parent.VehicleService)
 
@@ -203,9 +204,15 @@ local function chooseMode(): string
 	return name
 end
 
--- Tabla de resultados: jugadores ordenados por bajas (y con menos muertes en empate).
--- winner: el equipo ganador, o en solitario el jugador ganador
-local function buildResults(rules, winner: (Team | Player)?)
+-- Quién ganó: un equipo, un jugador (en solitario) o un lado (en Infección)
+type Winner = { name: string, color: Color3, title: string? }
+
+local GOLD = Color3.fromRGB(255, 200, 60) -- color del ganador en solitario
+local ZOMBIE_GREEN = Color3.fromRGB(120, 220, 90)
+local SURVIVOR_BLUE = Color3.fromRGB(120, 180, 255)
+
+-- Tabla de resultados: jugadores ordenados por bajas (y con menos muertes en empate)
+local function buildResults(rules, winner: Winner?)
 	local players = {}
 	for _, player in Players:GetPlayers() do
 		local kills = getStat(player, "Bajas")
@@ -230,33 +237,37 @@ local function buildResults(rules, winner: (Team | Player)?)
 			{ name = team.Name, color = team.TeamColor.Color, score = scores[team] or 0 }
 		)
 	end
-	local winnerColor = nil
-	if winner and winner:IsA("Team") then
-		winnerColor = winner.TeamColor.Color
-	elseif winner then
-		winnerColor = Color3.fromRGB(255, 200, 60) -- dorado para el ganador en solitario
-	end
 	return {
-		winner = if winner then winner.Name else nil,
-		winnerColor = winnerColor,
+		winner = if winner then winner.name else nil,
+		winnerColor = if winner then winner.color else nil,
+		title = if winner then winner.title else nil,
 		teams = teamScores,
 		players = players,
 	}
 end
 
-local function winner(rules): (Team | Player)?
+-- timeUp: true cuando ya se acabó el tiempo
+local function winner(rules, timeUp: boolean): Winner?
+	if rules.scoreBy == "infection" then
+		if InfectionService.Survivors() == 0 then
+			return { name = "Zombis", color = ZOMBIE_GREEN, title = "¡Ganan los zombis!" }
+		elseif timeUp then
+			return { name = "Sobrevivientes", color = SURVIVOR_BLUE, title = "¡Ganan los sobrevivientes!" }
+		end
+		return nil
+	end
 	if not rules.teams then
 		for _, player in Players:GetPlayers() do
 			local kills = getStat(player, "Bajas")
 			if kills and kills.Value >= rules.scoreToWin then
-				return player
+				return { name = player.Name, color = GOLD }
 			end
 		end
 		return nil
 	end
 	for team, score in scores do
 		if score >= rules.scoreToWin then
-			return team
+			return { name = team.Name, color = team.TeamColor.Color }
 		end
 	end
 	return nil
@@ -313,6 +324,9 @@ function MatchService.Run()
 		ReplicatedStorage:SetAttribute("MatchEndsAt", workspace:GetServerTimeNow() + rules.timeLimit)
 		setPhase("Playing")
 		broadcast("Started", { mode = modeName, scoreToWin = rules.scoreToWin })
+		if rules.scoreBy == "infection" then
+			InfectionService.Begin(rules) -- los zombis se eligen antes de aparecer
+		end
 		for _, player in Players:GetPlayers() do
 			player:LoadCharacter()
 		end
@@ -334,15 +348,19 @@ function MatchService.Run()
 		local startTime = os.clock()
 		local winningSide = nil
 		while os.clock() - startTime < rules.timeLimit do
-			winningSide = winner(rules)
+			winningSide = winner(rules, false)
 			if winningSide then
 				break
 			end
 			task.wait(0.5)
 		end
+		if not winningSide then
+			winningSide = winner(rules, true)
+		end
 		running = false
 		FlagService.Stop()
 		HillService.Stop()
+		InfectionService.Stop()
 		setPhase("Ended")
 		broadcast("Ended", buildResults(rules, winningSide))
 		task.wait(common.resultsTime)

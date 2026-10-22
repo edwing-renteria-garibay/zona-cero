@@ -1,6 +1,6 @@
 -- Punto de entrada del cliente: arranca la cámara, los controles de armas, golpe, granada y jeep, el HUD, la mira
 -- los avisos de daño (números, barras sobre la cabeza), el marcador, el registro de bajas
--- y la pantalla de resultados.
+-- la pantalla de resultados y lo que se ve en Infección.
 
 local CameraController = require(script.Controllers.CameraController)
 local GrenadeController = require(script.Controllers.GrenadeController)
@@ -10,6 +10,7 @@ local WeaponController = require(script.Controllers.WeaponController)
 local Crosshair = require(script.UI.Crosshair)
 local HUD = require(script.UI.HUD)
 local HitFeedback = require(script.UI.HitFeedback)
+local InfectionView = require(script.UI.InfectionView)
 local KillFeed = require(script.UI.KillFeed)
 local OverheadBars = require(script.UI.OverheadBars)
 local Results = require(script.UI.Results)
@@ -27,3 +28,4 @@ OverheadBars.Start()
 Scoreboard.Start()
 KillFeed.Start()
 Results.Start()
+InfectionView.Start()
