@@ -16,6 +16,7 @@ Documento de diseño: https://claude.ai/artifact/Db9y3BWdNtESCJbiRrMR1z
 - Golpe cuerpo a cuerpo con **F** (o botón en móvil); por la espalda mata de un golpe
 - Mapa **Cañón Rojo** (greybox): base baja, zona de spawn y base alta por equipo; montículo central, dos carriles, cornisas altas y cuartos con granadas
 - Mapa **Fortines** (greybox, diseño de edwing): 200 × 200 studs, dos fuertes amurallados frente a frente con tres accesos cada uno, una plaza en medio y una plataforma al fondo con la base de la bandera. Sin jeeps
+- Mapa **El Cruce** (greybox, inspirado en un mapa de Halo CE): cuatro zonas unidas por pasillos, un abismo con plataforma y tres puentes en Y, y un corredor de afuera en lugar de teletransportes
 - El mapa se elige en `src/shared/Config/Maps.luau` (o `"Aleatorio"`)
 - Lanzacohetes en lo alto del montículo central (reaparece a los 120 s): el cohete vuela y explota; un impacto directo mata y dos destruyen un jeep
 - Granadas con **G** (2 por vida): mantén G para ver dónde caerá y suelta para lanzarla; explotan al chocar o a los 1.5 s

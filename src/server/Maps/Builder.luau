@@ -113,6 +113,23 @@ function Builder.pickupPad(
 	return pad
 end
 
+-- Un punto de aparición de un equipo, mirando hacia lookAt
+function Builder.spawn(parent: Instance, team, position: Vector3, lookAt: Vector3): SpawnLocation
+	local spawn = Instance.new("SpawnLocation")
+	spawn.Name = "Spawn" .. team.name
+	spawn.Size = Vector3.new(5, 1, 5)
+	spawn.Anchored = true
+	spawn.CFrame = CFrame.lookAt(position, Vector3.new(lookAt.X, position.Y, lookAt.Z))
+	spawn.BrickColor = team.color
+	spawn.Material = Enum.Material.SmoothPlastic
+	spawn.TeamColor = team.color
+	spawn.Neutral = false -- solo aparecen aquí los de este equipo
+	spawn.AllowTeamChangeOnTouch = false
+	spawn.Duration = 0 -- sin campo de fuerza: la protección la da el juego (SpawnProtected)
+	spawn.Parent = parent
+	return spawn
+end
+
 -- Lo que hace falta para construir la mitad de un equipo. Todas las posiciones se escriben
 -- como si fuera la mitad Roja; para la Azul se giran 180° solas.
 export type Half = {
@@ -155,21 +172,9 @@ function Builder.half(map: Folder, team): Half
 		)
 	end
 	function half.spawn(position: Vector3): SpawnLocation
-		local spawn = Instance.new("SpawnLocation")
-		spawn.Name = "Spawn" .. team.name
-		spawn.Size = Vector3.new(5, 1, 5)
-		spawn.Anchored = true
 		-- Mirando hacia el centro del mapa
 		local world = half.at(position)
-		spawn.CFrame = CFrame.lookAt(world, Vector3.new(0, world.Y, world.Z))
-		spawn.BrickColor = team.color
-		spawn.Material = Enum.Material.SmoothPlastic
-		spawn.TeamColor = team.color
-		spawn.Neutral = false -- solo aparecen aquí los de este equipo
-		spawn.AllowTeamChangeOnTouch = false
-		spawn.Duration = 0 -- sin campo de fuerza: la protección la da el juego (SpawnProtected)
-		spawn.Parent = folder
-		return spawn
+		return Builder.spawn(folder, team, world, Vector3.new(0, world.Y, world.Z))
 	end
 	function half.wall(from: Vector3, to: Vector3, height: number, gaps, style)
 		Builder.wallWithGaps(folder, "Wall", half.at(from), half.at(to), height, gaps, style)
