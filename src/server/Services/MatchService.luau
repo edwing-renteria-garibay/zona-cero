@@ -1,13 +1,14 @@
 -- Ciclo de partida: esperar jugadores, cuenta regresiva, jugar, mostrar ganador.
--- Modos: Team Slayer (puntos por bajas) y Captura la bandera (puntos por capturas).
+-- Modos: Team Slayer (puntos por bajas), Captura la bandera (puntos por capturas) y
+-- Rey de la colina (puntos por segundo en la colina).
 --
 -- El estado de la partida se guarda en atributos de ReplicatedStorage para que la pantalla
 -- de cada jugador lo lea (también quien entra a mitad de partida):
 --   MatchPhase      "Waiting" | "Countdown" | "Playing" | "Ended"
 --   MatchCountdown  segundos que faltan para empezar
 --   MatchEndsAt     cuándo se acaba el tiempo (en el reloj de workspace:GetServerTimeNow())
---   MatchMode       el modo que se juega ("TeamSlayer" o "CaptureTheFlag")
---   MatchScoreToWin puntos para ganar (bajas o capturas)
+--   MatchMode       el modo que se juega ("TeamSlayer", "CaptureTheFlag" o "KingOfTheHill")
+--   MatchScoreToWin puntos para ganar (bajas, capturas o segundos en la colina)
 -- El marcador de cada equipo es el atributo "Score" del Team.
 
 local Players = game:GetService("Players")
@@ -17,6 +18,7 @@ local Teams = game:GetService("Teams")
 local Modes = require(ReplicatedStorage.Shared.Config.Modes)
 local FlagService = require(script.Parent.FlagService)
 local HealthService = require(script.Parent.HealthService)
+local HillService = require(script.Parent.HillService)
 
 local matchState = ReplicatedStorage.Remotes.MatchState :: RemoteEvent
 local killFeed = ReplicatedStorage.Remotes.KillFeed :: RemoteEvent
@@ -187,6 +189,13 @@ function MatchService.Run()
 		for _, player in Players:GetPlayers() do
 			player:LoadCharacter()
 		end
+		if rules.scoreBy == "hill" then
+			HillService.Begin(function(team, points)
+				if running then
+					setScore(team, scores[team] + points)
+				end
+			end)
+		end
 		if rules.scoreBy == "captures" then
 			FlagService.Begin(function(_player, team)
 				if running then
@@ -206,6 +215,7 @@ function MatchService.Run()
 		end
 		running = false
 		FlagService.Stop()
+		HillService.Stop()
 		setPhase("Ended")
 		broadcast("Ended", buildResults(winningTeam))
 		task.wait(common.resultsTime)

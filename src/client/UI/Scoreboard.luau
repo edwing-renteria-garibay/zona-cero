@@ -102,8 +102,10 @@ function Scoreboard.Start()
 		if phase == "Playing" then
 			local endsAt = ReplicatedStorage:GetAttribute("MatchEndsAt") or 0
 			timer.Text = formatTime(endsAt - workspace:GetServerTimeNow())
-			local unit = if ReplicatedStorage:GetAttribute("MatchMode") == "CaptureTheFlag"
+			local mode = ReplicatedStorage:GetAttribute("MatchMode")
+			local unit = if mode == "CaptureTheFlag"
 				then "capturas"
+				elseif mode == "KingOfTheHill" then "segundos en la colina"
 				else "bajas"
 			goal.Text = string.format(
 				"Primero en %d %s",
