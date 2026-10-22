@@ -25,8 +25,9 @@ local function chooseMap(): string
 	return names[math.random(#names)]
 end
 
--- Construye el mapa si no existe y desactiva los puntos de aparición que no son del mapa
--- (como el SpawnLocation que trae la plantilla de Studio)
+-- Construye el mapa si no existe y quita lo que trae la plantilla de Studio: desactiva los
+-- puntos de aparición que no son del mapa y borra la Baseplate (queda a la misma altura que
+-- el piso del mapa y los dos pisos parpadean al moverse la cámara)
 function MapService.Build(): Folder
 	local map = workspace:FindFirstChild("Map") :: Folder?
 	if not map then
@@ -44,6 +45,10 @@ function MapService.Build(): Folder
 		require(mapModules:FindFirstChild(mapName) :: ModuleScript).Build(map)
 		map.Parent = workspace
 		print("[Map] Mapa:", Maps.list[mapName])
+	end
+	local baseplate = workspace:FindFirstChild("Baseplate")
+	if baseplate and not baseplate:IsDescendantOf(map) then
+		baseplate:Destroy()
 	end
 	for _, spawn in workspace:GetDescendants() do
 		if spawn:IsA("SpawnLocation") and not spawn:IsDescendantOf(map) then
