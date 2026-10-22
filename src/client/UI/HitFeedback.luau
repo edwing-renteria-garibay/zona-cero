@@ -1,10 +1,12 @@
 -- Aviso de acierto para quien dispara: un número de daño que flota sobre el impacto
--- y un "ping" corto. Así sabes que hiciste daño aunque el enemigo todavía tenga escudo.
+-- y un sonido corto (se elige en src/shared/Config/Sounds.luau). Así sabes que hiciste daño aunque el enemigo todavía tenga escudo.
 -- Azul = el escudo se llevó todo el daño; blanco = llegó a la vida; naranja = a la cabeza.
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
+
+local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 
 local hitConfirmed = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("HitConfirmed") :: RemoteEvent
 
@@ -46,17 +48,27 @@ local function showDamage(amount: number, position: Vector3, color: Color3, big:
 end
 
 function HitFeedback.Start()
-	local ping = Instance.new("Sound")
-	ping.SoundId = "rbxasset://sounds/electronicpingshort.wav"
-	ping.Volume = 0.5
-	ping.Parent = SoundService
+	local function makeSound(soundId: string): Sound
+		local sound = Instance.new("Sound")
+		sound.SoundId = soundId
+		sound.Volume = 0.5
+		sound.Parent = SoundService
+		return sound
+	end
+	local hitSound = makeSound(Sounds.hit)
+	local headshotSound = makeSound(Sounds.headshot)
+	-- Si los dos son el mismo audio, el de la cabeza suena más agudo para distinguirlo
+	if Sounds.headshot == Sounds.hit then
+		headshotSound.PlaybackSpeed = 1.5
+	end
 
 	hitConfirmed.OnClientEvent:Connect(
 		function(kind: string, amount: number?, position: Vector3?, surface: string?)
 			local headshot = kind == "head"
-			-- Tono más agudo en la cabeza para distinguirlo sin mirar
-			ping.PlaybackSpeed = if headshot then 1.5 else 1
-			SoundService:PlayLocalSound(ping)
+			local sound = if headshot then headshotSound else hitSound
+			if sound.SoundId ~= "" then
+				SoundService:PlayLocalSound(sound)
+			end
 			if amount and position then
 				local color = if headshot
 					then HEAD_COLOR

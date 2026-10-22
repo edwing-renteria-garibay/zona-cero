@@ -8,6 +8,7 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
+local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Aim = require(script.Parent.Aim)
 
@@ -119,7 +120,28 @@ local function drawImpact(position: Vector3, surface: string?)
 	Debris:AddItem(impact, 0.2)
 end
 
-local function onShotFired(from: Vector3, to: Vector3, hit: boolean?, surface: string?)
+-- El sonido del disparo sale del arma: se oye más fuerte cerca y se apaga a lo lejos
+local function playFireSound(position: Vector3, weaponName: string?)
+	local soundId = weaponName and Sounds.fire[weaponName]
+	if not soundId or soundId == "" then
+		return
+	end
+	local anchor = Instance.new("Attachment")
+	anchor.WorldPosition = position
+	anchor.Parent = workspace.Terrain
+	local sound = Instance.new("Sound")
+	sound.SoundId = soundId
+	sound.Volume = 0.6
+	sound.RollOffMaxDistance = 400
+	-- Un poco de variación para que una ráfaga no suene como el mismo audio repetido
+	sound.PlaybackSpeed = 0.95 + math.random() * 0.1
+	sound.Parent = anchor
+	sound:Play()
+	Debris:AddItem(anchor, 3)
+end
+
+local function onShotFired(from: Vector3, to: Vector3, hit: boolean?, surface: string?, weaponName: string?)
+	playFireSound(from, weaponName)
 	drawTracer(from, to)
 	if hit then
 		drawImpact(to, surface)

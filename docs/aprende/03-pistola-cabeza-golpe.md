@@ -60,7 +60,12 @@ Con la pistola, el cuerpo recibe 30 de daño. El escudo (100) aguanta 3 disparos
 | Barras sobre la cabeza: escudo (azul) y vida (verde) | Todos | `src/client/UI/OverheadBars.luau` |
 | El enemigo brilla en azul al recibir un golpe en el escudo, y en blanco cuando se rompe | Todos | `src/client/UI/OverheadBars.luau` |
 | Destello en el impacto: azul (escudo), rojo (vida), amarillo (jeep), gris (escenario) | Todos | `src/client/Controllers/WeaponController.luau` |
-| Número de daño que flota y un "ping" (más agudo en la cabeza) | Solo quien dispara | `src/client/UI/HitFeedback.luau` |
+| Número de daño que flota y un sonido de acierto | Solo quien dispara | `src/client/UI/HitFeedback.luau` |
+| Sonido de cada disparo, desde el arma | Todos | `src/client/Controllers/WeaponController.luau` |
+
+Los sonidos se eligen en `src/shared/Config/Sounds.luau`. En Studio abre la Caja de herramientas, ve a **Audio**, busca un sonido (por ejemplo "gunshot"), haz clic derecho y copia su ID. Pégalo como `"rbxassetid://NÚMERO"`.
+
+El escudo se empieza a recargar tras 3.5 s sin recibir daño y se llena en 1.5 s (`REGEN_DELAY` y `REGEN_TIME` en `HealthService`).
 
 `HealthService.Damage` ahora devuelve dos números: cuánto se llevó el escudo y cuánto la vida. `CombatService` los usa para elegir el color del destello y del número.
 

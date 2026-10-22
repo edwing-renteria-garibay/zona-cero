@@ -170,9 +170,16 @@ local function onFire(player: Player, origin: any, direction: any)
 	local surface = if result then applyHit(player, result, stats.damage, stats.headshotMultiplier) else nil
 
 	-- Todos los jugadores dibujan la trazadora desde el arma hasta el impacto,
-	-- y un destello en el impacto según lo que tocó (escudo, cuerpo, metal o escenario)
+	-- un destello en el impacto según lo que tocó (escudo, cuerpo, metal o escenario)
+	-- y el sonido del arma (tool.Name dice cuál)
 	local handle = tool:FindFirstChild("Handle") :: BasePart?
-	shotFired:FireAllClients(if handle then handle.Position else origin, hitPosition, result ~= nil, surface)
+	shotFired:FireAllClients(
+		if handle then handle.Position else origin,
+		hitPosition,
+		result ~= nil,
+		surface,
+		tool.Name
+	)
 end
 
 -- Disparo de la ametralladora del jeep: sale del cañón, no de la cabeza
@@ -209,7 +216,13 @@ local function onFireTurret(player: Player, direction: any)
 	local ray = direction.Unit * turret.range
 	local result = workspace:Raycast(origin, ray, params)
 	local surface = if result then applyHit(player, result, turret.damage, turret.headshotMultiplier) else nil
-	shotFired:FireAllClients(origin, if result then result.Position else origin + ray, result ~= nil, surface)
+	shotFired:FireAllClients(
+		origin,
+		if result then result.Position else origin + ray,
+		result ~= nil,
+		surface,
+		"Turret"
+	)
 end
 
 local function onReload(player: Player)
