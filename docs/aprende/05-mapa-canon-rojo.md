@@ -1,6 +1,6 @@
 # Aprende: el mapa Cañón Rojo
 
-El mapa se construye con código en `src/server/Services/MapService.luau` cada vez que arranca el servidor. Es un **greybox**: bloques simples para probar si el mapa se juega bien antes de decorarlo.
+El mapa se construye con código en `src/server/Maps/CanonRojo.luau` cada vez que arranca el servidor. Es un **greybox**: bloques simples para probar si el mapa se juega bien antes de decorarlo.
 
 ## 1. Cómo está hecho
 
@@ -17,7 +17,7 @@ En el centro:
 - **Cornisas:** un camino alto (8 studs) junto a cada pared del cañón, con rampas en las puntas, para flanquear.
 - **Cuartos laterales:** uno por equipo junto al carril sur, con **granadas** (+2, máximo 4, vuelven a los 30 s).
 
-Las dos mitades son iguales, giradas 180°. `buildHalf` construye la mitad de un equipo con las medidas de la mitad Roja; para el Azul, `place()` gira cada pieza 180° alrededor del centro del mapa. Así ningún equipo tiene ventaja.
+Las dos mitades son iguales, giradas 180°. `buildHalf` construye la mitad de un equipo con las medidas de la mitad Roja; para el Azul, `Builder.half()` (en `src/server/Maps/Builder.luau`) gira cada pieza 180° alrededor del centro del mapa. Así ningún equipo tiene ventaja.
 
 ### Rampas
 

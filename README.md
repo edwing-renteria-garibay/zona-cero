@@ -15,6 +15,9 @@ Documento de diseño: https://claude.ai/artifact/Db9y3BWdNtESCJbiRrMR1z
 - Cámara en primera persona; **V** cambia a tercera persona sobre el hombro (y vuelve)
 - Golpe cuerpo a cuerpo con **F** (o botón en móvil); por la espalda mata de un golpe
 - Mapa **Cañón Rojo** (greybox): base baja, zona de spawn y base alta por equipo; montículo central, dos carriles, cornisas altas y cuartos con granadas
+- Mapa **Fortines** (greybox, diseño de edwing): 200 × 200 studs, dos fuertes amurallados frente a frente con tres accesos cada uno, una plaza en medio y una plataforma al fondo con la base de la bandera. Sin jeeps
+- Mapa **El Cruce** (greybox, inspirado en Rat Race de Halo CE): base Azul en lo alto con tres rampas, túneles techados en medio y base Roja con columnas al sur
+- El mapa se elige en `src/shared/Config/Maps.luau` (o `"Aleatorio"`)
 - Lanzacohetes en lo alto del montículo central (reaparece a los 120 s): el cohete vuela y explota; un impacto directo mata y dos destruyen un jeep
 - Granadas con **G** (2 por vida): mantén G para ver dónde caerá y suelta para lanzarla; explotan al chocar o a los 1.5 s
 - Jeep con torreta: conductor (W/A/S/D), artillero con ametralladora y pasajero; llantas que se ponchan, barra de vida, se destruye y reaparece
