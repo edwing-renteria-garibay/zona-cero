@@ -1,9 +1,12 @@
 -- Reglas de cada modo de juego.
+-- teams: false = cada quien por su cuenta (Asesino en solitario): gana el primer jugador en
+-- llegar a scoreToWin bajas
 -- scoreBy: con qué suma puntos un equipo ("kills" = bajas, "captures" = banderas capturadas,
 -- "hill" = segundos solo en la colina)
 local Modes = {
 	TeamSlayer = { scoreToWin = 50, timeLimit = 600, teams = true, vehicles = true, scoreBy = "kills" },
-	FreeForAll = { scoreToWin = 25, timeLimit = 480, teams = false, vehicles = false, scoreBy = "kills" },
+	-- Asesino en solitario: todos contra todos
+	FreeForAll = { scoreToWin = 30, timeLimit = 600, teams = false, vehicles = false, scoreBy = "kills" },
 	CaptureTheFlag = {
 		scoreToWin = 3,
 		timeLimit = 900,
@@ -30,8 +33,8 @@ local Modes = {
 
 -- Qué modo se juega: el nombre de un modo, o "Aleatorio" para elegir uno de randomPool
 -- en cada partida. Captura la bandera solo se elige si el mapa tiene bases de bandera.
-Modes.selected = "KingOfTheHill"
-Modes.randomPool = { "TeamSlayer", "CaptureTheFlag", "KingOfTheHill" }
+Modes.selected = "Aleatorio"
+Modes.randomPool = { "TeamSlayer", "FreeForAll", "CaptureTheFlag", "KingOfTheHill" }
 
 -- Valores comunes a todos los modos
 Modes.Common = {

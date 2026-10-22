@@ -1,4 +1,5 @@
 -- Marcador arriba al centro: puntos de cada equipo, tiempo que queda y bajas para ganar.
+-- En Asesino en solitario muestra tus bajas (izquierda) y las del que va ganando (derecha).
 -- Antes de empezar muestra "Esperando jugadores" o la cuenta regresiva en grande.
 -- Todo se lee de los atributos que pone MatchService en ReplicatedStorage y en cada Team.
 
@@ -8,6 +9,9 @@ local RunService = game:GetService("RunService")
 local Teams = game:GetService("Teams")
 
 local player = Players.LocalPlayer
+
+local SOLO_YOU = Color3.fromRGB(70, 70, 70)
+local SOLO_LEADER = Color3.fromRGB(200, 150, 30)
 
 local Scoreboard = {}
 
@@ -36,6 +40,23 @@ local function makeTeamBox(parent: Instance, order: number): (Frame, TextLabel)
 	corner.Parent = box
 	local score = makeLabel(box, UDim2.fromScale(1, 1), 26)
 	return box, score
+end
+
+local function killsOf(someone: Player): number
+	local leaderstats = someone:FindFirstChild("leaderstats")
+	local kills = leaderstats and leaderstats:FindFirstChild("Bajas")
+	return if kills and kills:IsA("IntValue") then kills.Value else 0
+end
+
+-- Las bajas del que va ganando, sin contarte a ti
+local function leaderKills(): number
+	local best = 0
+	for _, other in Players:GetPlayers() do
+		if other ~= player then
+			best = math.max(best, killsOf(other))
+		end
+	end
+	return best
 end
 
 local function formatTime(seconds: number): string
@@ -80,6 +101,7 @@ function Scoreboard.Start()
 
 	RunService.RenderStepped:Connect(function()
 		local phase = ReplicatedStorage:GetAttribute("MatchPhase")
+		local mode = ReplicatedStorage:GetAttribute("MatchMode")
 		local teams = Teams:GetTeams()
 		-- Tu equipo siempre a la izquierda
 		table.sort(teams, function(a, b)
@@ -92,7 +114,12 @@ function Scoreboard.Start()
 		end)
 		local left, right = teams[1], teams[2]
 		bar.Visible = left ~= nil and right ~= nil
-		if left and right then
+		if mode == "FreeForAll" then
+			leftBox.BackgroundColor3 = SOLO_YOU
+			rightBox.BackgroundColor3 = SOLO_LEADER
+			leftScore.Text = tostring(killsOf(player))
+			rightScore.Text = tostring(leaderKills())
+		elseif left and right then
 			leftBox.BackgroundColor3 = left.TeamColor.Color
 			rightBox.BackgroundColor3 = right.TeamColor.Color
 			leftScore.Text = tostring(left:GetAttribute("Score") or 0)
@@ -102,7 +129,6 @@ function Scoreboard.Start()
 		if phase == "Playing" then
 			local endsAt = ReplicatedStorage:GetAttribute("MatchEndsAt") or 0
 			timer.Text = formatTime(endsAt - workspace:GetServerTimeNow())
-			local mode = ReplicatedStorage:GetAttribute("MatchMode")
 			local unit = if mode == "CaptureTheFlag"
 				then "capturas"
 				elseif mode == "KingOfTheHill" then "segundos en la colina"

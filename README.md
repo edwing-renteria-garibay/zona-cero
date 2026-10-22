@@ -8,8 +8,9 @@ Documento de diseño: https://claude.ai/artifact/Db9y3BWdNtESCJbiRrMR1z
 - Equipos Rojo y Azul con asignación automática
 - Escudo + vida estilo Halo (`src/server/Services/HealthService.luau`)
 - Ciclo de partida de Team Slayer: espera, cuenta regresiva, marcador, ganador (`MatchService.luau`)
+- Modo **Asesino en solitario**: todos contra todos, gana el primero en llegar a 30 bajas; cada quien reaparece en un punto al azar sin enemigos cerca
 - Modo **Rey de la colina**: la colina aparece en un lugar al azar al que los dos equipos pueden llegar, y se mueve cada 60 s
-- Modo **Captura la bandera**: una bandera en una esquina de cada base; tómala, llévala a tu base y captura (el modo se elige en `src/shared/Config/Modes.luau`, o `"Aleatorio"`)
+- Modo **Captura la bandera**: una bandera en una esquina de cada base; tómala, llévala a tu base y captura (el modo se elige en `src/shared/Config/Modes.luau`; viene en `"Aleatorio"`)
 - Marcador en pantalla con el tiempo, registro de bajas (quién eliminó a quién y con qué) y pantalla de resultados al terminar
 - Rifle de asalto: disparo con clic o toque, recarga con **R**, daño validado en el servidor
 - HUD con escudo, vida y munición; columnas de **Bajas** y **Muertes** en la lista de jugadores
