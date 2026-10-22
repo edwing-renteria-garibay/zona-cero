@@ -25,6 +25,7 @@ local CAUSES = {
 	Machete = "Machete",
 	rocket = "Cohete",
 	grenade = "Granada",
+	bomb = "Bomba",
 	jeep = "Explosión del jeep",
 }
 
