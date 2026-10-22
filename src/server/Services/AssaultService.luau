@@ -121,8 +121,9 @@ end
 local function placeAt(position: Vector3)
 	unweld()
 	local part = body :: BasePart
-	part.Anchored = true;
-	(bomb :: Model):PivotTo(CFrame.new(position + Vector3.new(0, 0.8, 0)))
+	part.Anchored = true
+	local model = bomb :: Model
+	model:PivotTo(CFrame.new(position + Vector3.new(0, 0.8, 0)))
 	lastPosition = position
 end
 
@@ -157,8 +158,9 @@ local function pickUp(player: Player)
 	end
 	state = "carried"
 	carrier = player
-	unweld();
-	(bomb :: Model):PivotTo(torso.CFrame * CFrame.new(0, 0.2, 1.1)) -- en la espalda
+	unweld()
+	local model = bomb :: Model
+	model:PivotTo(torso.CFrame * CFrame.new(0, 0.2, 1.1)) -- en la espalda
 	local part = body :: BasePart
 	part.Anchored = false
 	local weld = Instance.new("WeldConstraint")
@@ -261,8 +263,10 @@ local function detonate()
 	explosion.Parent = workspace
 	ExplosionService.PlaySoundAt(Sounds.explosion.rocket, position)
 	unweld()
-	carrier = nil;
-	(bomb :: Model).Parent = nil
+	carrier = nil
+	if bomb then
+		bomb.Parent = nil
+	end
 	if team then
 		announce(string.format("¡%s detonó la bomba!", team.Name), team)
 	end
@@ -280,9 +284,11 @@ local function runRounds(myGeneration: number, onScore: (Team) -> ())
 		round += 1
 		ReplicatedStorage:SetAttribute("AssaultAttackers", team.Name)
 		ReplicatedStorage:SetAttribute("AssaultRound", round)
-		ReplicatedStorage:SetAttribute("AssaultRoundEndsAt", workspace:GetServerTimeNow() + rules.roundTime);
-		(bomb :: Model).Parent = workspace
+		ReplicatedStorage:SetAttribute("AssaultRoundEndsAt", workspace:GetServerTimeNow() + rules.roundTime)
 		returnHome()
+		if bomb then
+			bomb.Parent = workspace
+		end
 		if round > 1 then
 			for _, player in Players:GetPlayers() do
 				player:LoadCharacter()
@@ -310,8 +316,10 @@ local function runRounds(myGeneration: number, onScore: (Team) -> ())
 			onScore(team)
 		else
 			unweld()
-			carrier = nil;
-			(bomb :: Model).Parent = nil
+			carrier = nil
+			if bomb then
+				bomb.Parent = nil
+			end
 			announce(
 				string.format("Se acabó el tiempo: %s defendió su base", otherTeam(team).Name),
 				otherTeam(team)
