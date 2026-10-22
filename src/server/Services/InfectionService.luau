@@ -1,5 +1,5 @@
 -- Modo Infección. Al empezar se eligen en secreto de 1 a 3 zombis (nadie sabe antes quién
--- va a ser). Los zombis no tienen armas: golpean (F o clic) y un golpe mata; corren más y
+-- va a ser). Los zombis no tienen armas, solo un machete: golpean (F o clic) y un golpe mata; corren más y
 -- ven a los sobrevivientes a través de las paredes. Un sobreviviente que muere se vuelve
 -- zombi. Ganan los zombis si infectan a todos; ganan los sobrevivientes si queda al menos
 -- uno cuando se acaba el tiempo.
@@ -19,6 +19,39 @@ local ZOMBIE_SKIN = Color3.fromRGB(110, 150, 80)
 local ZOMBIE_TEXT = Color3.fromRGB(120, 220, 90)
 
 local InfectionService = {}
+
+-- El machete de los zombis: una hoja de metal con mango. Solo se ve; el golpe lo hace
+-- CombatService igual que el golpe con F (por eso no está en Config/Weapons).
+local function makeMachete(): Tool
+	local tool = Instance.new("Tool")
+	tool.Name = "Machete"
+	tool.ToolTip = "Machete"
+	tool.CanBeDropped = false
+	-- La mano queda en un extremo; la hoja sale hacia el frente
+	tool.Grip = CFrame.new(0, 0, -1.4)
+	local blade = Instance.new("Part")
+	blade.Name = "Handle"
+	blade.Size = Vector3.new(0.1, 0.5, 3.6)
+	blade.Color = Color3.fromRGB(150, 150, 155)
+	blade.Material = Enum.Material.Metal
+	blade.CanCollide = false
+	blade.Massless = true
+	blade.Parent = tool
+	local grip = Instance.new("Part")
+	grip.Name = "Grip"
+	grip.Size = Vector3.new(0.2, 0.3, 1)
+	grip.CFrame = CFrame.new(0, 0, -1.4)
+	grip.Color = Color3.fromRGB(60, 40, 25)
+	grip.Material = Enum.Material.Wood
+	grip.CanCollide = false
+	grip.Massless = true
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = blade
+	weld.Part1 = grip
+	weld.Parent = grip
+	grip.Parent = tool
+	return tool
+end
 
 local active = false
 local rules: any = nil
@@ -42,8 +75,8 @@ local function updateCounts(): (number, number)
 	return survivors, zombies
 end
 
--- Convierte un personaje en zombi: sin armas, granadas ni escudo, piel verde, más vida
--- y más rápido
+-- Convierte un personaje en zombi: sin armas (solo el machete), granadas ni escudo, piel
+-- verde, más vida y más rápido
 local function applyZombie(character: Model)
 	local player = Players:GetPlayerFromCharacter(character)
 	local backpack = player and player:FindFirstChildOfClass("Backpack")
@@ -54,6 +87,7 @@ local function applyZombie(character: Model)
 			end
 		end
 	end
+	makeMachete().Parent = character -- un Tool dentro del personaje = en la mano
 	character:SetAttribute("Grenades", 0)
 	character:SetAttribute("MaxShield", 0)
 	character:SetAttribute("Shield", 0)
