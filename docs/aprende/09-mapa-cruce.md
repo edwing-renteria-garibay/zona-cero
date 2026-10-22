@@ -1,6 +1,11 @@
 # Aprende: el mapa El Cruce y los mapas dibujados con letras
 
-**El Cruce** es el tercer mapa, inspirado en un mapa de Halo CE (unos 220 × 205 studs). Tiene cuatro zonas en las orillas unidas por pasillos y, en medio, un **abismo** con una plataforma alta y tres puentes en forma de Y. En lugar de teletransportes hay un **corredor de afuera** (oeste, sur y este) para flanquear.
+**El Cruce** es el tercer mapa, inspirado en **Rat Race** de Halo CE. Mide unos 360 × 300 studs.
+
+- La **base Azul** está en lo alto, al noroeste (14 studs).
+- De la base Azul bajan **tres rampas**: una al cuarto oeste, un pasillo largo al cuarto este y un túnel hacia el centro.
+- En medio hay **muros y túneles techados** que cruzan de lado a lado, así que no hay líneas de tiro largas.
+- La **base Roja** es el cuarto grande del sur, con columnas.
 
 ## 1. El plano es texto
 
@@ -8,31 +13,38 @@ Abre `src/server/Maps/Cruce.luau` y busca `PLAN`. Cada letra es una celda de 5 �
 
 | Letra | Qué es |
 |---|---|
-| `#` | muro alto (20 studs), no se puede subir |
-| `.` | piso |
-| `P` | pilar de 8 studs para cubrirse |
-| `o` | abismo: si caes, mueres |
+| `#` | muro (32 studs) |
+| `.` | piso de abajo |
+| `t` | túnel: piso con techo a 12 studs |
+| `^` | piso alto (base Azul, 14 studs) |
+| `R` / `r` | rampa al aire libre / dentro de un túnel |
+| `P` / `p` | columna en el piso de abajo / en el piso alto |
 
-El norte está arriba. Si cambias una letra, el mapa cambia la próxima vez que pruebes con F7. Por ejemplo, pon una `P` en medio de un cuarto para agregar una cobertura, o cambia `.` por `#` para cerrar un pasillo.
+El norte está arriba. Si cambias una letra, el mapa cambia la próxima vez que pruebes con F7. Por ejemplo:
+- Pon `t` en lugar de `.` para techar un pasillo.
+- Pon `#` para cerrar un paso.
+- Pon `P` para agregar una columna.
 
 ## 2. De letras a piezas
 
-Crear una pieza por celda daría miles de piezas. La función `rectangles` junta las celdas iguales que están una al lado de la otra en rectángulos grandes, y `fillCells` crea un bloque por rectángulo. Así el mapa usa unas 200 piezas.
+Crear una pieza por celda daría miles de piezas. La función `rectangles` junta las celdas iguales que están una al lado de la otra en rectángulos grandes, y `fill` crea un bloque por rectángulo. Así el mapa usa unas 200 piezas.
 
-## 3. Barandales automáticos
+## 3. Las rampas
 
-El código revisa cada celda de piso: si la de al lado es abismo (`o`), pone un barandal de 3 studs en esa orilla. Se puede disparar por encima, pero no te caes por accidente. Donde llega un puente no pone barandal (`nearBridge`).
+Una rampa no se puede dibujar solo con letras, porque hay que saber hacia dónde sube. Por eso está en la tabla `RAMPS`:
 
-## 4. El abismo mata
+```lua
+{ rows = { 20, 27 }, columns = { 2, 12 }, high = "N", tunnel = false },
+```
 
-Abajo del abismo hay una pieza invisible con el atributo `KillZone`. `MapService` busca las piezas con ese atributo y, cuando un personaje las toca, le pone la vida en 0. En el registro de bajas sale como "Caída" (o como baja de quien te dañó antes de caer).
+Quiere decir que de la fila 20 a la 27 y de la columna 2 a la 12 hay una rampa que sube hacia el norte (`N`, `S`, `E` u `O`). Si `tunnel` es `true`, también lleva un techo inclinado. El lado alto debe tocar el piso `^`, y el bajo, piso `.` o `t`.
 
-## 5. Los puentes
+## 4. Techos macizos
 
-Los puentes están en la tabla `BRIDGES`: cada uno va de un punto alto (la orilla de la plataforma, a 8 studs) a un punto bajo (el piso de una zona). `Builder.slope` hace la rampa y se le agregan barandales a los lados.
+El techo de un túnel no es una losa delgada: es un bloque que llega hasta lo alto de los muros. Así nadie puede caminar encima de los túneles desde la base alta.
 
-## 6. Prueba a cambiar cosas
+## 5. Prueba a cambiar cosas
 
-- Cambia `HUB_HEIGHT` a 12 para que la plataforma del centro sea más alta.
-- Mueve un punto de aparición en `SPAWNS` (fila y columna, contadas desde 0 como en el dibujo).
-- Agrega granadas en `GRENADES`.
+- Cambia `HIGH` a 18 para subir la base Azul (las rampas se ajustan solas).
+- Cambia `TUNNEL_HEIGHT` a 10 para túneles más bajos.
+- Mueve un punto de aparición en `SPAWNS` o las granadas en `GRENADES` (son `{fila, columna}` de `PLAN`).

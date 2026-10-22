@@ -1,73 +1,112 @@
--- Mapa "El Cruce": inspirado en un mapa de Halo CE que eligió edwing. Cuatro zonas en las
--- orillas (cuarto noroeste, cuarto este, cuarto oeste y cuarto sur) unidas por pasillos, y en
--- medio un abismo con una plataforma alta y tres puentes en forma de Y.
--- En lugar de teletransportes hay un corredor por fuera (oeste, sur y este) para flanquear.
+-- Mapa "El Cruce": inspirado en Rat Race de Halo CE, el mapa que eligió edwing.
+--
+-- La base Azul está en lo alto, al noroeste (14 studs). De ahí bajan tres rampas: una al
+-- cuarto oeste, un pasillo largo al cuarto este y un túnel hacia el centro. En medio hay
+-- muros y túneles techados que cruzan el mapa de lado a lado, así que no hay líneas de tiro
+-- largas. La base Roja es el cuarto grande del sur, con columnas.
 --
 -- El plano está dibujado abajo, en PLAN: cada letra es una celda de 5 × 5 studs.
---   #  muro alto (no se puede subir)
---   .  piso
---   P  pilar o muro bajo para cubrirse
---   o  abismo: si caes, mueres
+--   #  muro
+--   .  piso (abajo)
+--   t  túnel: piso con techo
+--   ^  piso alto (base Azul)
+--   R  rampa al aire libre      r  rampa dentro de un túnel   (ver RAMPS)
+--   P  columna en el piso de abajo      p  columna en el piso alto
 -- El norte está arriba. Cambia una letra y el mapa cambia la próxima vez que pruebes.
 
 local Builder = require(script.Parent.Builder)
 
 local CONCRETE, DARK, ASPHALT = Builder.CONCRETE, Builder.DARK_CONCRETE, Builder.ASPHALT
-local PLATE, METAL = Builder.PLATE, Builder.METAL
+local PLATE = Builder.PLATE
 
 local Cruce = {}
 
 local CELL = 5 -- studs por celda
-local WALL_HEIGHT = 20
-local PILLAR_HEIGHT = 8
-local RAIL_HEIGHT = 3 -- barandal: se dispara por encima pero no te caes por accidente
-local HUB_HEIGHT = 8 -- plataforma del centro
-local PIT_DEPTH = 40
+local WALL_TOP = 32 -- altura de los muros
+local HIGH = 14 -- altura del piso alto
+local TUNNEL_HEIGHT = 12 -- del piso al techo de los túneles
+local COLUMN_HEIGHT = 10
 
--- 44 columnas × 41 filas
+-- 72 columnas × 60 filas: unos 360 × 300 studs
 local PLAN = {
-	"############################################",
-	"###..................#######################",
-	"###..................#######################",
-	"####.....................#####.........#####",
-	"####.......PPP..............##.........#####",
-	"####.......PPP.........................#####",
-	"####...................................#####",
-	"####.................oooo..............#####",
-	"####...................oooooo..........#####",
-	"####.....................ooooo...PP......###",
-	"####.......oooooooooooo..ooooo.............#",
-	"####.......ooooooooooooo.ooooo.............#",
-	"####.......ooooooooooooooooooo.............#",
-	"###.......oooooooooooooooooooo.............#",
-	"###.......oooooooooooooooooooo...PP.....#..#",
-	"###.......oooooooooooooooooooo.........##..#",
-	"###.......oooooooooooooooooooo.........##..#",
-	"##.......ooooooooooooooooooooo.........##P.#",
-	"##.......ooooooooooooooooooooo.........##..#",
-	"#..............ooooooooooooooo.........##..#",
-	"#.......................oooooo.........##..#",
-	"#......................oooooooo......####..#",
-	"#......................ooooooooo....#####..#",
-	"#......................ooooooooo....#####..#",
-	"####....##########.....ooooooooo....#####..#",
-	"####..#############.....oooooooo....#####.P#",
-	"####..#############......ooooooo....#####..#",
-	"####..#############......ooooooo.....####..#",
-	"####..##########.............oooo....####..#",
-	"####..##########.............oooo....####..#",
-	"####..#########........................##..#",
-	"####P.#########........................##..#",
-	"####..#########.......PP...............##..#",
-	"####..#########........................##..#",
-	"####..#########........................##..#",
-	"####..#########.......................###..#",
-	"####..##########..............###########..#",
-	"####..##############.....################..#",
-	"####.........P.............................#",
-	"####...........................P...........#",
-	"############################################",
+	"########################################################################",
+	"###^^^^^^^^^^^^^^^^^^^^^^^^^^###########################################",
+	"###^^^^^^^^^^^^^^^^^^^^^^^^^^###########################################",
+	"###^^^^^^^^^^^^^^^^^^^^^^^^^^###########################################",
+	"#^^^^^^^^^^^^^^^^^^^^^^^^^^^^###########################################",
+	"#^^^^^^^^^^^^^^^^^^^^^^^^^^^^###########################################",
+	"#^^^^^^^^^^pp^^^^^^^^pp^^^^^^###########################################",
+	"#^^^^^^^^^^pp^^^^^^^^pp^^^^^^###########################################",
+	"#^^^^^^^^^^^^^^^^^^^^^^^^^^^^#########################......##.....#####",
+	"#^^^^^^^^^^^^^^^^^^^^^^^^^^^^#########################......##......####",
+	"#^^^^^^^^^^^^^^^^^^^^^^^^^^^^RRRRRRRRRRRRRRRRRRR######...............###",
+	"#^^^^^^^^^^^^^^^^^^^^^^^^^^^^RRRRRRRRRRRRRRRRRRRRRRRRR.............#####",
+	"#^^^^^^^^^^pp^^^^^^^^pp^^^^^^RRRRRRRRRRRRRRRRRRRRRRRRR.............#####",
+	"#^^^^^^^^^^pp^^^^^^^^pp^^^^^^RRRRRRRRRRRRRRRRRRRRRRRRR.............#####",
+	"#^^^^^^^^^^^^^^^^^^^^^^^^^^^^RRRRRRRRRRRRRRRRRRRRRRRRR.............#####",
+	"#^^^^^^^^^^^^^^^^^^^^^^^^^^^^#########################.....PPP......####",
+	"###^^^^^^^^^^^^^^^^^^^^^^^^^^rrrrrrrrrrrrttttt########.....PPP........##",
+	"###^^^^^^^^^^^^^^^^^^^^^^^^^^rrrrrrrrrrrrtttttt#######.....PPP........##",
+	"###^^^^^^^^^^^^^^^^^^^^^^^^^^rrrrrrrrrrrrtt##ttt######................##",
+	"###RRRRRRRRR##################rrrrrrrrrrrttttttt######................##",
+	"###RRRRRRRR#############################ttttttttt#####................##",
+	"###RRRRRRRR#####################ttttttt##tttttttt#####................##",
+	"##RRRRRRRRR#####################tttttttt##ttttttt#####................##",
+	"##RRRRRRRRR#############tttttttttttttttt##ttttttt#####................##",
+	"##RRRRRRRRR#########ttttttttttttttttttttttttttttt#####.....PPP........##",
+	"##RRRRRRRRR#######ttttttttttttttttttttttttttttttt#####.....PPP........##",
+	"##RRRRRRRRR#####ttttttttttttttttttttttttttttttttt#####.....PPP........##",
+	"#............tttttttttttttttttttttttttttttttttttt#######..............##",
+	"#............tttttttttttttttttttttttttttttttttttt#######..........######",
+	"#............tttttttttttttttttttttttttttttttttttt#######..........######",
+	"#............ttttttttttt...............tttttttttt#######.........#######",
+	"#............tttttttttt..............######ttttttt#######........#######",
+	"#............ttttttttt...............#######ttttttt#######......########",
+	"#............tttttttt................########tttttt#######......########",
+	"#....................................########ttttttt#####........#######",
+	"#....................................#########ttttttt#####.....#########",
+	"####......#################..........##########tttttt#####.....#########",
+	"####......#################..........##########ttttttt####......########",
+	"###########################..........###########ttttttt##........#######",
+	"###########################..........############ttttttttttttt...#######",
+	"###########################..........###########tttttttttttttt...#######",
+	"###########################.....................ttttttttttttttt..#######",
+	"#########################........................tttttttttttttt......###",
+	"#########################........................tttttttttttttt......###",
+	"#########################........................ttttttttttttttt......##",
+	"#########################....PP.......PP.......PP......PP.......PP....##",
+	"#######################......PP.......PP.......PP......PP.......PP.....#",
+	"#######################................................................#",
+	"#######################................................................#",
+	"#######################................................................#",
+	"#######################................................................#",
+	"#######################......PP.......PP.......PP......PP.......PP.....#",
+	"#########################....PP.......PP.......PP......PP.......PP....##",
+	"#########################.............................................##",
+	"#########################............................................###",
+	"##########################.............................#################",
+	"###########################.......................######################",
+	"############################........####################################",
+	"############################........####################################",
+	"########################################################################",
 }
+
+-- Las rampas: un rectángulo de celdas (filas y columnas de PLAN, contando desde 1) y el lado
+-- que queda arriba ("N", "S", "E" u "O"). tunnel = true si lleva techo.
+local RAMPS = {
+	{ rows = { 20, 27 }, columns = { 2, 12 }, high = "N", tunnel = false },
+	{ rows = { 11, 15 }, columns = { 30, 54 }, high = "O", tunnel = false },
+	{ rows = { 17, 20 }, columns = { 30, 41 }, high = "O", tunnel = true },
+}
+
+-- Puntos importantes, como {fila, columna} de PLAN
+local SPAWNS = {
+	Azul = { { 4, 6 }, { 4, 27 }, { 17, 6 }, { 17, 27 } },
+	Rojo = { { 55, 28 }, { 55, 68 }, { 55, 47 }, { 46, 68 } },
+}
+local FLAGS = { Azul = { 9, 8 }, Rojo = { 48, 65 } } -- base de la bandera (para Captura la bandera)
+local GRENADES = { { 31, 3 }, { 22, 61 }, { 10, 4 }, { 49, 27 } }
+local ROCKET = { 27, 35 } -- el lanzacohetes, a medio túnel
 
 local COLUMNS, ROWS = #PLAN[1], #PLAN
 
@@ -77,8 +116,13 @@ local function cellCenter(row: number, column: number): (number, number)
 end
 
 local function cellAt(row: number, column: number): string
-	local line = PLAN[row]
-	return if line then string.sub(line, column, column) else "#"
+	return string.sub(PLAN[row], column, column)
+end
+
+-- Altura del piso en una celda
+local function floorHeight(row: number, column: number): number
+	local cell = cellAt(row, column)
+	return if cell == "^" or cell == "p" then HIGH else 0
 end
 
 -- Junta celdas iguales en rectángulos, para no crear una pieza por celda.
@@ -118,217 +162,106 @@ end
 local function fillCells(parent: Instance, name: string, rect: { number }, y0: number, y1: number, style)
 	local x0, z0 = cellCenter(rect[1], rect[3])
 	local x1, z1 = cellCenter(rect[2], rect[4])
-	local width, depth = x1 - x0 + CELL, z1 - z0 + CELL
 	Builder.block(
 		parent,
 		name,
-		Vector3.new(width, y1 - y0, depth),
+		Vector3.new(x1 - x0 + CELL, y1 - y0, z1 - z0 + CELL),
 		CFrame.new((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2),
 		style
 	)
 end
 
--- Distancia (vista desde arriba) de un punto a un segmento: sirve para no poner
--- barandales donde llega un puente
-local function distanceToSegment(p: Vector3, a: Vector3, b: Vector3): number
-	local flatP, flatA, flatB = Vector3.new(p.X, 0, p.Z), Vector3.new(a.X, 0, a.Z), Vector3.new(b.X, 0, b.Z)
-	local ab = flatB - flatA
-	local t = math.clamp((flatP - flatA):Dot(ab) / ab:Dot(ab), 0, 1)
-	return (flatP - (flatA + ab * t)).Magnitude
-end
-
--- Los tres puentes: de la orilla de la plataforma (alto) al piso de una zona (bajo)
-local HUB = { x0 = -15, x1 = 20, z0 = -37.5, z1 = -7.5 }
-local BRIDGES = {
-	{ name = "PuenteOeste", high = Vector3.new(-15, HUB_HEIGHT, -12.5), low = Vector3.new(-62.5, 0, 0) },
-	{ name = "PuenteNorte", high = Vector3.new(12.5, HUB_HEIGHT, -37.5), low = Vector3.new(17.5, 0, -70) },
-	{ name = "PuenteSur", high = Vector3.new(15, HUB_HEIGHT, -7.5), low = Vector3.new(55, 0, 37.5) },
-}
-local BRIDGE_WIDTH = 10
-
-local function nearBridge(position: Vector3): boolean
-	for _, bridge in BRIDGES do
-		if distanceToSegment(position, bridge.high, bridge.low) < BRIDGE_WIDTH / 2 + 2 then
-			return true
-		end
+local function fill(parent: Instance, name: string, letters: string, y0: number, y1: number, style)
+	for _, rect in
+		rectangles(function(cell)
+			return string.find(letters, cell, 1, true) ~= nil
+		end)
+	do
+		fillCells(parent, name, rect, y0, y1, style)
 	end
-	return false
-end
-
--- Barandal de una celda de largo, en el borde entre dos celdas
-local function rail(parent: Instance, position: Vector3, alongX: boolean)
-	if nearBridge(position) then
-		return
-	end
-	local size = if alongX then Vector3.new(CELL, RAIL_HEIGHT, 0.6) else Vector3.new(0.6, RAIL_HEIGHT, CELL)
-	Builder.block(parent, "Rail", size, CFrame.new(position + Vector3.new(0, RAIL_HEIGHT / 2, 0)), METAL)
 end
 
 local function buildGround(map: Folder)
 	local folder = Instance.new("Folder")
 	folder.Name = "Ground"
 	folder.Parent = map
-
-	local function isFloor(cell: string): boolean
-		return cell == "." or cell == "P"
-	end
-	for _, rect in rectangles(isFloor) do
-		fillCells(folder, "Floor", rect, -2, 0, ASPHALT)
-	end
-	for _, rect in
-		rectangles(function(cell)
-			return cell == "#"
-		end)
-	do
-		fillCells(folder, "Wall", rect, -PIT_DEPTH, WALL_HEIGHT, CONCRETE)
-	end
-	for _, rect in
-		rectangles(function(cell)
-			return cell == "P"
-		end)
-	do
-		fillCells(folder, "Pillar", rect, 0, PILLAR_HEIGHT, DARK)
-	end
-
-	-- Fondo del abismo (se ve oscuro desde arriba) y la zona que mata al caer
-	local width, depth = COLUMNS * CELL, ROWS * CELL
-	Builder.block(
-		folder,
-		"PitBottom",
-		Vector3.new(width, 2, depth),
-		CFrame.new(0, -PIT_DEPTH - 1, 0),
-		{ Color = Color3.fromRGB(20, 20, 25), Material = Enum.Material.Slate }
-	)
-	local killZone = Builder.block(
-		folder,
-		"KillZone",
-		Vector3.new(width, 4, depth),
-		CFrame.new(0, -PIT_DEPTH + 10, 0),
-		CONCRETE
-	)
-	killZone.Transparency = 1
-	killZone.CanCollide = false
-	killZone.CanQuery = false
-	killZone:SetAttribute("KillZone", true) -- MapService mata a quien la toca
-
-	-- Barandales en cada orilla de piso que da al abismo
-	for row = 1, ROWS do
-		for column = 1, COLUMNS do
-			if isFloor(cellAt(row, column)) then
-				local x, z = cellCenter(row, column)
-				local half = CELL / 2
-				if cellAt(row - 1, column) == "o" then
-					rail(folder, Vector3.new(x, 0, z - half), true)
-				end
-				if cellAt(row + 1, column) == "o" then
-					rail(folder, Vector3.new(x, 0, z + half), true)
-				end
-				if cellAt(row, column - 1) == "o" then
-					rail(folder, Vector3.new(x - half, 0, z), false)
-				end
-				if cellAt(row, column + 1) == "o" then
-					rail(folder, Vector3.new(x + half, 0, z), false)
-				end
-			end
-		end
-	end
+	fill(folder, "Floor", ".tRrPp^", -2, 0, ASPHALT) -- piso bajo todo lo que no es muro
+	fill(folder, "Wall", "#", -2, WALL_TOP, CONCRETE)
+	fill(folder, "HighFloor", "^p", 0, HIGH, DARK)
+	fill(folder, "Column", "P", 0, COLUMN_HEIGHT, DARK)
+	fill(folder, "Column", "p", HIGH, HIGH + COLUMN_HEIGHT, DARK)
+	-- El techo de los túneles es un bloque macizo hasta lo alto de los muros: nadie camina encima
+	fill(folder, "TunnelRoof", "t", TUNNEL_HEIGHT, WALL_TOP, CONCRETE)
 end
 
--- La plataforma del centro, los puentes y lo que hay arriba
-local function buildCenter(map: Folder)
+-- Cada rampa es una losa inclinada; si va en un túnel, lleva encima un techo inclinado igual
+local function buildRamps(map: Folder)
 	local folder = Instance.new("Folder")
-	folder.Name = "Center"
+	folder.Name = "Ramps"
 	folder.Parent = map
-
-	local hubX, hubZ = (HUB.x0 + HUB.x1) / 2, (HUB.z0 + HUB.z1) / 2
-	local hubWidth, hubDepth = HUB.x1 - HUB.x0, HUB.z1 - HUB.z0
-	Builder.block(
-		folder,
-		"Hub",
-		Vector3.new(hubWidth, 2, hubDepth),
-		CFrame.new(hubX, HUB_HEIGHT - 1, hubZ),
-		DARK
-	)
-	-- Columna que sostiene la plataforma desde el fondo del abismo
-	local columnHeight = HUB_HEIGHT - 2 + PIT_DEPTH
-	Builder.block(
-		folder,
-		"HubColumn",
-		Vector3.new(10, columnHeight, 10),
-		CFrame.new(hubX, HUB_HEIGHT - 2 - columnHeight / 2, hubZ),
-		CONCRETE
-	)
-	-- Pirámide del centro: un escalón para cubrirse, con el lanzacohetes arriba
-	Builder.block(
-		folder,
-		"Pyramid",
-		Vector3.new(10, 3, 10),
-		CFrame.new(hubX, HUB_HEIGHT + 1.5, hubZ),
-		CONCRETE
-	)
-	Builder.pickupPad(
-		map,
-		"RocketLauncherPad",
-		Vector3.new(hubX, HUB_HEIGHT + 3.2, hubZ),
-		"Weapon",
-		"RocketLauncher"
-	)
-
-	-- Barandales alrededor de la plataforma, con huecos donde llegan los puentes
-	for x = HUB.x0 + CELL / 2, HUB.x1, CELL do
-		rail(folder, Vector3.new(x, HUB_HEIGHT, HUB.z0), true)
-		rail(folder, Vector3.new(x, HUB_HEIGHT, HUB.z1), true)
-	end
-	for z = HUB.z0 + CELL / 2, HUB.z1, CELL do
-		rail(folder, Vector3.new(HUB.x0, HUB_HEIGHT, z), false)
-		rail(folder, Vector3.new(HUB.x1, HUB_HEIGHT, z), false)
-	end
-
-	-- Cada puente es una rampa con barandales a los lados
-	for _, bridge in BRIDGES do
-		local slab = Builder.slope(folder, bridge.name, bridge.low, bridge.high, BRIDGE_WIDTH, PLATE)
-		for _, side in { 1, -1 } do
+	for _, ramp in RAMPS do
+		local x0 = (ramp.columns[1] - 1 - COLUMNS / 2) * CELL
+		local x1 = (ramp.columns[2] - COLUMNS / 2) * CELL
+		local z0 = (ramp.rows[1] - 1 - ROWS / 2) * CELL
+		local z1 = (ramp.rows[2] - ROWS / 2) * CELL
+		local xMid, zMid = (x0 + x1) / 2, (z0 + z1) / 2
+		local low, high, width
+		if ramp.high == "N" or ramp.high == "S" then
+			local highZ, lowZ = if ramp.high == "N" then z0 else z1, if ramp.high == "N" then z1 else z0
+			low, high, width = Vector3.new(xMid, 0, lowZ), Vector3.new(xMid, HIGH, highZ), x1 - x0
+		else
+			local highX, lowX = if ramp.high == "O" then x0 else x1, if ramp.high == "O" then x1 else x0
+			low, high, width = Vector3.new(lowX, 0, zMid), Vector3.new(highX, HIGH, zMid), z1 - z0
+		end
+		local slab = Builder.slope(folder, "Ramp", low, high, width, PLATE)
+		if ramp.tunnel then
+			-- Grosor justo para que arriba de la rampa llegue a lo alto de los muros
+			local thickness = WALL_TOP - TUNNEL_HEIGHT - HIGH
 			Builder.block(
 				folder,
-				"BridgeRail",
-				Vector3.new(0.6, RAIL_HEIGHT, slab.Size.Z),
-				slab.CFrame * CFrame.new(side * (BRIDGE_WIDTH / 2 - 0.3), 0.5 + RAIL_HEIGHT / 2, 0),
-				METAL
+				"TunnelRoof",
+				Vector3.new(width, thickness, slab.Size.Z),
+				slab.CFrame * CFrame.new(0, 0.5 + TUNNEL_HEIGHT + thickness / 2, 0),
+				CONCRETE
 			)
 		end
 	end
 end
 
--- Puntos de aparición: Azul al oeste y noroeste, Rojo al este y al sur
-local SPAWNS = {
-	Azul = { { 2, 6 }, { 2, 17 }, { 22, 2 }, { 17, 4 } },
-	Rojo = { { 4, 35 }, { 19, 36 }, { 34, 33 }, { 33, 18 } },
-}
--- Granadas: pasillo norte, cuarto sur y a medio corredor de afuera
-local GRENADES = { { 6, 18 }, { 33, 30 }, { 38, 22 } }
+-- Posición sobre el piso de una celda {fila, columna}
+local function onFloor(cell: { number }, lift: number): Vector3
+	local x, z = cellCenter(cell[1], cell[2])
+	return Vector3.new(x, floorHeight(cell[1], cell[2]) + lift, z)
+end
 
-local function buildTeams(map: Folder)
+local function buildPoints(map: Folder)
 	for _, team in Builder.TEAMS do
 		local folder = Instance.new("Folder")
-		folder.Name = "Spawns" .. team.name
+		folder.Name = "Base" .. team.name
 		folder.Parent = map
 		for _, cell in SPAWNS[team.name] do
-			-- Las tablas de arriba usan filas y columnas contadas desde 0, como el dibujo
-			local x, z = cellCenter(cell[1] + 1, cell[2] + 1)
-			Builder.spawn(folder, team, Vector3.new(x, 0.5, z), Vector3.new(0, 0, -20))
+			Builder.spawn(folder, team, onFloor(cell, 0.5), Vector3.zero)
 		end
+		local flagStand = Builder.block(
+			folder,
+			"FlagStand",
+			Vector3.new(4, 0.2, 4),
+			CFrame.new(onFloor(FLAGS[team.name], 0.1)),
+			{ Color = team.color.Color, Material = Enum.Material.Neon }
+		)
+		flagStand:SetAttribute("Team", team.name)
 	end
 	for _, cell in GRENADES do
-		local x, z = cellCenter(cell[1] + 1, cell[2] + 1)
-		Builder.pickupPad(map, "GrenadePad", Vector3.new(x, 0.2, z), "Pickup", "Grenades")
+		Builder.pickupPad(map, "GrenadePad", onFloor(cell, 0.2), "Pickup", "Grenades")
 	end
+	Builder.pickupPad(map, "RocketLauncherPad", onFloor(ROCKET, 0.2), "Weapon", "RocketLauncher")
 end
 
 -- Construye todo el mapa dentro de la carpeta map
 function Cruce.Build(map: Folder)
 	buildGround(map)
-	buildCenter(map)
-	buildTeams(map)
+	buildRamps(map)
+	buildPoints(map)
 end
 
 return Cruce

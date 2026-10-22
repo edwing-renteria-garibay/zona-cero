@@ -25,20 +25,6 @@ local function chooseMap(): string
 	return names[math.random(#names)]
 end
 
--- Las piezas con el atributo KillZone matan a quien las toca (por ejemplo, el fondo de un abismo)
-local function setupKillZones(map: Instance)
-	for _, part in map:GetDescendants() do
-		if part:IsA("BasePart") and part:GetAttribute("KillZone") then
-			part.Touched:Connect(function(hit: BasePart)
-				local humanoid = hit.Parent and hit.Parent:FindFirstChildOfClass("Humanoid")
-				if humanoid and humanoid.Health > 0 then
-					humanoid.Health = 0
-				end
-			end)
-		end
-	end
-end
-
 -- Construye el mapa si no existe y desactiva los puntos de aparición que no son del mapa
 -- (como el SpawnLocation que trae la plantilla de Studio)
 function MapService.Build(): Folder
@@ -59,7 +45,6 @@ function MapService.Build(): Folder
 		map.Parent = workspace
 		print("[Map] Mapa:", Maps.list[mapName])
 	end
-	setupKillZones(map)
 	for _, spawn in workspace:GetDescendants() do
 		if spawn:IsA("SpawnLocation") and not spawn:IsDescendantOf(map) then
 			spawn.Enabled = false
