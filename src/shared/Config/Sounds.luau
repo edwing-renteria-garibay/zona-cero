@@ -7,9 +7,9 @@
 return {
 	-- Disparos: los oyen todos, desde donde está el arma
 	fire = {
-		AssaultRifle = "",
-		Pistol = "",
-		Turret = "",
+		AssaultRifle = "rbxassetid://128799811976358",
+		Pistol = "rbxassetid://127604219525464",
+		Turret = "rbxassetid://138382899505069",
 	},
 	-- Aviso de acierto: solo lo oye quien dispara
 	hit = "rbxasset://sounds/electronicpingshort.wav",
