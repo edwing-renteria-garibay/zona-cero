@@ -1,5 +1,6 @@
 -- Datos de cada arma. Para balancear el juego se cambian estos números, no la lógica.
--- El nombre de cada entrada debe ser igual al nombre de la herramienta (Tool) en StarterPack.
+-- El nombre de cada entrada debe ser igual al nombre de la herramienta (Tool) en
+-- ServerStorage.Weapons. Con qué armas se aparece lo dice cada modo (Config/Modes, loadout).
 -- damage: daño por disparo en el cuerpo · headshotMultiplier: multiplica el daño en la cabeza
 -- fireRate: disparos por segundo · magazine: balas por cargador
 -- reloadTime: segundos que tarda en recargar · range: alcance en studs

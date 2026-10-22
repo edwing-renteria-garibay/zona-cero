@@ -13,6 +13,7 @@ local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local ExplosionService = require(script.Parent.ExplosionService)
 local HealthService = require(script.Parent.HealthService)
 local ProjectileService = require(script.Parent.ProjectileService)
+local Rules = require(script.Parent.Rules)
 local VehicleService = require(script.Parent.VehicleService)
 
 local remotes = ReplicatedStorage.Remotes
@@ -130,6 +131,9 @@ local function applyHit(
 	local headshot = headshotMultiplier ~= nil and isHeadPart(result.Instance :: BasePart)
 	if headshot then
 		damage *= headshotMultiplier :: number
+		if Rules.current.headshotKills then
+			damage = math.max(damage, 1000) -- SWAT: un tiro a la cabeza mata
+		end
 	end
 	local toShield, toHealth = HealthService.Damage(targetHumanoid, damage, attacker, cause, headshot)
 	if toShield + toHealth <= 0 then

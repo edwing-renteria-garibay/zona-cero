@@ -8,6 +8,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Teams = game:GetService("Teams")
 
+local Modes = require(ReplicatedStorage.Shared.Config.Modes)
+
 local player = Players.LocalPlayer
 
 local SOLO_YOU = Color3.fromRGB(70, 70, 70)
@@ -89,7 +91,7 @@ function Scoreboard.Start()
 	timer.LayoutOrder = 2
 	local rightBox, rightScore = makeTeamBox(bar, 3)
 
-	local goal = makeLabel(gui, UDim2.fromOffset(260, 20), 14)
+	local goal = makeLabel(gui, UDim2.fromOffset(420, 20), 14)
 	goal.AnchorPoint = Vector2.new(0.5, 0)
 	goal.Position = UDim2.new(0.5, 0, 0, 50)
 	goal.Font = Enum.Font.GothamBold
@@ -133,8 +135,10 @@ function Scoreboard.Start()
 				then "capturas"
 				elseif mode == "KingOfTheHill" then "segundos en la colina"
 				else "bajas"
+			local rules = Modes[mode]
 			goal.Text = string.format(
-				"Primero en %d %s",
+				"%s · Primero en %d %s",
+				if rules and rules.name then rules.name else "",
 				ReplicatedStorage:GetAttribute("MatchScoreToWin") or 0,
 				unit
 			)

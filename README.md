@@ -8,6 +8,7 @@ Documento de diseño: https://claude.ai/artifact/Db9y3BWdNtESCJbiRrMR1z
 - Equipos Rojo y Azul con asignación automática
 - Escudo + vida estilo Halo (`src/server/Services/HealthService.luau`)
 - Ciclo de partida de Team Slayer: espera, cuenta regresiva, marcador, ganador (`MatchService.luau`)
+- Modos **SWAT** (rifle y pistola, sin escudos; un tiro a la cabeza mata) y **SWAT explosivo** (solo lanzacohetes con cohetes infinitos)
 - Modo **Asesino en solitario**: todos contra todos, gana el primero en llegar a 30 bajas; cada quien reaparece en un punto al azar sin enemigos cerca
 - Modo **Rey de la colina**: la colina aparece en un lugar al azar al que los dos equipos pueden llegar, y se mueve cada 60 s
 - Modo **Captura la bandera**: una bandera en una esquina de cada base; tómala, llévala a tu base y captura (el modo se elige en `src/shared/Config/Modes.luau`; viene en `"Aleatorio"`)

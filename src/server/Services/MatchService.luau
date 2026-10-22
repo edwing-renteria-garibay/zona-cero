@@ -21,6 +21,8 @@ local Modes = require(ReplicatedStorage.Shared.Config.Modes)
 local FlagService = require(script.Parent.FlagService)
 local HealthService = require(script.Parent.HealthService)
 local HillService = require(script.Parent.HillService)
+local Rules = require(script.Parent.Rules)
+local VehicleService = require(script.Parent.VehicleService)
 
 local matchState = ReplicatedStorage.Remotes.MatchState :: RemoteEvent
 local killFeed = ReplicatedStorage.Remotes.KillFeed :: RemoteEvent
@@ -301,7 +303,9 @@ function MatchService.Run()
 		local modeName = chooseMode()
 		local rules = Modes[modeName]
 		currentRules = rules
+		Rules.current = rules
 		applyTeams(rules)
+		VehicleService.SetEnabled(rules.vehicles ~= false)
 		resetScores()
 		running = true
 		ReplicatedStorage:SetAttribute("MatchMode", modeName)

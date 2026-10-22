@@ -4,7 +4,7 @@ Esta guía explica tres cambios. Ninguno necesitó un sistema nuevo: casi todo r
 
 ## 1. Una pistola casi sin código
 
-La pistola es otra herramienta (`Tool`) en `StarterPack`, declarada en `default.project.json`, y una entrada nueva en `src/shared/Config/Weapons.luau`:
+La pistola es otra herramienta (`Tool`) en `ServerStorage.Weapons` (antes estaba en `StarterPack`; ver la guía 14), declarada en `default.project.json`, y una entrada nueva en `src/shared/Config/Weapons.luau`:
 
 ```lua
 Pistol = {
