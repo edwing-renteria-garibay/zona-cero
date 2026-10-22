@@ -1,7 +1,7 @@
 # 16 · Asalto
 
 Una sola bomba. En cada ronda un equipo **ataca** y el otro **defiende**; en la siguiente
-ronda se cambian los papeles: Rojo ataca en la ronda 1, Azul en la 2, y así. El código está en `src/server/Services/AssaultService.luau`.
+ronda se cambian los papeles. El código está en `src/server/Services/AssaultService.luau`.
 
 ## Las reglas
 

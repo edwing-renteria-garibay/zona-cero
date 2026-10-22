@@ -327,11 +327,11 @@ end
 
 -- Las rondas. onScore(team) se llama cada vez que un equipo detona la bomba.
 local function runRounds(myGeneration: number, onScore: (Team) -> ())
-	-- Rojo ataca en la ronda 1, Azul en la 2, y así se van turnando
-	local team = Teams:FindFirstChild("Rojo") :: Team?
-	if not team or not stands[team] then
-		team = next(stands)
+	local teams = {}
+	for team in stands do
+		table.insert(teams, team)
 	end
+	local team = teams[math.random(#teams)]
 	local round = 0
 	while generation == myGeneration do
 		round += 1
