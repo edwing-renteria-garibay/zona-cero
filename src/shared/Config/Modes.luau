@@ -1,5 +1,6 @@
 -- Reglas de cada modo de juego.
--- scoreBy: con qué suma puntos un equipo ("kills" = bajas, "captures" = banderas capturadas)
+-- scoreBy: con qué suma puntos un equipo ("kills" = bajas, "captures" = banderas capturadas,
+-- "hill" = segundos solo en la colina)
 local Modes = {
 	TeamSlayer = { scoreToWin = 50, timeLimit = 600, teams = true, vehicles = true, scoreBy = "kills" },
 	FreeForAll = { scoreToWin = 25, timeLimit = 480, teams = false, vehicles = false, scoreBy = "kills" },
@@ -13,12 +14,22 @@ local Modes = {
 		captureRadius = 6, -- studs de tu base para capturar
 		flagReturnTime = 30, -- segundos que una bandera tirada tarda en volver sola
 	},
+	KingOfTheHill = {
+		scoreToWin = 120, -- segundos en la colina para ganar
+		timeLimit = 600,
+		teams = true,
+		vehicles = true,
+		scoreBy = "hill",
+		hillRadius = 8, -- radio de la colina en studs
+		moveEvery = 60, -- segundos antes de que la colina cambie de lugar (0 = no se mueve)
+		minSpawnDistance = 40, -- qué tan lejos de cualquier punto de aparición debe quedar
+	},
 }
 
 -- Qué modo se juega: el nombre de un modo, o "Aleatorio" para elegir uno de randomPool
 -- en cada partida. Captura la bandera solo se elige si el mapa tiene bases de bandera.
-Modes.selected = "CaptureTheFlag"
-Modes.randomPool = { "TeamSlayer", "CaptureTheFlag" }
+Modes.selected = "KingOfTheHill"
+Modes.randomPool = { "TeamSlayer", "CaptureTheFlag", "KingOfTheHill" }
 
 -- Valores comunes a todos los modos
 Modes.Common = {
