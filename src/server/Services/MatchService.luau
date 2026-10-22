@@ -1,11 +1,13 @@
--- Ciclo de partida de Team Slayer: esperar jugadores, cuenta regresiva, jugar, mostrar ganador.
+-- Ciclo de partida: esperar jugadores, cuenta regresiva, jugar, mostrar ganador.
+-- Modos: Team Slayer (puntos por bajas) y Captura la bandera (puntos por capturas).
 --
 -- El estado de la partida se guarda en atributos de ReplicatedStorage para que la pantalla
 -- de cada jugador lo lea (también quien entra a mitad de partida):
 --   MatchPhase      "Waiting" | "Countdown" | "Playing" | "Ended"
 --   MatchCountdown  segundos que faltan para empezar
 --   MatchEndsAt     cuándo se acaba el tiempo (en el reloj de workspace:GetServerTimeNow())
---   MatchScoreToWin bajas para ganar
+--   MatchMode       el modo que se juega ("TeamSlayer" o "CaptureTheFlag")
+--   MatchScoreToWin puntos para ganar (bajas o capturas)
 -- El marcador de cada equipo es el atributo "Score" del Team.
 
 local Players = game:GetService("Players")
@@ -13,6 +15,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Teams = game:GetService("Teams")
 
 local Modes = require(ReplicatedStorage.Shared.Config.Modes)
+local FlagService = require(script.Parent.FlagService)
 local HealthService = require(script.Parent.HealthService)
 
 local matchState = ReplicatedStorage.Remotes.MatchState :: RemoteEvent
@@ -22,6 +25,7 @@ local MatchService = {}
 
 local scores: { [Team]: number } = {}
 local running = false
+local currentRules = Modes.TeamSlayer
 
 local function broadcast(state: string, data: any?)
 	matchState:FireAllClients(state, data)
@@ -87,10 +91,27 @@ HealthService.Killed:Connect(function(victim: Player, killer: Player?, cause: st
 		kills.Value += 1
 	end
 	local team = killer.Team
-	if team then
+	if team and currentRules.scoreBy == "kills" then
 		setScore(team, scores[team] + 1)
 	end
 end)
+
+-- El modo de esta partida: el elegido en Config/Modes o uno al azar
+local function chooseMode(): string
+	local name = Modes.selected
+	if name == "Aleatorio" then
+		name = Modes.randomPool[math.random(#Modes.randomPool)]
+	end
+	if not Modes[name] then
+		warn("[Match] No existe el modo", name, "- juego TeamSlayer")
+		name = "TeamSlayer"
+	end
+	if name == "CaptureTheFlag" and not FlagService.HasFlags() then
+		warn("[Match] El mapa no tiene bases de bandera - juego TeamSlayer")
+		name = "TeamSlayer"
+	end
+	return name
+end
 
 -- Tabla de resultados: jugadores ordenados por bajas (y con menos muertes en empate)
 local function buildResults(winningTeam: Team?)
@@ -135,8 +156,7 @@ local function winner(rules): Team?
 	return nil
 end
 
-function MatchService.Run(modeName: string)
-	local rules = Modes[modeName]
+function MatchService.Run()
 	local common = Modes.Common
 
 	ReplicatedStorage:SetAttribute("MatchPlayersNeeded", common.minPlayers)
@@ -154,6 +174,9 @@ function MatchService.Run(modeName: string)
 			task.wait(1)
 		end
 
+		local modeName = chooseMode()
+		local rules = Modes[modeName]
+		currentRules = rules
 		resetScores()
 		running = true
 		ReplicatedStorage:SetAttribute("MatchMode", modeName)
@@ -163,6 +186,13 @@ function MatchService.Run(modeName: string)
 		broadcast("Started", { mode = modeName, scoreToWin = rules.scoreToWin })
 		for _, player in Players:GetPlayers() do
 			player:LoadCharacter()
+		end
+		if rules.scoreBy == "captures" then
+			FlagService.Begin(function(_player, team)
+				if running then
+					setScore(team, scores[team] + 1)
+				end
+			end)
 		end
 
 		local startTime = os.clock()
@@ -175,6 +205,7 @@ function MatchService.Run(modeName: string)
 			task.wait(0.5)
 		end
 		running = false
+		FlagService.Stop()
 		setPhase("Ended")
 		broadcast("Ended", buildResults(winningTeam))
 		task.wait(common.resultsTime)

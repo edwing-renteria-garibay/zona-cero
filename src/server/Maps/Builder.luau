@@ -113,6 +113,20 @@ function Builder.pickupPad(
 	return pad
 end
 
+-- La base de la bandera de un equipo (la usa FlagService en Captura la bandera).
+-- position es el centro de su cara de arriba; va siempre en una esquina de la base del equipo.
+function Builder.flagStand(parent: Instance, team, position: Vector3): Part
+	local stand = Builder.block(
+		parent,
+		"FlagStand",
+		Vector3.new(5, 0.4, 5),
+		CFrame.new(position - Vector3.new(0, 0.2, 0)),
+		{ Color = team.color.Color, Material = Enum.Material.Neon }
+	)
+	stand:SetAttribute("Team", team.name)
+	return stand
+end
+
 -- Un punto de aparición de un equipo, mirando hacia lookAt
 function Builder.spawn(parent: Instance, team, position: Vector3, lookAt: Vector3): SpawnLocation
 	local spawn = Instance.new("SpawnLocation")
@@ -144,6 +158,7 @@ export type Half = {
 	slope: (name: string, low: Vector3, high: Vector3, width: number, style: any) -> Part,
 	pickup: (name: string, position: Vector3, attribute: string, value: string) -> Part,
 	jeep: (position: Vector3) -> (),
+	flagStand: (position: Vector3) -> Part,
 }
 
 function Builder.half(map: Folder, team): Half
@@ -186,6 +201,9 @@ function Builder.half(map: Folder, team): Half
 		return Builder.pickupPad(map, name, half.at(position), attribute, value)
 	end
 	-- Un jeep que aparece aquí, mirando hacia el centro
+	function half.flagStand(position: Vector3): Part
+		return Builder.flagStand(folder, team, half.at(position))
+	end
 	function half.jeep(position: Vector3)
 		local marker = Instance.new("Part")
 		marker.Name = "JeepSpawn" .. team.name

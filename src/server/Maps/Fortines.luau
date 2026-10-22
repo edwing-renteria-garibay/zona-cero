@@ -15,8 +15,8 @@
 --                              ------ plaza central (lanzacohetes) ------
 --
 -- Todo lo alto son muros macizos (no se puede subir a ellos). La plataforma del fondo
--- tiene un puente en medio; por debajo se pasa caminando. Arriba del puente está la
--- base de la bandera, lista para el modo Captura la bandera.
+-- tiene un puente en medio; por debajo se pasa caminando. La base de la bandera está en
+-- la esquina del fondo de cada fuerte.
 
 local Builder = require(script.Parent.Builder)
 
@@ -137,11 +137,8 @@ local function buildFort(map: Folder, team)
 	wallBox(half, "LowWall", 52, 56, -48, 48, LOW_HEIGHT, DARK)
 	-- Puente de la plataforma: por abajo queda un paso de 10 studs de ancho y 7 de alto
 	half.add("PlatformBridge", Vector3.new(8, 1, 10), pos(66, PLATFORM_HEIGHT - 0.5, 0), DARK)
-	-- Base de la bandera, arriba del puente (para Captura la bandera)
-	local flagStand =
-		half.add("FlagStand", Vector3.new(4, 0.2, 4), pos(66, PLATFORM_HEIGHT + 0.1, 0), half.stripe)
-	flagStand.Material = Enum.Material.Neon
-	flagStand:SetAttribute("Team", team.name)
+	-- Base de la bandera, en la esquina del fondo, detrás del brazo
+	half.flagStand(pos(75, 0, 90))
 
 	-- Cobertura en la plaza, del lado de este fuerte
 	half.add("Sandbags", Vector3.new(2, 3, 12), pos(-8, 1.5, 30), SANDBAG)

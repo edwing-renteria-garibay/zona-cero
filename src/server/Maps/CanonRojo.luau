@@ -223,6 +223,9 @@ local function buildHalf(map: Folder, team)
 	)
 	half.pickup("GrenadePad", Vector3.new(66, 0.2, -54), "Pickup", "Grenades")
 
+	-- Base de la bandera: en la esquina del fondo de la base baja
+	half.flagStand(Vector3.new(192, 0, 72))
+
 	-- Una duna en el carril norte: dos rampas que forman una loma de 3 studs (el jeep salta)
 	slope(folder, "Dune", at(Vector3.new(28, 0, 52)), at(Vector3.new(40, 3, 52)), 16, SAND)
 	slope(folder, "Dune", at(Vector3.new(52, 0, 52)), at(Vector3.new(40, 3, 52)), 16, SAND)
