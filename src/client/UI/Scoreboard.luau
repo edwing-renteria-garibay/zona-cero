@@ -1,5 +1,6 @@
 -- Marcador arriba al centro: puntos de cada equipo, tiempo que queda y bajas para ganar.
 -- En Asesino en solitario muestra tus bajas (izquierda) y las del que va ganando (derecha).
+-- En Infección muestra cuántos sobrevivientes (izquierda) y zombis (derecha) hay.
 -- Antes de empezar muestra "Esperando jugadores" o la cuenta regresiva en grande.
 -- Todo se lee de los atributos que pone MatchService en ReplicatedStorage y en cada Team.
 
@@ -14,6 +15,8 @@ local player = Players.LocalPlayer
 
 local SOLO_YOU = Color3.fromRGB(70, 70, 70)
 local SOLO_LEADER = Color3.fromRGB(200, 150, 30)
+local SURVIVORS = Color3.fromRGB(60, 110, 170)
+local ZOMBIES = Color3.fromRGB(80, 140, 60)
 
 local Scoreboard = {}
 
@@ -91,7 +94,7 @@ function Scoreboard.Start()
 	timer.LayoutOrder = 2
 	local rightBox, rightScore = makeTeamBox(bar, 3)
 
-	local goal = makeLabel(gui, UDim2.fromOffset(420, 20), 14)
+	local goal = makeLabel(gui, UDim2.fromOffset(520, 20), 14)
 	goal.AnchorPoint = Vector2.new(0.5, 0)
 	goal.Position = UDim2.new(0.5, 0, 0, 50)
 	goal.Font = Enum.Font.GothamBold
@@ -116,7 +119,12 @@ function Scoreboard.Start()
 		end)
 		local left, right = teams[1], teams[2]
 		bar.Visible = left ~= nil and right ~= nil
-		if mode == "FreeForAll" then
+		if mode == "Infection" then
+			leftBox.BackgroundColor3 = SURVIVORS
+			rightBox.BackgroundColor3 = ZOMBIES
+			leftScore.Text = tostring(ReplicatedStorage:GetAttribute("Survivors") or 0)
+			rightScore.Text = tostring(ReplicatedStorage:GetAttribute("Zombies") or 0)
+		elseif mode == "FreeForAll" then
 			leftBox.BackgroundColor3 = SOLO_YOU
 			rightBox.BackgroundColor3 = SOLO_LEADER
 			leftScore.Text = tostring(killsOf(player))
@@ -136,12 +144,29 @@ function Scoreboard.Start()
 				elseif mode == "KingOfTheHill" then "segundos en la colina"
 				else "bajas"
 			local rules = Modes[mode]
-			goal.Text = string.format(
-				"%s · Primero en %d %s",
-				if rules and rules.name then rules.name else "",
-				ReplicatedStorage:GetAttribute("MatchScoreToWin") or 0,
-				unit
-			)
+			if mode == "Assault" then
+				local attackers = ReplicatedStorage:GetAttribute("AssaultAttackers")
+				local roundEnds = ReplicatedStorage:GetAttribute("AssaultRoundEndsAt") or 0
+				goal.Text = string.format(
+					"Asalto · Ronda %d · %s · %s",
+					ReplicatedStorage:GetAttribute("AssaultRound") or 1,
+					if player.Team and player.Team.Name == attackers
+						then "Atacas: lleva la bomba a su base"
+						else "Defiendes tu base",
+					formatTime(roundEnds - workspace:GetServerTimeNow())
+				)
+			elseif mode == "Infection" then
+				goal.Text = if player:GetAttribute("Side") == "Zombie"
+					then "Infección · Atrapa a todos los sobrevivientes"
+					else "Infección · Sobrevive hasta que se acabe el tiempo"
+			else
+				goal.Text = string.format(
+					"%s · Primero en %d %s",
+					if rules and rules.name then rules.name else "",
+					ReplicatedStorage:GetAttribute("MatchScoreToWin") or 0,
+					unit
+				)
+			end
 			banner.Text = ""
 		elseif phase == "Countdown" then
 			timer.Text = "--:--"

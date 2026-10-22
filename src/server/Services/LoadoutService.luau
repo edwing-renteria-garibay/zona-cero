@@ -29,7 +29,11 @@ function LoadoutService.SetupCharacter(player: Player)
 	if not backpack then
 		return
 	end
-	for _, name in rules.loadout or Modes.Common.loadout do
+	-- Los zombis de Infección no llevan armas
+	local loadout = if player:GetAttribute("Side") == "Zombie"
+		then {}
+		else rules.loadout or Modes.Common.loadout
+	for _, name in loadout do
 		local template = ServerStorage.Weapons:FindFirstChild(name)
 		if not template then
 			warn("[Loadout] No existe el arma", name)

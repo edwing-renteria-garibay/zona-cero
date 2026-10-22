@@ -8,6 +8,8 @@ Documento de diseño: https://claude.ai/artifact/Db9y3BWdNtESCJbiRrMR1z
 - Equipos Rojo y Azul con asignación automática
 - Escudo + vida estilo Halo (`src/server/Services/HealthService.luau`)
 - Ciclo de partida de Team Slayer: espera, cuenta regresiva, marcador, ganador (`MatchService.luau`)
+- Modo **Asalto**: una bomba; un equipo ataca y la lleva a la base enemiga, el otro defiende, y cada ronda se cambian
+- Modo **Infección**: de 1 a 3 zombis secretos, rápidos y de un golpe; quien muere se vuelve zombi; los zombis ven a los sobrevivientes a través de las paredes
 - Modos **SWAT** (rifle y pistola, sin escudos; un tiro a la cabeza mata) y **SWAT explosivo** (solo lanzacohetes con cohetes infinitos)
 - Modo **Asesino en solitario**: todos contra todos, gana el primero en llegar a 30 bajas; cada quien reaparece en un punto al azar sin enemigos cerca
 - Modo **Rey de la colina**: la colina aparece en un lugar al azar al que los dos equipos pueden llegar, y se mueve cada 60 s

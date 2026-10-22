@@ -61,6 +61,35 @@ local Modes = {
 		captureRadius = 6, -- studs de tu base para capturar
 		flagReturnTime = 30, -- segundos que una bandera tirada tarda en volver sola
 	},
+	-- Infección: zombis contra sobrevivientes (ver InfectionService)
+	Infection = {
+		name = "Infección",
+		scoreToWin = 0, -- no aplica: ganan los zombis si infectan a todos
+		timeLimit = 300, -- si queda un sobreviviente al acabarse el tiempo, ganan ellos
+		teams = false,
+		vehicles = false,
+		scoreBy = "infection",
+		pickups = false,
+		playersPerZombie = 4, -- 1 zombi por cada 4 jugadores...
+		maxZombies = 3, -- ...hasta 3 (siempre al menos 1)
+		zombieSpeed = 26, -- los sobrevivientes caminan a 16
+		zombieHealth = 150, -- vida de un zombi (sin escudo); un sobreviviente tiene 100 + 100 de escudo
+		zombieMeleeDamage = 1000, -- un golpe de zombi mata
+	},
+	-- Asalto: una bomba; un equipo ataca y otro defiende, y cada ronda se cambian
+	Assault = {
+		name = "Asalto",
+		scoreToWin = 3, -- bombas detonadas para ganar
+		timeLimit = 900,
+		teams = true,
+		vehicles = true,
+		scoreBy = "bombs",
+		roundTime = 150, -- segundos por ronda; si nadie detona, se cambian los papeles
+		roundBreak = 4, -- segundos de pausa entre rondas
+		pickupRadius = 5, -- studs para tomar la bomba
+		plantRadius = 6, -- studs de la base enemiga para armarla
+		armTime = 3, -- segundos que hay que quedarse ahí para que explote
+	},
 	KingOfTheHill = {
 		name = "Rey de la colina",
 		scoreToWin = 120, -- segundos en la colina para ganar
@@ -77,9 +106,18 @@ local Modes = {
 }
 
 -- Qué modo se juega: el nombre de un modo, o "Aleatorio" para elegir uno de randomPool
--- en cada partida. Captura la bandera solo se elige si el mapa tiene bases de bandera.
+-- en cada partida. Captura la bandera y Asalto solo se eligen si el mapa tiene bases de bandera.
 Modes.selected = "Aleatorio"
-Modes.randomPool = { "TeamSlayer", "FreeForAll", "CaptureTheFlag", "KingOfTheHill", "SWAT", "SWATExplosive" }
+Modes.randomPool = {
+	"TeamSlayer",
+	"FreeForAll",
+	"CaptureTheFlag",
+	"KingOfTheHill",
+	"SWAT",
+	"SWATExplosive",
+	"Infection",
+	"Assault",
+}
 
 -- Valores comunes a todos los modos. Un modo puede cambiar algunos con su propio valor:
 -- loadout (armas al aparecer), shields = false (sin escudo), grenades (granadas al aparecer),
