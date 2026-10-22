@@ -82,9 +82,14 @@ function ProjectileService.FireRocket(
 	end)
 end
 
-local function onThrowGrenade(player: Player, direction: any)
-	if typeof(direction) ~= "Vector3" or direction ~= direction or direction.Magnitude < 0.01 then
+-- velocity: la velocidad inicial que calculó el cliente para que caiga donde apuntaste
+local function onThrowGrenade(player: Player, velocity: any)
+	if typeof(velocity) ~= "Vector3" or velocity ~= velocity or velocity.Magnitude < 0.01 then
 		return
+	end
+	-- Un tramposo podría mandar una velocidad enorme: se recorta al máximo permitido
+	if velocity.Magnitude > Grenades.maxThrowSpeed then
+		velocity = velocity.Unit * Grenades.maxThrowSpeed
 	end
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -104,16 +109,15 @@ local function onThrowGrenade(player: Player, direction: any)
 	lastThrow[player] = now;
 	(character :: Model):SetAttribute("Grenades", count - 1)
 
-	local aim = direction.Unit
 	local grenade = Instance.new("Part")
 	grenade.Name = "Grenade"
 	grenade.Shape = Enum.PartType.Ball
 	grenade.Size = Vector3.one * 0.8
 	grenade.Color = Color3.fromRGB(60, 70, 45)
 	grenade.Material = Enum.Material.Metal
-	grenade.CFrame = CFrame.new(head.Position + aim * 2)
-	-- Un poco hacia arriba, para que haga un arco
-	grenade.AssemblyLinearVelocity = aim * Grenades.throwSpeed + Vector3.new(0, 12, 0)
+	-- Sale por encima de la cabeza (el cliente calcula el arco desde el mismo punto)
+	grenade.CFrame = CFrame.new(head.Position + Vector3.yAxis * Grenades.throwHeight)
+	grenade.AssemblyLinearVelocity = velocity
 	local light = Instance.new("PointLight") -- luz roja para verla en el suelo
 	light.Color = Color3.fromRGB(255, 60, 40)
 	light.Range = 6

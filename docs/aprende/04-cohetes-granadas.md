@@ -6,7 +6,7 @@ Hasta ahora todas las armas eran **instantáneas**: un raycast va de tu cabeza a
 | --- | --- |
 | `src/server/Services/ExplosionService.luau` | Una explosión: efecto visual, sonido y daño a los jugadores cercanos |
 | `src/server/Services/ProjectileService.luau` | Mueve los cohetes y lanza las granadas |
-| `src/client/Controllers/GrenadeController.luau` | La tecla **G** |
+| `src/client/Controllers/GrenadeController.luau` | La tecla **G**: apuntar con el arco y lanzar |
 | `src/shared/Config/Weapons.luau` | Los números del lanzacohetes |
 | `src/shared/Config/Grenades.luau` | Los números de la granada |
 
@@ -47,6 +47,18 @@ Explota al chocar con algo. El evento `Touched` avisa cuando la granada toca otr
 
 `grenade:SetNetworkOwner(nil)` hace que el servidor calcule su física. Si no, Roblox le daría el control al cliente más cercano, y cada jugador podría verla en un lugar un poco distinto.
 
+### Apuntar la granada
+
+Mantén **G** y verás un arco de bolitas y un círculo rojo donde caerá; suelta **G** para lanzarla. El arco solo lo ves tú.
+
+`GrenadeController` usa la fórmula del tiro parabólico. La posición de la granada después de `t` segundos es:
+
+```
+posición = origen + velocidad·t − ½·gravedad·t²
+```
+
+Elegimos cuánto tarda en llegar (más lejos, más tiempo) y despejamos la velocidad que la hace caer justo donde apunta tu mouse. Esa velocidad se manda al servidor, que crea la granada con ella. Como el servidor usa la misma gravedad (`workspace.Gravity`), la granada sigue el arco que viste. El servidor recorta velocidades exageradas (`maxThrowSpeed`) para que nadie haga trampa, y no se puede lanzar a más de `maxRange` studs.
+
 `task.delay(fuse, ...)` es la mecha: pasados 1.5 segundos, la granada explota donde esté. La variable `exploded` evita que explote dos veces (por el choque y por la mecha).
 
 Cada explosión elige su sonido con el campo `sound` de su `blast`: `"rocket"`, `"grenade"` o `"jeep"` (en `Config/Sounds.luau`).
@@ -58,3 +70,4 @@ Las granadas que te quedan se guardan en el atributo `Grenades` de tu personaje.
 - Sube `speed` del lanzacohetes a 300 y verás que ya casi no se puede esquivar.
 - Cambia `fuse` de la granada a 3 y lánzala al cielo: tardará más en explotar.
 - Dale `count = 4` en `Grenades.luau` para tener más granadas.
+- Cambia `maxRange` a 120 para lanzarlas mucho más lejos.
