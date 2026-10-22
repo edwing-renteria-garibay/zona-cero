@@ -22,6 +22,7 @@ local CAUSES = {
 	Turret = "Torreta",
 	Melee = "Golpe",
 	Backstab = "Por la espalda",
+	Machete = "Machete",
 	rocket = "Cohete",
 	grenade = "Granada",
 	jeep = "Explosión del jeep",

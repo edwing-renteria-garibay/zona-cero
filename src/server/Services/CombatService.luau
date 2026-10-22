@@ -392,11 +392,12 @@ local function onMelee(player: Player)
 	local toTarget = (targetRoot.Position - root.Position).Unit
 	local backstab = targetRoot.CFrame.LookVector:Dot(toTarget) > 0.5
 	local damage = if backstab then Melee.backstabDamage else Melee.damage
+	local cause = if backstab then "Backstab" else "Melee"
 	if player:GetAttribute("Side") == "Zombie" then
-		damage = Rules.current.zombieMeleeDamage or damage -- el golpe de un zombi mata
+		damage = Rules.current.zombieMeleeDamage or damage -- el machete de un zombi mata
+		cause = "Machete"
 	end
-	local toShield, toHealth =
-		HealthService.Damage(target, damage, player, if backstab then "Backstab" else "Melee")
+	local toShield, toHealth = HealthService.Damage(target, damage, player, cause)
 	if toShield + toHealth > 0 then
 		local surface = if toHealth > 0 then "flesh" else "shield"
 		hitConfirmed:FireClient(
