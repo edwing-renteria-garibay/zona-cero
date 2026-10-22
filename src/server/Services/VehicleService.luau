@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Vehicles = require(ReplicatedStorage.Shared.Config.Vehicles)
+local ExplosionService = require(script.Parent.ExplosionService)
 local HealthService = require(script.Parent.HealthService)
 
 local stats = Vehicles.TurretJeep
@@ -226,11 +227,13 @@ local function canDamage(model: Model, attacker: Player?): boolean
 	return true
 end
 
--- Daño de la explosión según la distancia al centro del jeep
-local function blastDamageAt(distance: number): number
-	local falloff = (distance - stats.blastInnerRadius) / (stats.blastRadius - stats.blastInnerRadius)
-	return stats.blastDamage * (1 - math.clamp(falloff, 0, 1))
-end
+-- La explosión del jeep, en el formato de ExplosionService
+local jeepBlast: ExplosionService.Blast = {
+	damage = stats.blastDamage,
+	innerRadius = stats.blastInnerRadius,
+	radius = stats.blastRadius,
+	sound = "jeep",
+}
 
 local function explode(model: Model, attacker: Player?)
 	local chassis = model.PrimaryPart :: BasePart
@@ -241,48 +244,14 @@ local function explode(model: Model, attacker: Player?)
 			HealthService.Damage(humanoid, 1000, attacker)
 		end
 	end
-	-- La explosión de Roblox es solo visual: no rompe nada ni empuja;
-	-- el daño lo calculamos nosotros para que respete escudos, equipos y bajas
 	local center = chassis.Position
-	local explosion = Instance.new("Explosion")
-	explosion.Position = center
-	explosion.BlastRadius = stats.blastRadius
-	explosion.BlastPressure = 0
-	explosion.DestroyJointRadiusPercent = 0
-	explosion.Parent = workspace
-
 	local spawnCFrame = model:GetAttribute("SpawnCFrame") :: CFrame
 	jeeps[model] = nil
 	model:Destroy()
 
-	-- Daño a quien esté cerca: completo junto al jeep y 0 en el borde del radio.
-	-- No daña a los compañeros del atacante, pero sí al atacante si está demasiado cerca.
-	for _, player in Players:GetPlayers() do
-		local character = player.Character
-		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-		local teammate = attacker
-			and player ~= attacker
-			and not player.Neutral
-			and not attacker.Neutral
-			and player.Team == attacker.Team
-		if humanoid and root and not teammate then
-			local distance = (root.Position - center).Magnitude
-			if distance < stats.blastRadius then
-				HealthService.Damage(humanoid, blastDamageAt(distance), attacker)
-			end
-		end
-	end
-	-- Otros jeeps cercanos también reciben daño (puede haber explosiones en cadena)
-	for other in jeeps do
-		local otherChassis = other.PrimaryPart
-		if otherChassis then
-			local distance = (otherChassis.Position - center).Magnitude
-			if distance < stats.blastRadius then
-				VehicleService.Damage(other, blastDamageAt(distance), attacker)
-			end
-		end
-	end
+	-- Daño a quien esté cerca, y a otros jeeps (puede haber explosiones en cadena)
+	ExplosionService.Blast(center, attacker, jeepBlast)
+	VehicleService.BlastVehicles(center, attacker, jeepBlast)
 	task.delay(stats.respawnTime, function()
 		VehicleService.Spawn(spawnCFrame)
 	end)
@@ -336,6 +305,23 @@ function VehicleService.Damage(model: Model, amount: number, attacker: Player?, 
 		explode(model, attacker)
 	end
 	return true
+end
+
+-- Daña a los jeeps cerca de una explosión (de un jeep, un cohete o una granada)
+function VehicleService.BlastVehicles(center: Vector3, attacker: Player?, blast: ExplosionService.Blast)
+	for model in jeeps do
+		local chassis = model.PrimaryPart
+		if chassis then
+			local distance = (chassis.Position - center).Magnitude
+			if distance < blast.radius then
+				VehicleService.Damage(
+					model,
+					ExplosionService.DamageAt(blast, distance, blast.vehicleDamage),
+					attacker
+				)
+			end
+		end
+	end
 end
 
 -- El jeep al que pertenece un asiento (o una pieza), si es un jeep vivo

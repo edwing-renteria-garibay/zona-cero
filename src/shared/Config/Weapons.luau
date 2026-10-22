@@ -25,14 +25,24 @@ local Weapons = {
 		range = 400,
 		automatic = false,
 	},
+	-- Lanzacohetes: el cohete vuela (no es instantáneo) y explota al tocar algo.
+	-- projectile: en vez de un raycast, el servidor lanza un cohete que avanza speed studs/s.
+	-- blast: la explosión; un impacto directo mata (300 > 200) y dos cohetes destruyen un jeep.
 	RocketLauncher = {
-		damage = 250,
+		projectile = true,
+		speed = 140,
 		fireRate = 0.8,
 		magazine = 2,
 		reloadTime = 3,
 		range = 500,
 		automatic = false,
-		blastRadius = 12,
+		blast = {
+			damage = 300,
+			innerRadius = 4,
+			radius = 14,
+			vehicleDamage = 350,
+			sound = "rocket",
+		},
 	},
 }
 
