@@ -43,7 +43,7 @@ El mapa desactiva los `SpawnLocation` que no son suyos, como el que trae la plan
 
 `PickupService` busca las piezas de `Map.WeaponPickups`. Cada una dice qué da con un atributo:
 
-- `Weapon = "RocketLauncher"`: una copia del arma guardada en `ServerStorage.Weapons`. Vuelve a los `pickupRespawn` segundos (120 el lanzacohetes).
+- `Weapon = "RocketLauncher"`: una copia del arma guardada en `ServerStorage.Weapons`. Si ya la tienes, te rellena el cargador y el repuesto; si los tienes llenos, la plataforma no se gasta. Vuelve a los `pickupRespawn` segundos (120 el lanzacohetes).
 - `Pickup = "Grenades"`: granadas (`Config/Grenades.luau`). Si ya tienes el máximo, no la gastas.
 
 El lanzacohetes ya no está en el inventario inicial: hay que ir a buscarlo. Trae 2 cohetes cargados y 4 de repuesto (`reserve` en `Config/Weapons.luau`).

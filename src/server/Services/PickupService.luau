@@ -1,6 +1,7 @@
 -- Objetos del mapa que se recogen al tocar su plataforma y reaparecen después de un tiempo.
 -- Las plataformas están dentro de Map.WeaponPickups y dicen qué dan con un atributo:
---   Weapon = "RocketLauncher"  → da esa arma (se copia de ServerStorage.Weapons)
+--   Weapon = "RocketLauncher"  → da esa arma (se copia de ServerStorage.Weapons);
+--                                si ya la tienes, te rellena la munición
 --   Pickup = "Grenades"        → da granadas (Config/Grenades)
 
 local Players = game:GetService("Players")
@@ -24,6 +25,29 @@ type PickupKind = {
 	give: (player: Player, character: Model) -> boolean,
 }
 
+-- Rellena el cargador y el repuesto de un arma que el jugador ya tiene.
+-- Devuelve false si ya estaba llena (así la plataforma no se gasta).
+local function refillAmmo(tool: Tool, stats): boolean
+	if not stats then
+		return false
+	end
+	local ammo = tool:GetAttribute("Ammo")
+	local reserve = tool:GetAttribute("Reserve")
+	local full = (ammo == nil or ammo >= stats.magazine)
+		and (stats.reserve == nil or reserve == nil or reserve >= stats.reserve)
+	if full then
+		return false
+	end
+	if stats.reserve then
+		tool:SetAttribute("Reserve", stats.reserve)
+	end
+	-- Durante una recarga solo se rellena el repuesto: la recarga ya va a sumar balas al cargador
+	if not tool:GetAttribute("Reloading") then
+		tool:SetAttribute("Ammo", stats.magazine)
+	end
+	return true
+end
+
 local function weaponKind(weaponName: string): PickupKind?
 	local template = ServerStorage.Weapons:FindFirstChild(weaponName) :: Tool?
 	if not template then
@@ -36,13 +60,15 @@ local function weaponKind(weaponName: string): PickupKind?
 		respawnTime = stats and stats.pickupRespawn or DEFAULT_RESPAWN,
 		give = function(player, character)
 			local backpack = player:FindFirstChildOfClass("Backpack")
-			-- Si ya la tiene (en la mano o en la mochila), no la gasta
-			if
-				not backpack
-				or character:FindFirstChild(weaponName)
-				or backpack:FindFirstChild(weaponName)
-			then
+			if not backpack then
 				return false
+			end
+			-- Si ya la tiene (en la mano o en la mochila), la plataforma le rellena la munición
+			local owned = (
+				character:FindFirstChild(weaponName) or backpack:FindFirstChild(weaponName)
+			) :: Tool?
+			if owned then
+				return refillAmmo(owned, stats)
 			end
 			template:Clone().Parent = backpack
 			return true
