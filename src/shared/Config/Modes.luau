@@ -10,6 +10,7 @@ Modes.Common = {
 	spawnProtection = 2, -- segundos de invulnerabilidad al reaparecer
 	minPlayers = 2, -- jugadores necesarios para empezar
 	countdown = 10, -- cuenta regresiva antes de la partida
+	resultsTime = 12, -- segundos que se muestra la pantalla de resultados
 }
 
 return Modes

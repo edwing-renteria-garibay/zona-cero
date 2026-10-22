@@ -8,8 +8,9 @@ Documento de diseño: https://claude.ai/artifact/Db9y3BWdNtESCJbiRrMR1z
 - Equipos Rojo y Azul con asignación automática
 - Escudo + vida estilo Halo (`src/server/Services/HealthService.luau`)
 - Ciclo de partida de Team Slayer: espera, cuenta regresiva, marcador, ganador (`MatchService.luau`)
+- Marcador en pantalla con el tiempo, registro de bajas (quién eliminó a quién y con qué) y pantalla de resultados al terminar
 - Rifle de asalto: disparo con clic o toque, recarga con **R**, daño validado en el servidor
-- HUD con escudo, vida y munición; columna de **Bajas** en la lista de jugadores
+- HUD con escudo, vida y munición; columnas de **Bajas** y **Muertes** en la lista de jugadores
 - Mira para el rifle y la torreta, que se pone roja al acertar (naranja en la cabeza)
 - Pistola tipo Desert Eagle; más daño en la cabeza que en el cuerpo en todas las armas
 - Cámara en primera persona; **V** cambia a tercera persona sobre el hombro (y vuelve)

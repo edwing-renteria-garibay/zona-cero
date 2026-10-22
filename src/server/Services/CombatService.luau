@@ -109,7 +109,8 @@ local function applyHit(
 	attacker: Player,
 	result: RaycastResult,
 	damage: number,
-	headshotMultiplier: number?
+	headshotMultiplier: number?,
+	cause: string
 ): string
 	local model = result.Instance:FindFirstAncestorOfClass("Model")
 	if not model then
@@ -130,7 +131,7 @@ local function applyHit(
 	if headshot then
 		damage *= headshotMultiplier :: number
 	end
-	local toShield, toHealth = HealthService.Damage(targetHumanoid, damage, attacker)
+	local toShield, toHealth = HealthService.Damage(targetHumanoid, damage, attacker, cause, headshot)
 	if toShield + toHealth <= 0 then
 		return "shield" -- tenía protección de aparición: el escudo lo detiene todo
 	end
@@ -203,7 +204,9 @@ local function onFire(player: Player, origin: any, direction: any)
 	local result = workspace:Raycast(origin, ray, params)
 	local hitPosition = if result then result.Position else origin + ray
 
-	local surface = if result then applyHit(player, result, stats.damage, stats.headshotMultiplier) else nil
+	local surface = if result
+		then applyHit(player, result, stats.damage, stats.headshotMultiplier, tool.Name)
+		else nil
 
 	-- Todos los jugadores dibujan la trazadora desde el arma hasta el impacto,
 	-- un destello en el impacto según lo que tocó (escudo, cuerpo, metal o escenario)
@@ -275,7 +278,9 @@ local function onFireTurret(player: Player, direction: any)
 	params.FilterDescendantsInstances = { vehicle, character :: Model }
 	local ray = direction.Unit * turret.range
 	local result = workspace:Raycast(origin, ray, params)
-	local surface = if result then applyHit(player, result, turret.damage, turret.headshotMultiplier) else nil
+	local surface = if result
+		then applyHit(player, result, turret.damage, turret.headshotMultiplier, "Turret")
+		else nil
 	shotFired:FireAllClients(
 		origin,
 		if result then result.Position else origin + ray,
@@ -377,8 +382,12 @@ local function onMelee(player: Player)
 
 	local toTarget = (targetRoot.Position - root.Position).Unit
 	local backstab = targetRoot.CFrame.LookVector:Dot(toTarget) > 0.5
-	local toShield, toHealth =
-		HealthService.Damage(target, if backstab then Melee.backstabDamage else Melee.damage, player)
+	local toShield, toHealth = HealthService.Damage(
+		target,
+		if backstab then Melee.backstabDamage else Melee.damage,
+		player,
+		if backstab then "Backstab" else "Melee"
+	)
 	if toShield + toHealth > 0 then
 		local surface = if toHealth > 0 then "flesh" else "shield"
 		hitConfirmed:FireClient(
