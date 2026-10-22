@@ -1,22 +1,88 @@
--- Armas del mapa: plataformas que dan un arma al tocarlas y reaparecen después de un tiempo.
--- Cada plataforma es una pieza dentro de Map.WeaponPickups con el atributo "Weapon"
--- (el nombre del arma). La herramienta se copia de ServerStorage.Weapons.
+-- Objetos del mapa que se recogen al tocar su plataforma y reaparecen después de un tiempo.
+-- Las plataformas están dentro de Map.WeaponPickups y dicen qué dan con un atributo:
+--   Weapon = "RocketLauncher"  → da esa arma (se copia de ServerStorage.Weapons)
+--   Pickup = "Grenades"        → da granadas (Config/Grenades)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
+local Grenades = require(ReplicatedStorage.Shared.Config.Grenades)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 
-local DEFAULT_RESPAWN = 60 -- segundos, si el arma no indica pickupRespawn
+local DEFAULT_RESPAWN = 60 -- segundos, si el objeto no indica otro tiempo
 
 local PickupService = {}
 
--- Un modelo que gira sobre la plataforma para que se vea qué arma hay ahí
-local function makeDisplay(pad: BasePart, weaponName: string): BasePart
-	local template = ServerStorage.Weapons[weaponName] :: Tool
-	local display = (template:FindFirstChild("Handle") :: BasePart):Clone()
+-- Lo que hace falta saber de cada tipo de objeto
+type PickupKind = {
+	label: string, -- texto que flota encima
+	model: BasePart, -- lo que gira sobre la plataforma
+	respawnTime: number,
+	-- Intenta dárselo al jugador; devuelve false si no lo necesita (y no se gasta)
+	give: (player: Player, character: Model) -> boolean,
+}
+
+local function weaponKind(weaponName: string): PickupKind?
+	local template = ServerStorage.Weapons:FindFirstChild(weaponName) :: Tool?
+	if not template then
+		return nil
+	end
+	local stats = Weapons[weaponName]
+	return {
+		label = template.ToolTip,
+		model = (template:FindFirstChild("Handle") :: BasePart):Clone(),
+		respawnTime = stats and stats.pickupRespawn or DEFAULT_RESPAWN,
+		give = function(player, character)
+			local backpack = player:FindFirstChildOfClass("Backpack")
+			-- Si ya la tiene (en la mano o en la mochila), no la gasta
+			if
+				not backpack
+				or character:FindFirstChild(weaponName)
+				or backpack:FindFirstChild(weaponName)
+			then
+				return false
+			end
+			template:Clone().Parent = backpack
+			return true
+		end,
+	}
+end
+
+local function grenadeKind(): PickupKind
+	local model = Instance.new("Part")
+	model.Shape = Enum.PartType.Ball
+	model.Size = Vector3.one * 1.2
+	model.Color = Color3.fromRGB(60, 70, 45)
+	model.Material = Enum.Material.Metal
+	return {
+		label = "Granadas",
+		model = model,
+		respawnTime = Grenades.pickupRespawn,
+		give = function(_player, character)
+			local count = character:GetAttribute("Grenades") or 0
+			if count >= Grenades.max then
+				return false
+			end
+			character:SetAttribute("Grenades", math.min(count + Grenades.pickupAmount, Grenades.max))
+			return true
+		end,
+	}
+end
+
+local function setupPad(pad: BasePart)
+	local weaponName = pad:GetAttribute("Weapon") :: string?
+	local kind = if weaponName
+		then weaponKind(weaponName)
+		elseif pad:GetAttribute("Pickup") == "Grenades" then grenadeKind()
+		else nil
+	if not kind then
+		warn("[Pickup] No sé qué da la plataforma", pad:GetFullName())
+		return
+	end
+
+	local display = kind.model
 	display.Name = "Display"
 	display.Anchored = true
 	display.CanCollide = false
@@ -24,11 +90,11 @@ local function makeDisplay(pad: BasePart, weaponName: string): BasePart
 	display.CanQuery = false
 	display.Parent = pad
 
-	local label = Instance.new("BillboardGui")
-	label.Size = UDim2.fromOffset(140, 24)
-	label.StudsOffset = Vector3.new(0, 2, 0)
-	label.MaxDistance = 80
-	label.Parent = display
+	local billboard = Instance.new("BillboardGui")
+	billboard.Size = UDim2.fromOffset(140, 24)
+	billboard.StudsOffset = Vector3.new(0, 2, 0)
+	billboard.MaxDistance = 80
+	billboard.Parent = display
 	local text = Instance.new("TextLabel")
 	text.Size = UDim2.fromScale(1, 1)
 	text.BackgroundTransparency = 1
@@ -36,23 +102,12 @@ local function makeDisplay(pad: BasePart, weaponName: string): BasePart
 	text.TextSize = 16
 	text.TextColor3 = Color3.new(1, 1, 1)
 	text.TextStrokeTransparency = 0.4
-	text.Text = template.ToolTip
-	text.Parent = label
-	return display
-end
+	text.Text = kind.label
+	text.Parent = billboard
 
-local function setupPad(pad: BasePart)
-	local weaponName = pad:GetAttribute("Weapon") :: string?
-	if not weaponName or not ServerStorage.Weapons:FindFirstChild(weaponName) then
-		warn("[Pickup] Arma desconocida en", pad:GetFullName())
-		return
-	end
-	local stats = Weapons[weaponName]
-	local respawnTime = stats and stats.pickupRespawn or DEFAULT_RESPAWN
-	local display = makeDisplay(pad, weaponName)
 	local available = true
 
-	-- Girar y flotar un poco
+	-- Girar y flotar un poco; desaparece mientras no está disponible
 	local spin = 0
 	RunService.Heartbeat:Connect(function(dt)
 		spin += dt
@@ -60,6 +115,7 @@ local function setupPad(pad: BasePart)
 			* CFrame.new(0, 2 + math.sin(spin * 2) * 0.3, 0)
 			* CFrame.Angles(0, spin, 0)
 		display.Transparency = if available then 0 else 1
+		billboard.Enabled = available
 	end)
 
 	pad.Touched:Connect(function(hit: BasePart)
@@ -69,20 +125,15 @@ local function setupPad(pad: BasePart)
 		local character = hit.Parent
 		local player = character and Players:GetPlayerFromCharacter(character)
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-		local backpack = player and player:FindFirstChildOfClass("Backpack")
-		if not player or not humanoid or humanoid.Health <= 0 or not backpack then
+		if not player or not humanoid or humanoid.Health <= 0 then
 			return
 		end
-		-- Si ya la tiene (en la mano o en la mochila), no la gasta
-		if character:FindFirstChild(weaponName) or backpack:FindFirstChild(weaponName) then
-			return
+		if kind.give(player, character :: Model) then
+			available = false
+			task.delay(kind.respawnTime, function()
+				available = true
+			end)
 		end
-		available = false
-		local tool = ServerStorage.Weapons[weaponName]:Clone()
-		tool.Parent = backpack
-		task.delay(respawnTime, function()
-			available = true
-		end)
 	end)
 end
 

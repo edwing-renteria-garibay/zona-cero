@@ -27,7 +27,7 @@ local Weapons = {
 		range = 400,
 		automatic = false,
 	},
-	-- Lanzacohetes: se recoge en el puente del mapa. El cohete vuela (no es instantáneo)
+	-- Lanzacohetes: se recoge en lo alto del montículo central. El cohete vuela (no es instantáneo)
 	-- y explota al tocar algo. Trae 2 cohetes cargados y 4 de repuesto.
 	-- projectile: en vez de un raycast, el servidor lanza un cohete que avanza speed studs/s.
 	-- blast: la explosión; un impacto directo mata (300 > 200) y dos cohetes destruyen un jeep.

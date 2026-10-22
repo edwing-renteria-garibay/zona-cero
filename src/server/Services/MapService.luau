@@ -2,36 +2,38 @@
 -- mapa se juegue bien y después se decora. Si ya hay una carpeta Workspace.Map
 -- (por ejemplo, un mapa hecho a mano en Studio), se usa esa y no se construye nada.
 --
--- Vista desde arriba (X va de una base a la otra, Z de un lado del cañón al otro):
+-- Vista desde arriba de la mitad Roja (+X). La mitad Azul es la misma, girada 180°:
 --
---   z=+80  ======================== pared del cañón =========================
---          [rampa]  ____ techo del túnel (camino alto de flanqueo) ____  [rampa]
---          |        |____ túnel de infantería (los jeeps no caben) ____|        |
---   AZUL   |                  camino de jeeps con coberturas                  |   ROJO
---   x=-175 |                        puente en x = 0                           |  x=+175
---          |        |____ túnel de infantería _________________________|        |
---          [rampa]  ____ techo del túnel _______________________________  [rampa]
---   z=-80  ======================== pared del cañón =========================
---
--- Las dos mitades son iguales (giradas 180°) para que ningún equipo tenga ventaja.
+--   z=+80 ==================== pared del cañón ====================================
+--          [cornisa alta, a 8 studs, con rampas en las puntas]      |  BASE BAJA   |
+--                                                                   |  (cerrada,   |
+--      montículo       carril norte: cajas, contenedor, barreras    |  2 spawns)   |
+--     con el lanza- ---- muro divisorio con huecos ----              ---------------
+--     cohetes (x=0)    carril sur                       [jeep]       ZONA DE SPAWN
+--                         [cuarto lateral                            (2 spawns)
+--                          con granadas]       rampa  /BASE ALTA\ ---- rampa roja
+--          [cornisa alta]                             \(mesa 16)/
+--   z=-80 ==================== pared del cañón ====================================
+--                                                                        x=+200
+-- Tres rutas entre bases: los carriles del centro (jeeps), las cornisas altas junto a
+-- las paredes y los cuartos laterales. Los jeeps no caben por las puertas de las bases.
 
 local MapService = {}
 
 -- Medidas principales, en studs
-local LENGTH = 400 -- de una pared del fondo a la otra (eje X)
-local CANYON_HALF_WIDTH = 80 -- del centro a cada pared del cañón (eje Z)
+local HALF_LENGTH = 200 -- del centro a la pared del fondo (eje X)
+local HALF_WIDTH = 80 -- del centro a cada pared del cañón (eje Z)
 local WALL_HEIGHT = 60
-local TUNNEL_INNER_Z = 44 -- pared del túnel que da al camino
-local TUNNEL_OUTER_Z = 60 -- pared del túnel que da a la pared del cañón
-local TUNNEL_END_X = 100 -- los túneles van de x = -100 a x = 100
-local TUNNEL_HEIGHT = 12
-local ROOF_TOP = 14 -- altura del techo de los túneles y del puente (el jeep pasa por debajo)
-local BASE_X = 175 -- centro de cada base
+local LEDGE_HEIGHT = 8 -- cornisas junto a las paredes del cañón
+local MESA_HEIGHT = 16 -- base alta
+local MOUND_HEIGHT = 4 -- montículo del centro
+local ROOM_HEIGHT = 14 -- paredes de las bases
 
 -- Colores y materiales: el material decide el sonido del impacto (concreto, metal o madera)
 local ROCK = { Color = Color3.fromRGB(150, 75, 50), Material = Enum.Material.Rock }
 local SAND = { Color = Color3.fromRGB(190, 130, 90), Material = Enum.Material.Sand }
 local CONCRETE = { Color = Color3.fromRGB(160, 155, 145), Material = Enum.Material.Concrete }
+local SANDBAG = { Color = Color3.fromRGB(170, 150, 110), Material = Enum.Material.Fabric }
 local WOOD = { Color = Color3.fromRGB(140, 100, 60), Material = Enum.Material.WoodPlanks }
 local METAL = { Color = Color3.fromRGB(85, 92, 60), Material = Enum.Material.Metal }
 local PLATE = { Color = Color3.fromRGB(110, 110, 110), Material = Enum.Material.DiamondPlate }
@@ -41,6 +43,8 @@ local TEAMS = {
 	{ name = "Rojo", side = 1, color = BrickColor.new("Bright red") },
 	{ name = "Azul", side = -1, color = BrickColor.new("Bright blue") },
 }
+
+local HALF_TURN = CFrame.Angles(0, math.pi, 0)
 
 -- Crea un bloque anclado. style es uno de los estilos de arriba (color + material)
 local function block(parent: Instance, name: string, size: Vector3, cframe: CFrame, style): Part
@@ -57,226 +61,156 @@ local function block(parent: Instance, name: string, size: Vector3, cframe: CFra
 	return part
 end
 
--- Pone un bloque en cada mitad del mapa: en (x, y, z) y girado 180° en (-x, y, -z)
-local function mirrored(parent: Instance, name: string, size: Vector3, position: Vector3, style, yaw: number?)
-	local rotation = CFrame.Angles(0, math.rad(yaw or 0), 0)
-	block(parent, name, size, CFrame.new(position) * rotation, style)
-	block(parent, name, size, CFrame.Angles(0, math.pi, 0) * CFrame.new(position) * rotation, style)
+-- Una rampa (una losa inclinada) que va de low a high. La cara de arriba pasa por los dos
+-- puntos, así que se puede caminar o manejar de un punto al otro.
+local function slope(parent: Instance, name: string, low: Vector3, high: Vector3, width: number, style): Part
+	local length = (high - low).Magnitude
+	local middle = (low + high) / 2
+	-- lookAt apunta el eje Z de la losa hacia high; luego la bajamos medio grosor
+	local cframe = CFrame.lookAt(middle, high) * CFrame.new(0, -0.5, 0)
+	return block(parent, name, Vector3.new(width, 1, length), cframe, style)
 end
 
+-- Un muro con huecos (puertas) a lo largo del eje X o Z.
+-- from/to: los extremos del muro sobre el suelo; gaps: lista de {inicio, fin} medidos desde from
+local function wallWithGaps(
+	parent: Instance,
+	name: string,
+	from: Vector3,
+	to: Vector3,
+	height: number,
+	gaps: { { number } },
+	style
+)
+	local direction = (to - from).Unit
+	local total = (to - from).Magnitude
+	local cursor = 0
+	local function piece(startAt: number, endAt: number)
+		if endAt - startAt < 0.1 then
+			return
+		end
+		local a = from + direction * startAt
+		local b = from + direction * endAt
+		local middle = (a + b) / 2 + Vector3.new(0, height / 2, 0)
+		block(
+			parent,
+			name,
+			Vector3.new(2, height, endAt - startAt),
+			CFrame.lookAt(middle, middle + direction),
+			style
+		)
+	end
+	for _, gap in gaps do
+		piece(cursor, gap[1])
+		cursor = gap[2]
+	end
+	piece(cursor, total)
+end
+
+-- Suelo, paredes del cañón, montículo central y cornisas: lo que no es de ningún equipo
 local function buildCanyon(map: Folder)
 	local folder = Instance.new("Folder")
 	folder.Name = "Canyon"
 	folder.Parent = map
-	local width = CANYON_HALF_WIDTH * 2
-	-- Suelo: la parte de arriba queda en y = 0
-	block(folder, "Floor", Vector3.new(LENGTH, 2, width), CFrame.new(0, -1, 0), SAND)
-	-- Paredes del cañón a los lados y al fondo de cada base
+	local length, width = HALF_LENGTH * 2, HALF_WIDTH * 2
+	block(folder, "Floor", Vector3.new(length, 2, width), CFrame.new(0, -1, 0), SAND)
 	for _, side in { 1, -1 } do
-		local wallZ = side * (CANYON_HALF_WIDTH + 10)
 		block(
 			folder,
 			"CanyonWall",
-			Vector3.new(LENGTH + 40, WALL_HEIGHT, 20),
-			CFrame.new(0, WALL_HEIGHT / 2, wallZ),
+			Vector3.new(length + 40, WALL_HEIGHT, 20),
+			CFrame.new(0, WALL_HEIGHT / 2, side * (HALF_WIDTH + 10)),
 			ROCK
 		)
-		local endX = side * (LENGTH / 2 + 10)
 		block(
 			folder,
 			"EndWall",
 			Vector3.new(20, WALL_HEIGHT, width),
-			CFrame.new(endX, WALL_HEIGHT / 2, 0),
+			CFrame.new(side * (HALF_LENGTH + 10), WALL_HEIGHT / 2, 0),
 			ROCK
 		)
 	end
-	-- Unas rocas junto a las bases para que las paredes no se vean tan planas
-	for _, rock in { { 150, 72, 10 }, { 190, -70, 12 } } do
-		mirrored(
-			folder,
-			"Rock",
-			Vector3.new(16, rock[3], 14),
-			Vector3.new(rock[1], rock[3] / 2, rock[2]),
-			ROCK,
-			15
-		)
+
+	-- Montículo en el centro: una plataforma con rampas por los cuatro lados.
+	-- Arriba está el lanzacohetes, a la vista de todos.
+	local top, run = 14, 12 -- medio lado de la plataforma y largo de cada rampa
+	block(
+		folder,
+		"Mound",
+		Vector3.new(top * 2, MOUND_HEIGHT, top * 2),
+		CFrame.new(0, MOUND_HEIGHT / 2, 0),
+		SAND
+	)
+	for _, dir in { Vector3.xAxis, -Vector3.xAxis, Vector3.zAxis, -Vector3.zAxis } do
+		local edge = dir * top + Vector3.yAxis * MOUND_HEIGHT
+		slope(folder, "MoundSlope", dir * (top + run), edge, top * 2, SAND)
 	end
-end
 
--- Túneles de infantería a los dos lados del camino. Sus techos forman el camino alto.
-local function buildTunnels(map: Folder)
-	local folder = Instance.new("Folder")
-	folder.Name = "Tunnels"
-	folder.Parent = map
-	local tunnelLength = TUNNEL_END_X * 2
-	local midZ = (TUNNEL_INNER_Z + TUNNEL_OUTER_Z) / 2
-
-	for _, side in { 1, -1 } do
-		-- Pared exterior, entera
+	-- Cornisas junto a las paredes: camino alto para flanquear, con rampas en las dos puntas
+	local ledgeEnd, ledgeRun, ledgeWidth = 100, 24, 16
+	local ledgeZ = HALF_WIDTH - ledgeWidth / 2
+	for _, sideZ in { 1, -1 } do
 		block(
 			folder,
-			"TunnelWall",
-			Vector3.new(tunnelLength, TUNNEL_HEIGHT, 2),
-			CFrame.new(0, TUNNEL_HEIGHT / 2, side * TUNNEL_OUTER_Z),
-			CONCRETE
+			"Ledge",
+			Vector3.new(ledgeEnd * 2, LEDGE_HEIGHT, ledgeWidth),
+			CFrame.new(0, LEDGE_HEIGHT / 2, sideZ * ledgeZ),
+			ROCK
 		)
-		-- Pared interior en tramos, con huecos de 6 studs para entrar y salir al camino
-		local segment, gap = 34, 6
-		local x = -TUNNEL_END_X
-		while x < TUNNEL_END_X do
-			local length = math.min(segment, TUNNEL_END_X - x)
-			block(
+		for _, sideX in { 1, -1 } do
+			slope(
 				folder,
-				"TunnelWall",
-				Vector3.new(length, TUNNEL_HEIGHT, 2),
-				CFrame.new(x + length / 2, TUNNEL_HEIGHT / 2, side * TUNNEL_INNER_Z),
-				CONCRETE
+				"LedgeRamp",
+				Vector3.new(sideX * (ledgeEnd + ledgeRun), 0, sideZ * ledgeZ),
+				Vector3.new(sideX * ledgeEnd, LEDGE_HEIGHT, sideZ * ledgeZ),
+				ledgeWidth,
+				ROCK
 			)
-			x += segment + gap
 		end
-		-- Techo: también cubre el pasillo entre el túnel y la pared del cañón
-		local roofInner, roofOuter = TUNNEL_INNER_Z - 1, CANYON_HALF_WIDTH
-		block(
-			folder,
-			"TunnelRoof",
-			Vector3.new(tunnelLength, 2, roofOuter - roofInner),
-			CFrame.new(0, ROOF_TOP - 1, side * (roofInner + roofOuter) / 2),
-			CONCRETE
-		)
-		-- Postes en las entradas: una persona pasa entre ellos, un jeep no
-		for _, endX in { -TUNNEL_END_X, TUNNEL_END_X } do
-			for z = TUNNEL_INNER_Z + 2.5, TUNNEL_OUTER_Z - 2, 4 do
-				block(folder, "Bollard", Vector3.new(1, 4, 1), CFrame.new(endX, 2, side * z), METAL)
-			end
-		end
-		-- Coberturas dentro del túnel
-		for _, crateX in { -60, 0, 60 } do
-			block(folder, "Crate", Vector3.new(4, 4, 4), CFrame.new(crateX, 2, side * (midZ + 3)), WOOD)
-		end
-	end
-
-	-- Rampas para subir al techo de los túneles, junto a la pared del cañón
-	local run = 30 -- largo horizontal de la rampa
-	local angle = math.atan2(ROOF_TOP, run)
-	local rampLength = math.sqrt(run * run + ROOF_TOP * ROOF_TOP)
-	local rampZ = (TUNNEL_OUTER_Z + 2 + CANYON_HALF_WIDTH) / 2
-	local rampWidth = CANYON_HALF_WIDTH - TUNNEL_OUTER_Z - 2
-	-- Cuatro rampas, una en cada esquina, con la parte alta hacia el centro del mapa.
-	-- Se inclinan girando sobre el eje Z: en +X el extremo de afuera baja, en -X sube.
-	for _, sideX in { 1, -1 } do
-		for _, sideZ in { 1, -1 } do
-			local center = Vector3.new(sideX * (TUNNEL_END_X + run / 2), ROOF_TOP / 2 - 0.5, sideZ * rampZ)
+		-- Rocas sobre la cornisa para cubrirse arriba
+		for _, x in { -60, 0, 60 } do
 			block(
 				folder,
-				"Ramp",
-				Vector3.new(rampLength, 1, rampWidth),
-				CFrame.new(center) * CFrame.Angles(0, 0, -sideX * angle),
-				PLATE
+				"Rock",
+				Vector3.new(6, 4, 4),
+				CFrame.new(x + sideZ * 15, LEDGE_HEIGHT + 2, sideZ * (ledgeZ - 4)) * CFrame.Angles(0, 0.4, 0),
+				ROCK
 			)
 		end
 	end
 end
 
--- Puente en el centro, de un techo de túnel al otro. Ahí está el lanzacohetes.
-local function buildBridge(map: Folder)
+-- Todo lo de un equipo. Las medidas están escritas para la mitad Roja (+X);
+-- para la Azul, place() gira cada pieza 180° alrededor del centro del mapa.
+local function buildHalf(map: Folder, team)
 	local folder = Instance.new("Folder")
-	folder.Name = "Bridge"
+	folder.Name = "Half" .. team.name
 	folder.Parent = map
-	local span = (TUNNEL_INNER_Z - 1) * 2
-	block(folder, "Deck", Vector3.new(16, 2, span), CFrame.new(0, ROOF_TOP - 1, 0), PLATE)
-	for _, x in { -7.5, 7.5 } do
-		block(folder, "Railing", Vector3.new(1, 3, span), CFrame.new(x, ROOF_TOP + 1.5, 0), METAL)
-	end
-	-- Pilares a los lados del camino (los jeeps pasan por debajo, entre ellos)
-	for _, z in { -TUNNEL_INNER_Z + 4, TUNNEL_INNER_Z - 4 } do
-		block(
-			folder,
-			"Pillar",
-			Vector3.new(4, ROOF_TOP - 2, 4),
-			CFrame.new(0, (ROOF_TOP - 2) / 2, z),
-			CONCRETE
-		)
-	end
-end
-
--- Coberturas en el camino de jeeps, cada 15 a 25 studs: barreras, cajas y contenedores
-local function buildCover(map: Folder)
-	local folder = Instance.new("Folder")
-	folder.Name = "Cover"
-	folder.Parent = map
-	local barrier = Vector3.new(8, 3.5, 2)
-	local crate = Vector3.new(4, 4, 4)
-	local container = Vector3.new(16, 8, 7)
-	-- Solo se describe la mitad Roja (+X); la Azul es la misma girada 180°
-	mirrored(folder, "Barrier", barrier, Vector3.new(25, barrier.Y / 2, 18), CONCRETE, 10)
-	mirrored(folder, "Barrier", barrier, Vector3.new(45, barrier.Y / 2, -22), CONCRETE, -15)
-	mirrored(folder, "Crate", crate, Vector3.new(62, crate.Y / 2, 6), WOOD)
-	mirrored(folder, "Crate", crate, Vector3.new(64, crate.Y / 2 + crate.Y, 6), WOOD, 20)
-	mirrored(folder, "Container", container, Vector3.new(85, container.Y / 2, -12), METAL)
-	mirrored(folder, "Barrier", barrier, Vector3.new(105, barrier.Y / 2, 24), CONCRETE)
-	mirrored(folder, "Crate", crate, Vector3.new(120, crate.Y / 2, -30), WOOD, 35)
-	mirrored(folder, "Barrier", barrier, Vector3.new(130, barrier.Y / 2, 8), CONCRETE, 90)
-end
-
--- Una base por equipo: un búnker abierto hacia el centro, con los puntos de aparición dentro
-local function buildBase(map: Folder, team)
-	local folder = Instance.new("Folder")
-	folder.Name = "Base" .. team.name
-	folder.Parent = map
-	local side = team.side
 	local stripe = { Color = team.color.Color, Material = Enum.Material.SmoothPlastic }
 
-	-- Búnker: pared trasera, dos laterales y techo; el frente (hacia el centro) queda abierto
-	local depth, width, height = 30, 44, 12
-	local back = BASE_X + depth / 2
-	block(folder, "BunkerFloor", Vector3.new(depth, 1, width), CFrame.new(side * BASE_X, 0.5, 0), CONCRETE)
-	block(
-		folder,
-		"BunkerWall",
-		Vector3.new(2, height, width),
-		CFrame.new(side * back, height / 2, 0),
-		CONCRETE
-	)
-	for _, z in { -width / 2, width / 2 } do
-		block(
+	local function place(cframe: CFrame): CFrame
+		return if team.side == 1 then cframe else HALF_TURN * cframe
+	end
+	local function at(position: Vector3): Vector3
+		return place(CFrame.new(position)).Position
+	end
+	local function add(name: string, size: Vector3, position: Vector3, style, yaw: number?): Part
+		return block(
 			folder,
-			"BunkerWall",
-			Vector3.new(depth, height, 2),
-			CFrame.new(side * BASE_X, height / 2, z),
-			CONCRETE
+			name,
+			size,
+			place(CFrame.new(position) * CFrame.Angles(0, math.rad(yaw or 0), 0)),
+			style
 		)
 	end
-	block(
-		folder,
-		"BunkerRoof",
-		Vector3.new(depth, 2, width + 2),
-		CFrame.new(side * BASE_X, height + 1, 0),
-		CONCRETE
-	)
-	-- Franja del color del equipo para saber de quién es la base
-	block(
-		folder,
-		"TeamStripe",
-		Vector3.new(depth + 0.2, 1.5, width + 2.2),
-		CFrame.new(side * BASE_X, height - 1, 0),
-		stripe
-	)
-	-- Barricada a la entrada para cubrirse al salir
-	block(
-		folder,
-		"Barrier",
-		Vector3.new(2, 3.5, 12),
-		CFrame.new(side * (BASE_X - depth / 2 - 6), 1.75, 0),
-		CONCRETE
-	)
-
-	-- Puntos de aparición: solo para este equipo, mirando hacia el centro
-	for _, z in { -12, -4, 4, 12 } do
+	local function addSpawn(position: Vector3)
 		local spawn = Instance.new("SpawnLocation")
 		spawn.Name = "Spawn" .. team.name
 		spawn.Size = Vector3.new(5, 1, 5)
 		spawn.Anchored = true
-		spawn.CFrame = CFrame.lookAt(Vector3.new(side * (BASE_X + 6), 1.5, z), Vector3.new(0, 1.5, z))
+		-- Mirando hacia el centro del mapa
+		local world = at(position)
+		spawn.CFrame = CFrame.lookAt(world, Vector3.new(0, world.Y, world.Z))
 		spawn.BrickColor = team.color
 		spawn.Material = Enum.Material.SmoothPlastic
 		spawn.TeamColor = team.color
@@ -285,33 +219,173 @@ local function buildBase(map: Folder, team)
 		spawn.Duration = 0 -- sin campo de fuerza: la protección la da el juego (SpawnProtected)
 		spawn.Parent = folder
 	end
+
+	-- Base baja: un cuarto cerrado en la esquina, con dos puertas angostas (8 studs:
+	-- una persona pasa, un jeep no). Una da al centro y otra a la zona de spawn.
+	local x0, x1, z0, z1 = 156, 198, 34, 78
+	local h = ROOM_HEIGHT
+	local function wall(from: Vector3, to: Vector3, gaps)
+		local a, b = at(from), at(to)
+		wallWithGaps(folder, "BaseWall", a, b, h, gaps, CONCRETE)
+	end
+	wall(Vector3.new(x0, 0, z0), Vector3.new(x0, 0, z1), { { 16, 24 } }) -- oeste, puerta al centro
+	wall(Vector3.new(x0, 0, z0), Vector3.new(x1, 0, z0), { { 24, 32 } }) -- sur, puerta a la zona de spawn
+	wall(Vector3.new(x1, 0, z0), Vector3.new(x1, 0, z1), {})
+	wall(Vector3.new(x0, 0, z1), Vector3.new(x1, 0, z1), {})
+	add(
+		"BaseRoof",
+		Vector3.new(x1 - x0 + 2, 2, z1 - z0 + 2),
+		Vector3.new((x0 + x1) / 2, h + 1, (z0 + z1) / 2),
+		CONCRETE
+	)
+	add(
+		"TeamStripe",
+		Vector3.new(x1 - x0 + 2.4, 1.5, z1 - z0 + 2.4),
+		Vector3.new((x0 + x1) / 2, h - 1, (z0 + z1) / 2),
+		stripe
+	)
+	addSpawn(Vector3.new(188, 0.5, 60))
+	addSpawn(Vector3.new(188, 0.5, 48))
+	add("Crate", Vector3.new(4, 4, 4), Vector3.new(170, 2, 66), WOOD, 15)
+	add("Crate", Vector3.new(4, 4, 4), Vector3.new(170, 2, 46), WOOD, -10)
+
+	-- Zona de spawn: un nicho techado contra la pared del fondo, abierto hacia el centro,
+	-- con sacos de arena al frente para cubrirse al salir
+	add("SpawnBack", Vector3.new(2, h, 30), Vector3.new(198, h / 2, 0), CONCRETE)
+	for _, z in { -15, 15 } do
+		add("SpawnSide", Vector3.new(22, h, 2), Vector3.new(188, h / 2, z), CONCRETE)
+	end
+	add("SpawnRoof", Vector3.new(24, 2, 32), Vector3.new(188, h + 1, 0), CONCRETE)
+	add("TeamStripe", Vector3.new(24.4, 1.5, 32.4), Vector3.new(188, h - 1, 0), stripe)
+	addSpawn(Vector3.new(190, 0.5, 6))
+	addSpawn(Vector3.new(190, 0.5, -6))
+	add("Sandbags", Vector3.new(2, 3, 10), Vector3.new(170, 1.5, 6), SANDBAG)
+	add("Sandbags", Vector3.new(2, 3, 10), Vector3.new(166, 1.5, -10), SANDBAG)
+
+	-- Base alta: una mesa de roca a 16 studs, con parapetos. Se sube por la "rampa roja"
+	-- desde la zona de spawn o por una rampa desde el carril sur.
+	local mx0, mx1, mz0, mz1 = 128, 164, -78, -44
+	add(
+		"Mesa",
+		Vector3.new(mx1 - mx0, MESA_HEIGHT, mz1 - mz0),
+		Vector3.new((mx0 + mx1) / 2, MESA_HEIGHT / 2, (mz0 + mz1) / 2),
+		ROCK
+	)
+	local rampSlab = slope(
+		folder,
+		"TeamRamp",
+		at(Vector3.new(196, 0, -60)),
+		at(Vector3.new(mx1, MESA_HEIGHT, -60)),
+		12,
+		PLATE
+	)
+	rampSlab.Color = team.color.Color -- la rampa del color del equipo
+	slope(folder, "MesaRamp", at(Vector3.new(146, 0, -14)), at(Vector3.new(146, MESA_HEIGHT, mz1)), 10, PLATE)
+	-- Parapetos: muros bajos en los bordes, con huecos para las rampas
+	local p = MESA_HEIGHT
+	wallWithGaps(
+		folder,
+		"Parapet",
+		at(Vector3.new(mx0, p, mz1)),
+		at(Vector3.new(mx1, p, mz1)),
+		3,
+		{ { 13, 23 } },
+		CONCRETE
+	)
+	wallWithGaps(
+		folder,
+		"Parapet",
+		at(Vector3.new(mx0, p, mz0)),
+		at(Vector3.new(mx0, p, mz1)),
+		3,
+		{ { 12, 22 } },
+		CONCRETE
+	)
+	wallWithGaps(
+		folder,
+		"Parapet",
+		at(Vector3.new(mx1, p, mz0)),
+		at(Vector3.new(mx1, p, mz1)),
+		3,
+		{ { 12, 24 } },
+		stripe
+	)
+	add("Crate", Vector3.new(4, 4, 4), Vector3.new(140, p + 2, -60), WOOD, 30)
+
+	-- Cuarto lateral junto al carril sur, con granadas
+	local rx0, rx1, rz0, rz1 = 50, 72, -62, -40
+	local function roomWall(from: Vector3, to: Vector3, gaps)
+		wallWithGaps(folder, "RoomWall", at(from), at(to), 10, gaps, CONCRETE)
+	end
+	roomWall(Vector3.new(rx0, 0, rz1), Vector3.new(rx1, 0, rz1), { { 8, 14 } }) -- puerta al carril
+	roomWall(Vector3.new(rx0, 0, rz0), Vector3.new(rx0, 0, rz1), { { 8, 14 } }) -- puerta hacia el centro
+	roomWall(Vector3.new(rx1, 0, rz0), Vector3.new(rx1, 0, rz1), {})
+	roomWall(Vector3.new(rx0, 0, rz0), Vector3.new(rx1, 0, rz0), {})
+	add(
+		"RoomRoof",
+		Vector3.new(rx1 - rx0 + 2, 2, rz1 - rz0 + 2),
+		Vector3.new((rx0 + rx1) / 2, 11, (rz0 + rz1) / 2),
+		CONCRETE
+	)
+	local grenadePad = add("GrenadePad", Vector3.new(4, 0.4, 4), Vector3.new(66, 0.2, -54), {
+		Color = Color3.fromRGB(80, 200, 120),
+		Material = Enum.Material.Neon,
+	})
+	grenadePad:SetAttribute("Pickup", "Grenades")
+	grenadePad.Parent = map:FindFirstChild("WeaponPickups")
+
+	-- Una duna en el carril norte: dos rampas que forman una loma de 3 studs (el jeep salta)
+	slope(folder, "Dune", at(Vector3.new(28, 0, 52)), at(Vector3.new(40, 3, 52)), 16, SAND)
+	slope(folder, "Dune", at(Vector3.new(52, 0, 52)), at(Vector3.new(40, 3, 52)), 16, SAND)
+
+	-- Muro divisorio entre los dos carriles, con huecos para cruzar
+	for _, segment in { { 24, 44 }, { 52, 72 }, { 80, 100 } } do
+		local length = segment[2] - segment[1]
+		add("Divider", Vector3.new(length, 6, 2), Vector3.new((segment[1] + segment[2]) / 2, 3, 0), CONCRETE)
+	end
+
+	-- Coberturas en los carriles: barreras, cajas, contenedores, sacos de arena y pilares
+	local barrier = Vector3.new(8, 3.5, 2)
+	local crate = Vector3.new(4, 4, 4)
+	local container = Vector3.new(16, 8, 7)
+	add("Barrier", barrier, Vector3.new(20, barrier.Y / 2, 26), CONCRETE, 10)
+	add("Barrier", barrier, Vector3.new(38, barrier.Y / 2, -26), CONCRETE, -20)
+	add("Barrier", barrier, Vector3.new(112, barrier.Y / 2, -8), CONCRETE, 90)
+	add("Barrier", barrier, Vector3.new(88, barrier.Y / 2, -32), CONCRETE, 30)
+	add("Crate", crate, Vector3.new(34, crate.Y / 2, 14), WOOD)
+	add("Crate", crate, Vector3.new(35, crate.Y * 1.5, 14), WOOD, 25)
+	add("Crate", crate, Vector3.new(90, crate.Y / 2, 30), WOOD, 10)
+	add("Crate", crate, Vector3.new(94, crate.Y / 2, 34), WOOD, -15)
+	add("Crate", crate, Vector3.new(128, crate.Y / 2, -26), WOOD, 40)
+	add("Container", container, Vector3.new(66, container.Y / 2, -20), METAL)
+	add("Container", container, Vector3.new(122, container.Y / 2, 30), METAL, 90)
+	add("Sandbags", Vector3.new(10, 2.5, 2), Vector3.new(100, 1.25, 22), SANDBAG)
+	add("Sandbags", Vector3.new(10, 2.5, 2), Vector3.new(56, 1.25, 40), SANDBAG, -10)
+	add("Pillar", Vector3.new(3, 10, 3), Vector3.new(18, 5, 18), CONCRETE)
+	add("Pillar", Vector3.new(3, 10, 3), Vector3.new(18, 5, -18), CONCRETE)
+
+	-- Jeep: aparece frente a la base, mirando hacia el centro
+	local jeepSpawns = workspace:FindFirstChild("VehicleSpawns") :: Folder
+	local marker = Instance.new("Part")
+	marker.Name = "JeepSpawn" .. team.name
+	marker.Anchored = true
+	marker.Size = Vector3.new(8, 1, 12)
+	local jeepPosition = at(Vector3.new(140, 1, 10))
+	marker.CFrame = CFrame.lookAt(jeepPosition, Vector3.new(0, 1, jeepPosition.Z))
+	marker.Parent = jeepSpawns
 end
 
--- Dónde aparecen los jeeps (VehicleService lee Workspace.VehicleSpawns) y las armas del mapa
-local function buildSpawnPoints(map: Folder)
-	local vehicleSpawns = Instance.new("Folder")
-	vehicleSpawns.Name = "VehicleSpawns"
-	for _, team in TEAMS do
-		-- Un jeep junto a cada base, mirando hacia el centro
-		local position = Vector3.new(team.side * 140, 1, team.side * -2)
-		local marker = Instance.new("Part")
-		marker.Name = "JeepSpawn" .. team.name
-		marker.Anchored = true
-		marker.Size = Vector3.new(8, 1, 12)
-		marker.CFrame = CFrame.lookAt(position, Vector3.new(0, 1, position.Z))
-		marker.Parent = vehicleSpawns
-	end
-	vehicleSpawns.Parent = workspace
-
+-- Plataformas de armas que no son de ningún equipo
+local function buildPickups(map: Folder)
 	local pickups = Instance.new("Folder")
 	pickups.Name = "WeaponPickups"
 	pickups.Parent = map
-	-- El lanzacohetes, en el centro del puente: muy expuesto, como pide el diseño
+	-- El lanzacohetes, en lo alto del montículo central: muy expuesto, como pide el diseño
 	local pad = Instance.new("Part")
 	pad.Name = "RocketLauncherPad"
 	pad.Anchored = true
 	pad.Size = Vector3.new(4, 0.4, 4)
-	pad.CFrame = CFrame.new(0, ROOF_TOP + 0.2, 0)
+	pad.CFrame = CFrame.new(0, MOUND_HEIGHT + 0.2, 0)
 	pad.Color = Color3.fromRGB(255, 170, 0)
 	pad.Material = Enum.Material.Neon
 	pad:SetAttribute("Weapon", "RocketLauncher")
@@ -325,14 +399,14 @@ function MapService.Build(): Folder
 	if not map then
 		map = Instance.new("Folder")
 		map.Name = "Map"
+		local vehicleSpawns = Instance.new("Folder")
+		vehicleSpawns.Name = "VehicleSpawns"
+		vehicleSpawns.Parent = workspace
 		buildCanyon(map)
-		buildTunnels(map)
-		buildBridge(map)
-		buildCover(map)
+		buildPickups(map)
 		for _, team in TEAMS do
-			buildBase(map, team)
+			buildHalf(map, team)
 		end
-		buildSpawnPoints(map)
 		map.Parent = workspace
 	end
 	for _, spawn in workspace:GetDescendants() do
