@@ -44,6 +44,9 @@ local function getEquippedWeapon(player: Player): (Tool?, any)
 	-- La primera vez que se usa un arma se llena su cargador
 	if tool:GetAttribute("Ammo") == nil then
 		tool:SetAttribute("Ammo", stats.magazine)
+		if stats.reserve then
+			tool:SetAttribute("Reserve", stats.reserve)
+		end
 	end
 	return tool, stats
 end
@@ -295,13 +298,26 @@ local function onReload(player: Player)
 	end
 
 	local tool, stats = getEquippedWeapon(player)
-	if not tool or reloading[player] or tool:GetAttribute("Ammo") == stats.magazine then
+	if not tool or reloading[player] then
+		return
+	end
+	-- Cuántas balas faltan; si el arma tiene repuesto limitado, no más de las que quedan
+	local ammo = tool:GetAttribute("Ammo") :: number
+	local missing = stats.magazine - ammo
+	local reserve = tool:GetAttribute("Reserve") :: number?
+	if reserve then
+		missing = math.min(missing, reserve)
+	end
+	if missing <= 0 then
 		return
 	end
 	reloading[player] = true
 	tool:SetAttribute("Reloading", true)
 	task.wait(stats.reloadTime)
-	tool:SetAttribute("Ammo", stats.magazine)
+	tool:SetAttribute("Ammo", (tool:GetAttribute("Ammo") :: number) + missing)
+	if reserve then
+		tool:SetAttribute("Reserve", (tool:GetAttribute("Reserve") :: number) - missing)
+	end
 	tool:SetAttribute("Reloading", nil)
 	reloading[player] = nil
 end

@@ -3,6 +3,8 @@
 -- damage: daño por disparo en el cuerpo · headshotMultiplier: multiplica el daño en la cabeza
 -- fireRate: disparos por segundo · magazine: balas por cargador
 -- reloadTime: segundos que tarda en recargar · range: alcance en studs
+-- reserve: balas de repuesto (si no se indica, son infinitas)
+-- pickupRespawn: segundos que tarda en reaparecer en el mapa (armas que se recogen)
 -- Un jugador aguanta 200 en total (100 de escudo + 100 de vida).
 local Weapons = {
 	-- Rifle: rápido pero flojo en el cuerpo (29 balas); en la cabeza, 15
@@ -25,7 +27,8 @@ local Weapons = {
 		range = 400,
 		automatic = false,
 	},
-	-- Lanzacohetes: el cohete vuela (no es instantáneo) y explota al tocar algo.
+	-- Lanzacohetes: se recoge en el puente del mapa. El cohete vuela (no es instantáneo)
+	-- y explota al tocar algo. Trae 2 cohetes cargados y 4 de repuesto.
 	-- projectile: en vez de un raycast, el servidor lanza un cohete que avanza speed studs/s.
 	-- blast: la explosión; un impacto directo mata (300 > 200) y dos cohetes destruyen un jeep.
 	RocketLauncher = {
@@ -33,8 +36,10 @@ local Weapons = {
 		speed = 140,
 		fireRate = 0.8,
 		magazine = 2,
+		reserve = 4,
 		reloadTime = 3,
 		range = 500,
+		pickupRespawn = 120,
 		automatic = false,
 		blast = {
 			damage = 300,

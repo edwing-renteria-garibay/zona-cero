@@ -81,7 +81,10 @@ function HUD.Start()
 		elseif tool:GetAttribute("Reloading") then
 			ammoLabel.Text = "Recargando..."
 		else
-			ammoLabel.Text = string.format("%d / %d", WeaponController.GetAmmo(tool, stats), stats.magazine)
+			local reserve = tool:GetAttribute("Reserve")
+			ammoLabel.Text = if reserve
+				then string.format("%d  ·  repuesto %d", WeaponController.GetAmmo(tool, stats), reserve)
+				else string.format("%d / %d", WeaponController.GetAmmo(tool, stats), stats.magazine)
 		end
 	end)
 end

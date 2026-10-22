@@ -6,7 +6,9 @@ local Teams = game:GetService("Teams")
 local Services = script.Services
 local CombatService = require(Services.CombatService)
 local HealthService = require(Services.HealthService)
+local MapService = require(Services.MapService)
 local MatchService = require(Services.MatchService)
+local PickupService = require(Services.PickupService)
 local ProjectileService = require(Services.ProjectileService)
 local VehicleService = require(Services.VehicleService)
 
@@ -21,6 +23,9 @@ for name, color in { Rojo = BrickColor.new("Bright red"), Azul = BrickColor.new(
 	team.Parent = Teams
 end
 
+-- El mapa va primero: VehicleService busca ahí dónde aparecen los jeeps
+local map = MapService.Build()
+PickupService.Start(map)
 CombatService.Start()
 VehicleService.Start()
 ProjectileService.Start()
