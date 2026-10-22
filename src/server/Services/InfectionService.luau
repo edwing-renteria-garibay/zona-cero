@@ -42,7 +42,8 @@ local function updateCounts(): (number, number)
 	return survivors, zombies
 end
 
--- Convierte un personaje en zombi: sin armas, granadas ni escudo, piel verde y más rápido
+-- Convierte un personaje en zombi: sin armas, granadas ni escudo, piel verde, más vida
+-- y más rápido
 local function applyZombie(character: Model)
 	local player = Players:GetPlayerFromCharacter(character)
 	local backpack = player and player:FindFirstChildOfClass("Backpack")
@@ -59,6 +60,8 @@ local function applyZombie(character: Model)
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
 		humanoid.WalkSpeed = rules.zombieSpeed
+		humanoid.MaxHealth = rules.zombieHealth
+		humanoid.Health = rules.zombieHealth
 	end
 	-- Sin ropa y con la piel verde, para que se reconozcan de lejos
 	for _, item in character:GetChildren() do

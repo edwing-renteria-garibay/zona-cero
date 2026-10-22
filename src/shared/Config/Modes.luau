@@ -73,6 +73,7 @@ local Modes = {
 		playersPerZombie = 4, -- 1 zombi por cada 4 jugadores...
 		maxZombies = 3, -- ...hasta 3 (siempre al menos 1)
 		zombieSpeed = 26, -- los sobrevivientes caminan a 16
+		zombieHealth = 150, -- vida de un zombi (sin escudo); un sobreviviente tiene 100 + 100 de escudo
 		zombieMeleeDamage = 1000, -- un golpe de zombi mata
 	},
 	KingOfTheHill = {

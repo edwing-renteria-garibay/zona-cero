@@ -7,8 +7,9 @@ Zombis contra sobrevivientes. El código está en `src/server/Services/Infection
 
 1. Al empezar la partida se eligen zombis al azar: 1 por cada 4 jugadores, mínimo 1 y
    máximo 3. Antes de empezar nadie sabe quién va a ser.
-2. Los zombis no tienen armas, escudo ni granadas. Golpean con **F** o **clic**, y un
-   golpe mata. Corren a 26 (los sobrevivientes caminan a 16).
+2. Los zombis no tienen armas, escudo ni granadas, pero tienen 150 de vida (un
+   sobreviviente tiene 100). Golpean con **F** o **clic**, y un golpe mata. Corren a 26
+   (los sobrevivientes caminan a 16).
 3. Un zombi ve a los sobrevivientes resaltados en azul, aunque haya paredes.
 4. Si un sobreviviente muere, por la razón que sea, se vuelve zombi.
 5. Ganan los zombis si ya no queda ningún sobreviviente. Si al acabarse el tiempo (5 min)
@@ -30,7 +31,7 @@ atributos se ven también desde el cliente, así que:
 
 ## Cómo se ve un zombi
 
-`applyZombie` le quita armas, granadas y escudo, y sube su `WalkSpeed`. También le quita la
+`applyZombie` le quita armas, granadas y escudo, y sube su `WalkSpeed` y su `MaxHealth`. También le quita la
 ropa (`Shirt`, `Pants`) y pinta su piel de verde con `BodyColors`, para que se reconozca
 de lejos.
 
