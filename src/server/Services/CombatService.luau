@@ -45,6 +45,28 @@ local function getEquippedWeapon(player: Player): (Tool?, any)
 	return tool, stats
 end
 
+-- Materiales de Roblox que suenan a metal o a madera al recibir un disparo;
+-- todo lo demás suena a concreto
+local METAL_MATERIALS = {
+	[Enum.Material.Metal] = true,
+	[Enum.Material.CorrodedMetal] = true,
+	[Enum.Material.DiamondPlate] = true,
+	[Enum.Material.Foil] = true,
+}
+local WOOD_MATERIALS = {
+	[Enum.Material.Wood] = true,
+	[Enum.Material.WoodPlanks] = true,
+}
+
+local function materialSurface(material: Enum.Material): string
+	if METAL_MATERIALS[material] then
+		return "metal"
+	elseif WOOD_MATERIALS[material] then
+		return "wood"
+	end
+	return "concrete"
+end
+
 -- ¿Puede el tirador dañar a este objetivo? (target es nil para un muñeco de práctica)
 local function isEnemy(shooter: Player, target: Player?): boolean
 	if target == nil then
@@ -82,10 +104,10 @@ local function applyHit(
 	result: RaycastResult,
 	damage: number,
 	headshotMultiplier: number?
-): string?
+): string
 	local model = result.Instance:FindFirstAncestorOfClass("Model")
 	if not model then
-		return nil
+		return materialSurface(result.Material)
 	end
 	local vehicle = VehicleService.GetVehicle(result.Instance)
 	if vehicle then
@@ -96,7 +118,7 @@ local function applyHit(
 	end
 	local targetHumanoid = model:FindFirstChildOfClass("Humanoid")
 	if not targetHumanoid or not isEnemy(attacker, Players:GetPlayerFromCharacter(model)) then
-		return nil
+		return materialSurface(result.Material)
 	end
 	local headshot = headshotMultiplier ~= nil and isHeadPart(result.Instance :: BasePart)
 	if headshot then
@@ -104,7 +126,7 @@ local function applyHit(
 	end
 	local toShield, toHealth = HealthService.Damage(targetHumanoid, damage, attacker)
 	if toShield + toHealth <= 0 then
-		return nil -- tenía protección de aparición
+		return "shield" -- tenía protección de aparición: el escudo lo detiene todo
 	end
 	local surface = if toHealth > 0 then "flesh" else "shield"
 	hitConfirmed:FireClient(
@@ -182,6 +204,21 @@ local function onFire(player: Player, origin: any, direction: any)
 	)
 end
 
+-- Recarga la torreta de un jeep (5 s). Mientras tanto no puede disparar.
+local function reloadTurret(vehicle: Model)
+	local turret = Vehicles.TurretJeep.turret
+	if
+		vehicle:GetAttribute("TurretReloading")
+		or (vehicle:GetAttribute("TurretAmmo") or turret.magazine) >= turret.magazine
+	then
+		return
+	end
+	vehicle:SetAttribute("TurretReloading", true)
+	task.wait(turret.reloadTime)
+	vehicle:SetAttribute("TurretAmmo", turret.magazine)
+	vehicle:SetAttribute("TurretReloading", nil)
+end
+
 -- Disparo de la ametralladora del jeep: sale del cañón, no de la cabeza
 local function onFireTurret(player: Player, direction: any)
 	if typeof(direction) ~= "Vector3" or direction ~= direction or direction.Magnitude < 0.01 then
@@ -204,7 +241,16 @@ local function onFireTurret(player: Player, direction: any)
 	if now - (lastTurretShot[player] or 0) < FIRE_RATE_TOLERANCE / turret.fireRate then
 		return
 	end
+	-- La munición es del jeep, no del jugador: si otro se sube, encuentra las balas que quedaron
+	local ammo = vehicle:GetAttribute("TurretAmmo") or turret.magazine
+	if vehicle:GetAttribute("TurretReloading") or ammo <= 0 then
+		return
+	end
 	lastTurretShot[player] = now
+	vehicle:SetAttribute("TurretAmmo", ammo - 1)
+	if ammo - 1 <= 0 then
+		task.spawn(reloadTurret, vehicle) -- se vació: recarga automática
+	end
 
 	VehicleService.AimTurret(vehicle, direction)
 	local barrel = vehicle:FindFirstChild("TurretBarrel") :: BasePart
@@ -226,6 +272,16 @@ local function onFireTurret(player: Player, direction: any)
 end
 
 local function onReload(player: Player)
+	-- Sentado en la torreta, la R recarga la torreta
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local seat = humanoid and humanoid.SeatPart
+	local vehicle = VehicleService.GetVehicle(seat)
+	if vehicle and seat and seat:GetAttribute("Turret") then
+		reloadTurret(vehicle)
+		return
+	end
+
 	local tool, stats = getEquippedWeapon(player)
 	if not tool or reloading[player] or tool:GetAttribute("Ammo") == stats.magazine then
 		return

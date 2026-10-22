@@ -11,6 +11,7 @@ local UserInputService = game:GetService("UserInputService")
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Aim = require(script.Parent.Aim)
+local Sfx = require(script.Parent.Sfx)
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local fireWeapon = remotes:WaitForChild("FireWeapon") :: RemoteEvent
@@ -62,6 +63,7 @@ local function tryFire()
 		return
 	end
 	if WeaponController.GetAmmo(tool, stats) <= 0 then
+		Sfx.PlayLocal(Sounds.empty)
 		reloadWeapon:FireServer() -- cargador vacío: recarga automática
 		triggerHeld = false -- suelta el gatillo para no pedir la recarga en cada fotograma
 		return
@@ -81,9 +83,10 @@ end
 local IMPACT_COLORS = {
 	shield = Color3.fromRGB(90, 200, 255), -- azul: el escudo absorbió el disparo
 	flesh = Color3.fromRGB(200, 30, 30), -- rojo: el disparo llegó a la vida
-	metal = Color3.fromRGB(255, 200, 80), -- chispas amarillas: el jeep
+	metal = Color3.fromRGB(255, 200, 80), -- chispas amarillas: el jeep o algo de metal
+	wood = Color3.fromRGB(140, 95, 50), -- astillas
+	concrete = Color3.fromRGB(150, 140, 120), -- polvo: el suelo o una pared
 }
-local WORLD_IMPACT_COLOR = Color3.fromRGB(150, 140, 120) -- polvo: el suelo o una pared
 
 -- Una línea brillante que se desvanece entre el arma y el impacto
 local function drawTracer(from: Vector3, to: Vector3)
@@ -111,40 +114,23 @@ local function drawImpact(position: Vector3, surface: string?)
 	impact.CanQuery = false
 	impact.CastShadow = false
 	impact.Material = Enum.Material.Neon
-	impact.Color = if surface then IMPACT_COLORS[surface] or WORLD_IMPACT_COLOR else WORLD_IMPACT_COLOR
+	impact.Color = IMPACT_COLORS[surface or "concrete"] or IMPACT_COLORS.concrete
 	impact.Size = Vector3.one * 0.3
 	impact.Position = position
 	impact.Parent = workspace
-	local grow = if surface then 1.6 else 0.8 -- los impactos en jugadores se ven más grandes
+	-- Los impactos en jugadores y jeeps se ven más grandes
+	local grow = if surface == "shield" or surface == "flesh" or surface == "metal" then 1.6 else 0.8
 	TweenService:Create(impact, TweenInfo.new(0.2), { Size = Vector3.one * grow, Transparency = 1 }):Play()
 	Debris:AddItem(impact, 0.2)
 end
 
--- El sonido del disparo sale del arma: se oye más fuerte cerca y se apaga a lo lejos
-local function playFireSound(position: Vector3, weaponName: string?)
-	local soundId = weaponName and Sounds.fire[weaponName]
-	if not soundId or soundId == "" then
-		return
-	end
-	local anchor = Instance.new("Attachment")
-	anchor.WorldPosition = position
-	anchor.Parent = workspace.Terrain
-	local sound = Instance.new("Sound")
-	sound.SoundId = soundId
-	sound.Volume = 0.6
-	sound.RollOffMaxDistance = 400
-	-- Un poco de variación para que una ráfaga no suene como el mismo audio repetido
-	sound.PlaybackSpeed = 0.95 + math.random() * 0.1
-	sound.Parent = anchor
-	sound:Play()
-	Debris:AddItem(anchor, 3)
-end
-
 local function onShotFired(from: Vector3, to: Vector3, hit: boolean?, surface: string?, weaponName: string?)
-	playFireSound(from, weaponName)
+	Sfx.PlayAt(weaponName and Sounds.fire[weaponName], from)
 	drawTracer(from, to)
 	if hit then
 		drawImpact(to, surface)
+		-- En el escenario o en un jeep suena el material; en un jugador, el aviso de acierto
+		Sfx.PlayAt(surface and Sounds.impact[surface], to, 0.5)
 	end
 end
 

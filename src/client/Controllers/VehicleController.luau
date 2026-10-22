@@ -7,8 +7,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
+local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local Vehicles = require(ReplicatedStorage.Shared.Config.Vehicles)
 local Aim = require(script.Parent.Aim)
+local Sfx = require(script.Parent.Sfx)
 
 local fireTurret = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("FireTurret") :: RemoteEvent
 
@@ -34,6 +36,11 @@ end
 -- ¿Vas sentado en la torreta? (para la mira)
 function VehicleController.IsInTurret(): boolean
 	return getTurretSeat() ~= nil
+end
+
+-- Balas que le quedan a la torreta de un jeep (el servidor guarda el valor real)
+function VehicleController.GetTurretAmmo(vehicle: Model): number
+	return vehicle:GetAttribute("TurretAmmo") or turret.magazine
 end
 
 -- El asiento actual del jugador (para el HUD)
@@ -79,7 +86,16 @@ function VehicleController.Start()
 		if not triggerHeld or now - lastShot < 1 / turret.fireRate then
 			return
 		end
-		local barrel = (seat.Parent :: Model):FindFirstChild("TurretBarrel") :: BasePart?
+		local vehicle = seat.Parent :: Model
+		if vehicle:GetAttribute("TurretReloading") then
+			return
+		end
+		if VehicleController.GetTurretAmmo(vehicle) <= 0 then
+			Sfx.PlayLocal(Sounds.empty)
+			triggerHeld = false -- un solo clic de "sin balas" por cada vez que aprietas
+			return
+		end
+		local barrel = vehicle:FindFirstChild("TurretBarrel") :: BasePart?
 		if not barrel then
 			return
 		end
