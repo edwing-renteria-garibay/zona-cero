@@ -63,6 +63,10 @@ Con la pistola, el cuerpo recibe 30 de daño. El escudo (100) aguanta 3 disparos
 | Número de daño que flota y un sonido de acierto | Solo quien dispara | `src/client/UI/HitFeedback.luau` |
 | Sonido de cada disparo, desde el arma | Todos | `src/client/Controllers/WeaponController.luau` |
 
+La bala también suena al pegar en el escenario o en un jeep. El servidor mira el material de la pieza (`result.Material`) y lo resume en `"concrete"`, `"metal"` o `"wood"`; cada uno tiene su sonido. Al disparar sin balas suena un clic.
+
+La torreta del jeep tiene 100 balas. Al vaciarse se recarga sola en 5 s, o puedes recargarla antes con **R**. La munición se guarda en el jeep (atributo `TurretAmmo`), así que si cambias de artillero las balas que quedan siguen ahí.
+
 Los sonidos se eligen en `src/shared/Config/Sounds.luau`. En Studio abre la Caja de herramientas, ve a **Audio**, busca un sonido (por ejemplo "gunshot"), haz clic derecho y copia su ID. Pégalo como `"rbxassetid://NÚMERO"`.
 
 El escudo se empieza a recargar tras 3.5 s sin recibir daño y se llena en 1.5 s (`REGEN_DELAY` y `REGEN_TIME` en `HealthService`).

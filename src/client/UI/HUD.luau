@@ -2,8 +2,10 @@
 -- Se crea desde código para no depender de archivos de Studio.
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Vehicles = require(ReplicatedStorage.Shared.Config.Vehicles)
 local VehicleController = require(script.Parent.Parent.Controllers.VehicleController)
 local WeaponController = require(script.Parent.Parent.Controllers.WeaponController)
 
@@ -60,7 +62,15 @@ function HUD.Start()
 		end
 
 		local tool, stats = WeaponController.GetEquipped()
-		if not tool then
+		if vehicle and VehicleController.IsInTurret() then
+			ammoLabel.Text = if vehicle:GetAttribute("TurretReloading")
+				then "Recargando torreta..."
+				else string.format(
+					"Torreta %d / %d",
+					VehicleController.GetTurretAmmo(vehicle),
+					Vehicles.TurretJeep.turret.magazine
+				)
+		elseif not tool then
 			ammoLabel.Text = ""
 		elseif tool:GetAttribute("Reloading") then
 			ammoLabel.Text = "Recargando..."

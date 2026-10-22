@@ -23,7 +23,14 @@ local Vehicles = {
 		blastInnerRadius = 6,
 		blastRadius = 16,
 		-- La ametralladora de la torreta no gasta munición
-		turret = { damage = 10, headshotMultiplier = 2, fireRate = 10, range = 400 },
+		turret = {
+			damage = 10,
+			headshotMultiplier = 2,
+			fireRate = 10,
+			range = 400,
+			magazine = 100, -- balas antes de recargar
+			reloadTime = 5, -- segundos; se recarga sola al vaciarse, o con R
+		},
 	},
 }
 
