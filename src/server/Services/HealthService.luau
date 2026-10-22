@@ -1,13 +1,15 @@
 -- Escudo + vida, al estilo Halo.
--- El escudo (100) absorbe el daño primero y se recarga si pasan 4 s sin recibir daño.
+-- El escudo (100) absorbe el daño primero. Tras 3.5 s sin recibir daño se recarga,
+-- y tarda 1.5 s en llenarse por completo.
 -- La vida es la del Humanoid (100) y no se recarga sola.
 -- Solo el servidor llama a Damage(): así el cliente no puede hacer trampa con la vida.
 
 local RunService = game:GetService("RunService")
 
 local MAX_SHIELD = 100
-local REGEN_DELAY = 4 -- segundos sin daño antes de recargar
-local REGEN_RATE = 40 -- puntos de escudo por segundo
+local REGEN_DELAY = 3.5 -- segundos sin daño antes de recargar
+local REGEN_TIME = 1.5 -- segundos para llenar el escudo de 0 a 100
+local REGEN_RATE = MAX_SHIELD / REGEN_TIME -- puntos de escudo por segundo
 
 local HealthService = {}
 
@@ -37,10 +39,11 @@ function HealthService.SetupCharacter(player: Player, character: Model)
 	end)
 end
 
-function HealthService.Damage(humanoid: Humanoid, amount: number, attacker: Player?)
+-- Devuelve cuánto daño se llevó el escudo y cuánto la vida (0, 0 si no se pudo dañar)
+function HealthService.Damage(humanoid: Humanoid, amount: number, attacker: Player?): (number, number)
 	local character = humanoid.Parent :: Model
 	if humanoid.Health <= 0 or character:GetAttribute("SpawnProtected") then
-		return
+		return 0, 0
 	end
 	lastHit[humanoid] = os.clock()
 	lastAttacker[humanoid] = attacker
@@ -49,6 +52,7 @@ function HealthService.Damage(humanoid: Humanoid, amount: number, attacker: Play
 	local absorbed = math.min(shield, amount)
 	character:SetAttribute("Shield", shield - absorbed)
 	humanoid:TakeDamage(amount - absorbed)
+	return absorbed, amount - absorbed
 end
 
 -- Recarga de escudo en cada paso de la simulación

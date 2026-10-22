@@ -17,7 +17,7 @@ local player = Players.LocalPlayer
 local NORMAL_COLOR = Color3.new(1, 1, 1)
 local HIT_COLOR = Color3.fromRGB(255, 60, 60)
 local HEAD_COLOR = Color3.fromRGB(255, 170, 0)
-local HIT_TIME = 0.15 -- segundos que dura el rojo al acertar
+local HIT_TIME = 0.25 -- segundos que dura el rojo al acertar
 
 local Crosshair = {}
 

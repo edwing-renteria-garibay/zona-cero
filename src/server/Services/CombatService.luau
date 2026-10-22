@@ -74,29 +74,47 @@ local function isHeadPart(part: BasePart): boolean
 end
 
 -- Aplica el daño de un impacto (a un jeep o a un personaje enemigo) y avisa al tirador
--- para que su mira cambie de color: "hit" en el cuerpo o en un jeep, "head" en la cabeza
-local function applyHit(attacker: Player, result: RaycastResult, damage: number, headshotMultiplier: number?)
+-- para que su mira cambie de color ("hit" en el cuerpo o en un jeep, "head" en la cabeza)
+-- y vea cuánto daño hizo. Devuelve qué tocó la bala, para el efecto del impacto:
+-- "shield" (escudo), "flesh" (vida), "metal" (jeep) o nil (el escenario o un compañero).
+local function applyHit(
+	attacker: Player,
+	result: RaycastResult,
+	damage: number,
+	headshotMultiplier: number?
+): string?
 	local model = result.Instance:FindFirstAncestorOfClass("Model")
 	if not model then
-		return
+		return nil
 	end
 	local vehicle = VehicleService.GetVehicle(result.Instance)
 	if vehicle then
 		if VehicleService.Damage(vehicle, damage, attacker, result.Instance :: BasePart) then
-			hitConfirmed:FireClient(attacker, "hit")
+			hitConfirmed:FireClient(attacker, "hit", damage, result.Position, "metal")
 		end
-		return
+		return "metal"
 	end
 	local targetHumanoid = model:FindFirstChildOfClass("Humanoid")
 	if not targetHumanoid or not isEnemy(attacker, Players:GetPlayerFromCharacter(model)) then
-		return
+		return nil
 	end
 	local headshot = headshotMultiplier ~= nil and isHeadPart(result.Instance :: BasePart)
 	if headshot then
 		damage *= headshotMultiplier :: number
 	end
-	HealthService.Damage(targetHumanoid, damage, attacker)
-	hitConfirmed:FireClient(attacker, if headshot then "head" else "hit")
+	local toShield, toHealth = HealthService.Damage(targetHumanoid, damage, attacker)
+	if toShield + toHealth <= 0 then
+		return nil -- tenía protección de aparición
+	end
+	local surface = if toHealth > 0 then "flesh" else "shield"
+	hitConfirmed:FireClient(
+		attacker,
+		if headshot then "head" else "hit",
+		toShield + toHealth,
+		result.Position,
+		surface
+	)
+	return surface
 end
 
 local function onFire(player: Player, origin: any, direction: any)
@@ -149,13 +167,19 @@ local function onFire(player: Player, origin: any, direction: any)
 	local result = workspace:Raycast(origin, ray, params)
 	local hitPosition = if result then result.Position else origin + ray
 
-	-- Todos los jugadores dibujan la trazadora desde el arma hasta el impacto
-	local handle = tool:FindFirstChild("Handle") :: BasePart?
-	shotFired:FireAllClients(if handle then handle.Position else origin, hitPosition)
+	local surface = if result then applyHit(player, result, stats.damage, stats.headshotMultiplier) else nil
 
-	if result then
-		applyHit(player, result, stats.damage, stats.headshotMultiplier)
-	end
+	-- Todos los jugadores dibujan la trazadora desde el arma hasta el impacto,
+	-- un destello en el impacto según lo que tocó (escudo, cuerpo, metal o escenario)
+	-- y el sonido del arma (tool.Name dice cuál)
+	local handle = tool:FindFirstChild("Handle") :: BasePart?
+	shotFired:FireAllClients(
+		if handle then handle.Position else origin,
+		hitPosition,
+		result ~= nil,
+		surface,
+		tool.Name
+	)
 end
 
 -- Disparo de la ametralladora del jeep: sale del cañón, no de la cabeza
@@ -191,10 +215,14 @@ local function onFireTurret(player: Player, direction: any)
 	params.FilterDescendantsInstances = { vehicle, character :: Model }
 	local ray = direction.Unit * turret.range
 	local result = workspace:Raycast(origin, ray, params)
-	shotFired:FireAllClients(origin, if result then result.Position else origin + ray)
-	if result then
-		applyHit(player, result, turret.damage, turret.headshotMultiplier)
-	end
+	local surface = if result then applyHit(player, result, turret.damage, turret.headshotMultiplier) else nil
+	shotFired:FireAllClients(
+		origin,
+		if result then result.Position else origin + ray,
+		result ~= nil,
+		surface,
+		"Turret"
+	)
 end
 
 local function onReload(player: Player)
@@ -265,8 +293,18 @@ local function onMelee(player: Player)
 
 	local toTarget = (targetRoot.Position - root.Position).Unit
 	local backstab = targetRoot.CFrame.LookVector:Dot(toTarget) > 0.5
-	HealthService.Damage(target, if backstab then Melee.backstabDamage else Melee.damage, player)
-	hitConfirmed:FireClient(player, if backstab then "head" else "hit")
+	local toShield, toHealth =
+		HealthService.Damage(target, if backstab then Melee.backstabDamage else Melee.damage, player)
+	if toShield + toHealth > 0 then
+		local surface = if toHealth > 0 then "flesh" else "shield"
+		hitConfirmed:FireClient(
+			player,
+			if backstab then "head" else "hit",
+			toShield + toHealth,
+			targetRoot.Position,
+			surface
+		)
+	end
 end
 
 function CombatService.Start()
