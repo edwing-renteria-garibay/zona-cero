@@ -21,7 +21,7 @@ local killFeed = ReplicatedStorage.Remotes.KillFeed :: RemoteEvent
 
 local rules = Modes.KingOfTheHill
 local ZONE_HEIGHT = 10 -- qué tan alto se ve el cilindro de la colina
-local MAX_TRIES = 60 -- lugares al azar que se prueban antes de rendirse
+local MAX_TRIES = 150 -- lugares al azar que se prueban antes de rendirse
 local NEUTRAL = Color3.fromRGB(235, 235, 235)
 local CONTESTED = Color3.fromRGB(255, 170, 0)
 

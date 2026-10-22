@@ -17,7 +17,7 @@ En casi todos los juegos la colina está en el centro. Aquí aparece en **un lug
 2. **Lejos de los spawns.** Debe quedar a más de `minSpawnDistance` (40 studs) de cualquier punto de aparición.
 3. **Se puede llegar.** `PathfindingService` busca un camino caminando desde un spawn de cada equipo. Si no hay camino (por ejemplo, encima de un muro o de un techo), el lugar no sirve.
 
-Si en 60 intentos no encuentra nada, la pone en el centro.
+Si en 150 intentos no encuentra nada, la pone en el centro.
 
 ## 3. Elegir el modo
 
@@ -35,5 +35,5 @@ En `KingOfTheHill` (`Config/Modes.luau`):
 
 - `moveEvery = 0`: la colina no se mueve en toda la partida.
 - `moveEvery = 30`: se mueve más seguido.
-- `hillRadius = 12`: una colina más grande.
+- `hillRadius = 20`: una colina todavía más grande (hoy mide 16 de radio).
 - `scoreToWin = 30`: para probar rápido.

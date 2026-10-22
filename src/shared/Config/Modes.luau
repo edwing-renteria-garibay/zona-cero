@@ -20,7 +20,7 @@ local Modes = {
 		teams = true,
 		vehicles = true,
 		scoreBy = "hill",
-		hillRadius = 8, -- radio de la colina en studs
+		hillRadius = 16, -- radio de la colina en studs (32 de ancho)
 		moveEvery = 60, -- segundos antes de que la colina cambie de lugar (0 = no se mueve)
 		minSpawnDistance = 40, -- qué tan lejos de cualquier punto de aparición debe quedar
 	},
