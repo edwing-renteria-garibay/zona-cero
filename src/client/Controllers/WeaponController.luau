@@ -1,12 +1,12 @@
 -- Controla el arma del jugador local: apuntar, disparar, recargar y dibujar trazadoras.
 -- El cliente nunca hace daño: solo le dice al servidor hacia dónde disparó.
 
+local ContextActionService = game:GetService("ContextActionService")
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
 
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
@@ -279,12 +279,16 @@ function WeaponController.Start()
 		player.Character.ChildAdded:Connect(connectTool)
 	end
 
-	UserInputService.InputBegan:Connect(function(input, typing)
-		-- R en teclado, X (Cuadrado en PlayStation) en control
-		if not typing and (input.KeyCode == Enum.KeyCode.R or input.KeyCode == Enum.KeyCode.ButtonX) then
+	-- Recargar: R en teclado, X (Cuadrado en PlayStation) en control y botón "Recargar" en
+	-- móvil (el "true" crea el botón táctil)
+	ContextActionService:BindAction("Reload", function(_name, state)
+		if state == Enum.UserInputState.Begin then
 			reloadWeapon:FireServer()
+			return Enum.ContextActionResult.Sink
 		end
-	end)
+		return Enum.ContextActionResult.Pass
+	end, true, Enum.KeyCode.R, Enum.KeyCode.ButtonX)
+	ContextActionService:SetTitle("Reload", "Recargar")
 
 	RunService.Heartbeat:Connect(function()
 		if triggerHeld then

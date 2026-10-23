@@ -8,12 +8,14 @@
 --   inercia: al girar la cámara, el arma se queda un poquito atrás
 --   recarga: baja y se inclina mientras recargas
 --   al sacarla: sube desde abajo
+--   golpe: el arma baja y aparece el machete del cinto dando un machetazo
 -- Mientras se ve este modelo, el arma de la mano se esconde (solo para ti) para no verla doble.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Melee = require(ReplicatedStorage.Shared.Config.Melee)
 local WeaponModels = require(ReplicatedStorage.Shared.WeaponModels)
 local WeaponSkins = require(ReplicatedStorage.Shared.WeaponSkins)
 local CameraController = require(script.Parent.CameraController)
@@ -25,6 +27,7 @@ local SLEEVE = Color3.fromRGB(70, 76, 56) -- manga del uniforme
 local GLOVE = Color3.fromRGB(32, 32, 32)
 local FLASH = Color3.fromRGB(255, 205, 110)
 local FLASH_TIME = 0.05 -- segundos que dura el fogonazo
+local SWING_TIME = 0.3 -- segundos que dura el machetazo
 
 -- Dónde empiezan los brazos (fuera de la pantalla), medido desde la mano derecha
 local RIGHT_SHOULDER = Vector3.new(0.6, -1.2, 1.4)
@@ -43,6 +46,8 @@ type Built = {
 }
 
 local current: Built? = nil
+local swing: Built? = nil -- el machete del golpe, mientras se ve
+local swingStart = 0
 local scoped = false -- con la mira del francotirador no se ve el arma
 local hiddenTool: Tool? = nil
 
@@ -53,6 +58,7 @@ local bobTime = 0
 local reloadAmount = 0
 local equipAmount = 1
 local bashAmount = 0
+local lowerAmount = 0 -- baja el arma mientras se ve el machetazo
 local flashUntil = 0
 local lastYaw: number?, lastPitch: number? = nil, nil
 
@@ -219,17 +225,18 @@ local function update(dt: number)
 	kickYaw = approach(kickYaw, 0, 12, dt)
 	equipAmount = approach(equipAmount, 0, 9, dt)
 	bashAmount = approach(bashAmount, 0, 9, dt)
+	lowerAmount = approach(lowerAmount, 0, 7, dt)
 	reloadAmount = approach(reloadAmount, if tool:GetAttribute("Reloading") then 1 else 0, 10, dt)
 
 	local grip = camera.CFrame
 		* built.spec.view
 		* CFrame.new(
 			bobX - bashAmount * 0.35,
-			bobY + breathe - reloadAmount * 0.35 - equipAmount * 0.9,
+			bobY + breathe - reloadAmount * 0.35 - equipAmount * 0.9 - lowerAmount * 0.9,
 			kick + reloadAmount * 0.15 - bashAmount * 0.6
 		)
 		* CFrame.Angles(
-			rad(kickAngle) + swayPitch - reloadAmount * rad(25) - equipAmount * rad(35),
+			rad(kickAngle) + swayPitch - reloadAmount * rad(25) - (equipAmount + lowerAmount) * rad(35),
 			swayYaw + rad(kickYaw) + bashAmount * rad(20),
 			reloadAmount * rad(18)
 		)
@@ -266,9 +273,67 @@ function ViewModel.SetScoped(value: boolean)
 	scoped = value
 end
 
--- Lo llama MeleeController al golpear: el arma se va hacia el frente y a la izquierda
+-- El machetazo: el machete cruza la pantalla de derecha a izquierda
+local function updateSwing()
+	local built = swing
+	if not built then
+		return
+	end
+	local t = (os.clock() - swingStart) / SWING_TIME
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if t >= 1 or not CameraController.IsFirstPerson() or not humanoid or humanoid.Health <= 0 then
+		built.folder:Destroy()
+		swing = nil
+		return
+	end
+	local ease = 1 - (1 - t) ^ 2 -- rápido al principio y frena al final
+	-- Girar en Y hacia + apunta la hoja a la izquierda: de -70° (derecha) a 60° (izquierda)
+	local grip = workspace.CurrentCamera.CFrame
+		* CFrame.new(1.1 - 1.9 * ease, -0.5 - 0.5 * ease, -1.4)
+		* CFrame.Angles(rad(-10), rad(-70 + 130 * ease), rad(-80 + 30 * ease))
+	local cframes = table.create(#built.parts)
+	for i, offset in built.offsets do
+		cframes[i] = grip * offset
+	end
+	workspace:BulkMoveTo(built.parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
+end
+
+-- Lo llama MeleeController al golpear. Con un arma de golpe en la mano (machete, pollo)
+-- esa misma arma se va hacia el frente; con cualquier otra cosa, o sin nada, se baja el arma
+-- y aparece el machete del cinto.
 function ViewModel.Bash()
-	bashAmount = 1
+	local character = player.Character
+	local tool = character and character:FindFirstChildOfClass("Tool")
+	if tool and Melee.weapons[tool.Name] then
+		bashAmount = 1
+		return
+	end
+	if not CameraController.IsFirstPerson() then
+		return
+	end
+	if swing then
+		swing.folder:Destroy()
+	end
+	local parts, offsets = WeaponModels.BuildLoose("Machete")
+	local built: Built = {
+		name = "Machete",
+		spec = WeaponModels.Specs.Machete,
+		folder = Instance.new("Folder"),
+		parts = parts,
+		offsets = offsets,
+		flash = {},
+	}
+	built.folder.Name = "MeleeSwing"
+	addArm(built, RIGHT_SHOULDER, Vector3.new(0, -0.02, 0.05))
+	for _, part in built.parts do
+		part.Parent = built.folder
+	end
+	built.folder.Parent = workspace.CurrentCamera
+	swing = built
+	swingStart = os.clock()
+	lowerAmount = 1
+	updateSwing()
 end
 
 -- Dónde está la boca del cañón en primera persona (nil si no se está viendo)
@@ -283,7 +348,10 @@ end
 
 function ViewModel.Start()
 	-- Después de la cámara (CameraController usa Camera + 1)
-	RunService:BindToRenderStep("ZonaCeroViewModel", Enum.RenderPriority.Camera.Value + 2, update)
+	RunService:BindToRenderStep("ZonaCeroViewModel", Enum.RenderPriority.Camera.Value + 2, function(dt)
+		update(dt)
+		updateSwing()
+	end)
 end
 
 return ViewModel

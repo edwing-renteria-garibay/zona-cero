@@ -592,12 +592,14 @@ local function onMelee(player: Player)
 		anim.Parent = tool
 	end
 
-	-- Una esfera invisible delante del pecho: ¿qué piezas toca?
+	-- Una esfera invisible alrededor del jugador, del tamaño del alcance: ¿qué piezas toca?
+	-- Solo cuenta quien esté más o menos enfrente (Melee.aimCone), así no hace falta
+	-- apuntar perfecto para atinar el machetazo
 	local params = OverlapParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { character :: Model }
-	local center = root.Position + root.CFrame.LookVector * (stats.range / 2)
-	local parts = workspace:GetPartBoundsInRadius(center, stats.range / 2, params)
+	local parts = workspace:GetPartBoundsInRadius(root.Position, stats.range, params)
+	local forward = Vector3.new(root.CFrame.LookVector.X, 0, root.CFrame.LookVector.Z).Unit
 
 	local target: Humanoid? = nil
 	local targetRoot: BasePart? = nil
@@ -607,8 +609,11 @@ local function onMelee(player: Player)
 		local otherHumanoid = model and model:FindFirstChildOfClass("Humanoid")
 		local otherRoot = model and model:FindFirstChild("HumanoidRootPart") :: BasePart?
 		if otherHumanoid and otherRoot and otherHumanoid.Health > 0 then
-			if isEnemy(player, Players:GetPlayerFromCharacter(model)) then
-				local distance = (otherRoot.Position - root.Position).Magnitude
+			local offset = otherRoot.Position - root.Position
+			local flat = Vector3.new(offset.X, 0, offset.Z)
+			local inFront = flat.Magnitude < 1 or flat.Unit:Dot(forward) >= Melee.aimCone
+			if inFront and isEnemy(player, Players:GetPlayerFromCharacter(model)) then
+				local distance = offset.Magnitude
 				if distance < closest then
 					closest = distance
 					target = otherHumanoid
@@ -627,7 +632,7 @@ local function onMelee(player: Player)
 	local cause = if backstab
 		then "Backstab"
 		elseif tool and Melee.weapons[tool.Name] then tool.Name
-		else "Melee"
+		else "Machete" -- el golpe normal es con el machete del cinto
 	if player:GetAttribute("Side") == "Zombie" then
 		damage = Rules.current.zombieMeleeDamage or damage -- el machete de un zombi mata
 		cause = "Machete"
