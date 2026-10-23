@@ -251,6 +251,19 @@ local function buildResults(rules, winner: Winner?)
 	}
 end
 
+-- Meta de la partida según cuántos jugadores hay (ver scaleScore en Config/Modes)
+local function scoreGoal(rules, playerCount: number): number
+	local low = rules.minScoreToWin
+	if not low then
+		return rules.scoreToWin
+	end
+	local scale = Modes.Common.scaleScore
+	-- 0 con pocos jugadores, 1 con muchos, y en medio una fracción
+	local t = math.clamp((playerCount - scale.lowPlayers) / (scale.highPlayers - scale.lowPlayers), 0, 1)
+	local goal = low + (rules.scoreToWin - low) * t
+	return math.floor(goal / 5 + 0.5) * 5
+end
+
 -- timeUp: true cuando ya se acabó el tiempo
 local function winner(rules, timeUp: boolean): Winner?
 	if rules.scoreBy == "infection" then
@@ -317,7 +330,9 @@ function MatchService.Run()
 		end
 
 		local modeName = chooseMode()
-		local rules = Modes[modeName]
+		-- Copia de las reglas para poder ajustar la meta sin cambiar Config/Modes
+		local rules = table.clone(Modes[modeName])
+		rules.scoreToWin = scoreGoal(rules, #Players:GetPlayers())
 		currentRules = rules
 		Rules.current = rules
 		applyTeams(rules)
