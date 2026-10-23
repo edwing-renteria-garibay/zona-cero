@@ -232,6 +232,7 @@ local function setupPad(pad: BasePart)
 		newPrompt.ActionText = "Cambiar"
 		newPrompt.ObjectText = kind.label
 		newPrompt.KeyboardKeyCode = Enum.KeyCode.E
+		newPrompt.GamepadKeyCode = Enum.KeyCode.DPadUp -- X ya es recargar
 		newPrompt.HoldDuration = 0.25
 		newPrompt.MaxActivationDistance = 8
 		newPrompt.RequiresLineOfSight = false

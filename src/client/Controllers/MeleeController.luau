@@ -1,4 +1,4 @@
--- Golpe cuerpo a cuerpo: tecla F en PC, botón "Golpe" en móvil.
+-- Golpe cuerpo a cuerpo: tecla F en PC, R3 en control, botón "Golpe" en móvil.
 -- El clic también golpea cuando no llevas un arma de fuego en la mano: con las manos vacías,
 -- con un arma de golpe (machete, pollo de hule) o siendo zombi en Infección.
 -- El cliente solo avisa; el servidor busca a quién golpear y aplica el daño.
@@ -90,7 +90,8 @@ end
 
 function MeleeController.Start()
 	-- El "true" crea un botón táctil en móvil
-	ContextActionService:BindAction("Melee", onAction, true, Enum.KeyCode.F, Enum.KeyCode.ButtonX)
+	-- En control: R3 (apretar el stick derecho), como en muchos shooters
+	ContextActionService:BindAction("Melee", onAction, true, Enum.KeyCode.F, Enum.KeyCode.ButtonR3)
 	ContextActionService:SetTitle("Melee", "Golpe")
 
 	-- Revisa el clic al cambiar de arma, al reaparecer, al sentarse o pararse y al volverse zombi
