@@ -30,6 +30,7 @@ local Modes = {
 		grenades = 0,
 		pickups = false,
 		headshotKills = true,
+		testingKeepsLoadout = true, -- también en el modo de prueba: solo rifle y pistola
 	},
 	-- SWAT explosivo: igual, pero solo con lanzacohetes y cohetes infinitos
 	SWATExplosive = {
@@ -45,6 +46,7 @@ local Modes = {
 		shields = false,
 		grenades = 0,
 		pickups = false,
+		testingKeepsLoadout = true, -- también en el modo de prueba: solo lanzacohetes
 	},
 	-- A puño limpio: sin armas ni granadas; solo golpes (clic o F). Por la espalda, mata de uno
 	Brawl = {
