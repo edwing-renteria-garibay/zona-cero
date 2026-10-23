@@ -31,11 +31,11 @@ end
 
 -- El mapa va primero: VehicleService busca ahí dónde aparecen los jeeps
 local map = MapService.Build()
+LoadoutService.Start() -- antes que las plataformas: les da forma a las armas
 PickupService.Start(map)
 FlagService.Setup(map)
 AssaultService.Setup(map)
 HillService.Setup(map)
-LoadoutService.Start()
 InfectionService.Start()
 CombatService.Start()
 VehicleService.Start()

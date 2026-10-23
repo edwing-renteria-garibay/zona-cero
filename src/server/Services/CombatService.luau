@@ -219,14 +219,19 @@ local function onFire(player: Player, origin: any, direction: any)
 
 	-- Todos los jugadores dibujan la trazadora desde el arma hasta el impacto,
 	-- un destello en el impacto según lo que tocó (escudo, cuerpo, metal o escenario)
-	-- y el sonido del arma (tool.Name dice cuál)
+	-- y el sonido del arma (tool.Name dice cuál). Sale de la boca del cañón (el Attachment
+	-- "Muzzle" de Shared/WeaponModels); player va al final para que quien disparó la dibuje
+	-- desde su arma en primera persona
+	local muzzle = tool:FindFirstChild("Muzzle", true) :: Attachment?
 	local handle = tool:FindFirstChild("Handle") :: BasePart?
 	shotFired:FireAllClients(
-		if handle then handle.Position else origin,
+		if muzzle then muzzle.WorldPosition elseif handle then handle.Position else origin,
 		hitPosition,
 		result ~= nil,
 		surface,
-		tool.Name
+		tool.Name,
+		nil,
+		player
 	)
 end
 

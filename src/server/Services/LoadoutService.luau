@@ -7,6 +7,7 @@ local StarterPack = game:GetService("StarterPack")
 
 local Modes = require(ReplicatedStorage.Shared.Config.Modes)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
+local WeaponModels = require(ReplicatedStorage.Shared.WeaponModels)
 local Rules = require(script.Parent.Rules)
 
 local LoadoutService = {}
@@ -17,6 +18,13 @@ function LoadoutService.Start()
 	for _, tool in StarterPack:GetChildren() do
 		if tool:IsA("Tool") then
 			tool:Destroy()
+		end
+	end
+	-- Cada arma recibe su forma (Shared/WeaponModels) una sola vez; las copias que se
+	-- reparten ya salen con ella
+	for _, tool in ServerStorage.Weapons:GetChildren() do
+		if tool:IsA("Tool") then
+			WeaponModels.Dress(tool)
 		end
 	end
 end

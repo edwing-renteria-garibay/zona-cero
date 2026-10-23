@@ -28,7 +28,7 @@ local function makeMachete(): Tool
 	tool.ToolTip = "Machete"
 	tool.CanBeDropped = false
 	-- La mano queda en un extremo; la hoja sale hacia el frente
-	tool.Grip = CFrame.new(0, 0, -1.4)
+	tool.Grip = CFrame.new(0, 0, 1.4)
 	local blade = Instance.new("Part")
 	blade.Name = "Handle"
 	blade.Size = Vector3.new(0.1, 0.5, 3.6)
@@ -40,7 +40,7 @@ local function makeMachete(): Tool
 	local grip = Instance.new("Part")
 	grip.Name = "Grip"
 	grip.Size = Vector3.new(0.2, 0.3, 1)
-	grip.CFrame = CFrame.new(0, 0, -1.4)
+	grip.CFrame = CFrame.new(0, 0, 1.4)
 	grip.Color = Color3.fromRGB(60, 40, 25)
 	grip.Material = Enum.Material.Wood
 	grip.CanCollide = false
