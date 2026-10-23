@@ -133,6 +133,19 @@ Modes.Testing = {
 	hillSeconds = 20, -- Rey de la colina: segundos en la colina para ganar
 	timeLimit = 120, -- segundos por partida
 	roundTime = 50, -- Asalto: segundos por ronda
+	-- Armas con las que aparece todo el mundo (teclas 1 a 9) para probarlas todas.
+	-- Bórralo (o pon nil) para aparecer con las armas normales de cada modo.
+	loadout = {
+		"AssaultRifle",
+		"Pistol",
+		"RocketLauncher",
+		"Shotgun",
+		"Sniper",
+		"LaserRifle",
+		"IceGun",
+		"Flamethrower",
+		"IonCannon",
+	},
 }
 
 -- Valores comunes a todos los modos. Un modo puede cambiar algunos con su propio valor:
