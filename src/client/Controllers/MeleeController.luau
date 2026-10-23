@@ -46,8 +46,14 @@ local function onAction(_name: string, state: Enum.UserInputState)
 	return Enum.ContextActionResult.Sink
 end
 
--- ¿El clic debe golpear? Sí, salvo que lleves un arma de fuego en la mano
+-- ¿El clic debe golpear? Sí, salvo que lleves un arma de fuego en la mano o vayas sentado
+-- (en la torreta del jeep el clic dispara la torreta, y en el jeep no se puede golpear)
 local function clickMelees(): boolean
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if humanoid and humanoid.SeatPart then
+		return false
+	end
 	if player:GetAttribute("Side") == "Zombie" then
 		return true
 	end
@@ -87,11 +93,17 @@ function MeleeController.Start()
 	ContextActionService:BindAction("Melee", onAction, true, Enum.KeyCode.F, Enum.KeyCode.ButtonX)
 	ContextActionService:SetTitle("Melee", "Golpe")
 
-	-- Revisa el clic al cambiar de arma, al reaparecer y al volverse zombi
+	-- Revisa el clic al cambiar de arma, al reaparecer, al sentarse o pararse y al volverse zombi
 	local function watchCharacter(character: Model)
 		character.ChildAdded:Connect(updateClick)
 		character.ChildRemoved:Connect(updateClick)
 		updateClick()
+		task.spawn(function()
+			local humanoid = character:WaitForChild("Humanoid") :: Humanoid
+			humanoid.Seated:Connect(function()
+				task.defer(updateClick)
+			end)
+		end)
 	end
 	player.CharacterAdded:Connect(watchCharacter)
 	if player.Character then
