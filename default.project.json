@@ -40,6 +40,9 @@
         },
         "Knockback": {
           "$className": "RemoteEvent"
+        },
+        "Shop": {
+          "$className": "RemoteFunction"
         }
       }
     },

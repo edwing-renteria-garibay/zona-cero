@@ -12,6 +12,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
+local ArmorService = require(script.Parent.ArmorService)
 local HealthService = require(script.Parent.HealthService)
 
 local killFeed = ReplicatedStorage.Remotes.KillFeed :: RemoteEvent
@@ -62,6 +63,7 @@ local function applyZombie(character: Model)
 		end
 	end
 	makeMachete().Parent = character -- un Tool dentro del personaje = en la mano
+	ArmorService.Remove(character) -- sin armadura de la tienda
 	character:SetAttribute("Grenades", 0)
 	character:SetAttribute("MaxShield", 0)
 	character:SetAttribute("Shield", 0)

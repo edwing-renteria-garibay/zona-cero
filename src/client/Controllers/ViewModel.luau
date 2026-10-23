@@ -15,6 +15,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local WeaponModels = require(ReplicatedStorage.Shared.WeaponModels)
+local WeaponSkins = require(ReplicatedStorage.Shared.WeaponSkins)
 local CameraController = require(script.Parent.CameraController)
 
 local player = Players.LocalPlayer
@@ -33,6 +34,7 @@ local ViewModel = {}
 
 type Built = {
 	name: string,
+	skin: string?, -- la skin de la tienda con la que se pintó
 	spec: WeaponModels.Spec,
 	folder: Folder,
 	parts: { BasePart },
@@ -79,11 +81,13 @@ local function addArm(built: Built, shoulder: Vector3, hand: Vector3)
 	table.insert(built.offsets, CFrame.lookAt(hand, hand + (hand - shoulder)))
 end
 
-local function build(name: string): Built
+local function build(name: string, skin: string?): Built
 	local spec = WeaponModels.Specs[name]
 	local parts, offsets = WeaponModels.BuildLoose(name)
+	WeaponSkins.Apply(parts, skin) -- solo el arma; los brazos y el fogonazo se quedan igual
 	local built: Built = {
 		name = name,
+		skin = skin,
 		spec = spec,
 		folder = Instance.new("Folder"),
 		parts = parts,
@@ -170,12 +174,17 @@ local function update(dt: number)
 		return
 	end
 
-	if not current or current.name ~= tool.Name then
+	-- Se vuelve a construir al cambiar de arma o de skin
+	local skin = player:GetAttribute("WeaponSkin")
+	if not current or current.name ~= tool.Name or current.skin ~= skin then
 		if current then
 			current.folder:Destroy()
 		end
-		current = build(tool.Name)
-		equipAmount = 1
+		local changedWeapon = not current or current.name ~= tool.Name
+		current = build(tool.Name, skin)
+		if changedWeapon then
+			equipAmount = 1
+		end
 	end
 	local built = current :: Built
 	hideTool(tool)

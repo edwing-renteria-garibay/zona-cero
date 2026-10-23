@@ -91,9 +91,12 @@ function CameraController.Start()
 		if firstPerson then
 			return -- en primera persona Roblox ya fija el mouse y gira al personaje
 		end
-		-- Mouse fijo en el centro (en móvil no hay mouse y no hace falta)
+		-- Mouse fijo en el centro (en móvil no hay mouse y no hace falta), menos con un menú
+		-- abierto como la tienda
 		if UserInputService.MouseEnabled then
-			UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+			UserInputService.MouseBehavior = if player:GetAttribute("MenuOpen")
+				then Enum.MouseBehavior.Default
+				else Enum.MouseBehavior.LockCenter
 		end
 		local humanoid = getHumanoid()
 		local character = player.Character

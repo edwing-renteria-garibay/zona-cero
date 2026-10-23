@@ -32,6 +32,11 @@ local killFeed = ReplicatedStorage.Remotes.KillFeed :: RemoteEvent
 
 local MatchService = {}
 
+-- Se dispara al terminar cada partida con (reglas, ganador o nil); lo usa la tienda para
+-- repartir créditos
+local endedEvent = Instance.new("BindableEvent")
+MatchService.Ended = endedEvent.Event
+
 -- En solitario se reaparece en un punto al azar sin enemigos a menos de esta distancia
 local SAFE_SPAWN_DISTANCE = 40
 
@@ -432,6 +437,7 @@ function MatchService.Run(changeMap: () -> ())
 			winningSide = winner(rules, true)
 		end
 		running = false
+		endedEvent:Fire(rules, winningSide) -- antes de Stop: Infección aún sabe quién es zombi
 		FlagService.Stop()
 		HillService.Stop()
 		InfectionService.Stop()

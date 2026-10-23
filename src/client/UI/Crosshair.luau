@@ -86,8 +86,9 @@ function Crosshair.Start()
 		local hasWeapon = WeaponController.GetEquipped() ~= nil
 		rifle.Visible = hasWeapon and not inTurret
 		turret.Visible = inTurret
-		-- Con mira visible se oculta la flecha del mouse
-		UserInputService.MouseIconEnabled = not (rifle.Visible or turret.Visible)
+		-- Con mira visible se oculta la flecha del mouse (menos con un menú abierto)
+		UserInputService.MouseIconEnabled = player:GetAttribute("MenuOpen") == true
+			or not (rifle.Visible or turret.Visible)
 
 		local mouse = UserInputService:GetMouseLocation()
 		rifle.Position = UDim2.fromOffset(mouse.X, mouse.Y)
