@@ -178,7 +178,7 @@ Modes.randomPool = {
 -- Modo de prueba: con enabled = true todas las partidas son cortas para probar rápido todos
 -- los mapas y modos. Para jugar normal, ponlo en false.
 Modes.Testing = {
-	enabled = true,
+	enabled = false,
 	scoreToWin = 2, -- bajas, banderas o bombas para ganar
 	hillSeconds = 20, -- Rey de la colina: segundos en la colina para ganar
 	timeLimit = 120, -- segundos por partida
