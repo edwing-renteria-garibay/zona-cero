@@ -137,7 +137,7 @@ local function setupPad(pad: BasePart)
 
 	-- Girar y flotar un poco; desaparece mientras no está disponible
 	local spin = 0
-	RunService.Heartbeat:Connect(function(dt)
+	local connection = RunService.Heartbeat:Connect(function(dt)
 		spin += dt
 		display.CFrame = pad.CFrame
 			* CFrame.new(0, 2 + math.sin(spin * 2) * 0.3, 0)
@@ -145,6 +145,10 @@ local function setupPad(pad: BasePart)
 		local shown = available and Rules.current.pickups ~= false
 		display.Transparency = if shown then 0 else 1
 		billboard.Enabled = shown
+	end)
+	-- Al cambiar de mapa la plataforma se borra: deja de girar
+	pad.Destroying:Connect(function()
+		connection:Disconnect()
 	end)
 
 	pad.Touched:Connect(function(hit: BasePart)

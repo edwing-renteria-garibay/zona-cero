@@ -410,7 +410,9 @@ function VehicleService.SetEnabled(enabled: boolean)
 	end
 end
 
-function VehicleService.Start()
+-- Lee dónde aparecen los jeeps (la carpeta VehicleSpawns que llena cada mapa)
+local function loadSpawnPoints()
+	spawnPoints = {}
 	local spawnFolder = workspace:FindFirstChild("VehicleSpawns")
 	if spawnFolder then
 		for _, spawnPart in spawnFolder:GetChildren() do
@@ -423,6 +425,25 @@ function VehicleService.Start()
 	else
 		spawnPoints = table.clone(DEFAULT_SPAWNS)
 	end
+end
+
+-- Al cambiar de mapa: quita los jeeps y los pone en los lugares del mapa nuevo
+function VehicleService.Reset()
+	spawnGeneration += 1
+	for model in jeeps do
+		jeeps[model] = nil
+		model:Destroy()
+	end
+	loadSpawnPoints()
+	if vehiclesEnabled then
+		for _, spawnCFrame in spawnPoints do
+			VehicleService.Spawn(spawnCFrame)
+		end
+	end
+end
+
+function VehicleService.Start()
+	loadSpawnPoints()
 	for _, spawnCFrame in spawnPoints do
 		VehicleService.Spawn(spawnCFrame)
 	end
