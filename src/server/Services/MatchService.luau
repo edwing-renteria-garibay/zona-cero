@@ -195,10 +195,18 @@ HealthService.Killed:Connect(function(victim: Player, killer: Player?, cause: st
 end)
 
 -- El modo de esta partida: el elegido en Config/Modes o uno al azar
+local nextTestMode = 0 -- modo de prueba: cuál de randomPool sigue
 local function chooseMode(): string
 	local name = Modes.selected
 	if name == "Aleatorio" then
-		name = Modes.randomPool[math.random(#Modes.randomPool)]
+		local testing = Modes.Testing
+		if testing.enabled and testing.inOrder then
+			-- En prueba van en orden, para que salgan todos sin depender de la suerte
+			nextTestMode = nextTestMode % #Modes.randomPool + 1
+			name = Modes.randomPool[nextTestMode]
+		else
+			name = Modes.randomPool[math.random(#Modes.randomPool)]
+		end
 	end
 	if not Modes[name] then
 		warn("[Match] No existe el modo", name, "- juego TeamSlayer")

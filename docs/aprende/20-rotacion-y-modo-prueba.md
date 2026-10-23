@@ -40,3 +40,9 @@ Sirve para recorrer todos los mapas y modos rápido.
 
 **Para jugar normal, cambia `enabled` a `false`.** Así vuelven las metas de cada modo y la meta
 según los jugadores.
+
+## Modos en orden
+
+Con `Modes.Testing.inOrder = true`, en modo de prueba los modos ya no salen al azar: van en el
+orden de `randomPool`, uno por partida. Así en 11 partidas pasas por todos sin depender de la
+suerte. Para probar uno solo, pon su nombre en `Modes.selected` (por ejemplo `"SimiRain"`).
