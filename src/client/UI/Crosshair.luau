@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
+local Aim = require(script.Parent.Parent.Controllers.Aim)
 local VehicleController = require(script.Parent.Parent.Controllers.VehicleController)
 local WeaponController = require(script.Parent.Parent.Controllers.WeaponController)
 
@@ -17,6 +18,7 @@ local player = Players.LocalPlayer
 local NORMAL_COLOR = Color3.new(1, 1, 1)
 local HIT_COLOR = Color3.fromRGB(255, 60, 60)
 local HEAD_COLOR = Color3.fromRGB(255, 170, 0)
+local OUT_OF_ARC_COLOR = Color3.fromRGB(110, 110, 110) -- torreta apuntando hacia atrás: no dispara
 local HIT_TIME = 0.25 -- segundos que dura el rojo al acertar
 
 local Crosshair = {}
@@ -103,8 +105,13 @@ function Crosshair.Start()
 		for _, part in rifleParts do
 			part.BackgroundColor3 = color
 		end
-		stroke.Color = color
-		turretDot.BackgroundColor3 = color
+		-- La torreta solo dispara hacia el frente del jeep: fuera de ese rango, la mira se
+		-- pone gris
+		local vehicle = inTurret and VehicleController.GetVehicle()
+		local outOfArc = vehicle and not VehicleController.InTurretArc(vehicle, Aim.GetTarget())
+		local turretColor = if outOfArc then OUT_OF_ARC_COLOR else color
+		stroke.Color = turretColor
+		turretDot.BackgroundColor3 = turretColor
 	end)
 end
 

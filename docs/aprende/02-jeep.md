@@ -54,6 +54,8 @@ Limitación actual: como nunca se inclina, en rampas o cuestas el jeep se mantie
 
 En la torreta tu rifle se guarda solo, para que un clic no dispare las dos armas.
 
+**Solo hacia el frente.** La torreta cubre `turretArc` grados a cada lado del frente del jeep (90: media vuelta en total). Si apuntas hacia atrás, la mira se pone gris, el cañón se queda en el borde y no sale nada: el conductor tiene que girar el jeep. El cliente (`VehicleController.InTurretArc`) no manda el disparo, y el servidor (`VehicleService.InTurretArc`) lo revisa otra vez por si acaso. Vale para las dos torretas, la ametralladora y la de cohetes.
+
 ## 5. Vida, explosión y reaparición
 
 - La vida del jeep es el atributo `Health` del modelo (600). El HUD la muestra cuando vas dentro.
