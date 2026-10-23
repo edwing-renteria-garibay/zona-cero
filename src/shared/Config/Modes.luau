@@ -211,6 +211,10 @@ Modes.Testing = {
 -- Doctor SimiO en vez de granada), testingKeepsLoadout = true (el modo de prueba respeta su loadout)
 Modes.Common = {
 	loadout = { "AssaultRifle", "Pistol" },
+	-- Armas de fuego que se pueden cargar a la vez, como en Halo. Con las manos llenas, una
+	-- plataforma no te da el arma al pisarla: hay que pulsar E para cambiarla por la que
+	-- llevas en la mano. El modo de prueba (Testing.loadout) se salta este límite.
+	maxWeapons = 2,
 	respawnDelay = 5, -- segundos muerto antes de reaparecer
 	spawnProtection = 2, -- segundos de invulnerabilidad al reaparecer
 	minPlayers = 2, -- jugadores necesarios para empezar
