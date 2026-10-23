@@ -49,6 +49,12 @@ local ROCKET_HEIGHT = 32 -- altura de la plataforma del lanzacohetes
 local SHELF_FROM = 46 -- las plataformas de los lados van de z = 46 al muro (y de -46 al otro)
 local CORNER_FROM = 96 -- desde x = 96, en la esquina de la base, hay hueco para una rampa
 local CORNER_STRIP = 10 -- lo que queda de plataforma junto al hueco
+local LEDGE = 12 -- fondo de la plataforma de los lados, pegada al muro
+-- Tramos (de x a x) donde la plataforma de los lados se ensancha hasta la orilla
+local WIDE_SPANS = {
+	{ 0, 40 }, -- escalera, rampas del lanzacohetes, un trapecio y la pasarela al puente
+	{ 70, CORNER_FROM }, -- otro trapecio y el paso a la esquina de la base
+}
 
 -- Base de cada equipo (medidas en X, para el Rojo)
 local TUNNEL_FROM = 106 -- el túnel va de x = 106 a x = 122, por debajo de la cubierta
@@ -216,13 +222,26 @@ local function buildHalf(map: Folder, team)
 	for _, side in { 1, -1 } do
 		-- Plataforma alta pegada al muro del lado, del centro hasta la cubierta de la base,
 		-- con columnas debajo
-		local shelfDepth = HALF_WIDTH - SHELF_FROM
+		-- La plataforma mide 12 de fondo, pegada al muro, y se ensancha hasta la orilla
+		-- (z = SHELF_FROM) solo en algunos tramos: junto a cada trapecio, para rodearlo, y
+		-- donde llegan la escalera, las rampas del lanzacohetes y la pasarela al puente
+		local ledgeZ = side * (HALF_WIDTH - LEDGE / 2)
 		half.add(
 			"Shelf",
-			Vector3.new(CORNER_FROM, SLAB, shelfDepth),
-			Vector3.new(CORNER_FROM / 2, UPPER - SLAB / 2, side * (SHELF_FROM + shelfDepth / 2)),
+			Vector3.new(CORNER_FROM, SLAB, LEDGE),
+			Vector3.new(CORNER_FROM / 2, UPPER - SLAB / 2, ledgeZ),
 			DECK
 		)
+		local wideDepth = HALF_WIDTH - LEDGE - SHELF_FROM
+		local wideZ = side * (SHELF_FROM + wideDepth / 2)
+		for _, span in WIDE_SPANS do
+			half.add(
+				"Shelf",
+				Vector3.new(span[2] - span[1], SLAB, wideDepth),
+				Vector3.new((span[1] + span[2]) / 2, UPPER - SLAB / 2, wideZ),
+				DECK
+			)
+		end
 		-- En la esquina de la base la plataforma se angosta, para dejar el hueco de la rampa
 		local cornerLength = HALF_LENGTH - CORNER_FROM
 		half.add(
@@ -235,13 +254,10 @@ local function buildHalf(map: Folder, team)
 			),
 			DECK
 		)
-		-- Coberturas en la plataforma, una contra el muro y otra contra la orilla, para que el
-		-- camino no sea recto
+		-- Coberturas contra el muro, donde la plataforma es ancha: se rodean por la orilla
 		local wallZ = side * (HALF_WIDTH - 6)
-		local edgeZ = side * (SHELF_FROM + 6)
-		cover(half, Vector3.new(30, UPPER, wallZ), 12)
-		cover(half, Vector3.new(55, UPPER, edgeZ), 12)
-		cover(half, Vector3.new(80, UPPER, wallZ), 12)
+		cover(half, Vector3.new(26, UPPER, wallZ), 12)
+		cover(half, Vector3.new(82, UPPER, wallZ), 12)
 
 		-- Rampa de la esquina: sube del piso (junto al spawn) a la plataforma del lado
 		local laneZ = side * (SHELF_FROM + CORNER_STRIP + 6)
@@ -253,7 +269,7 @@ local function buildHalf(map: Folder, team)
 			DECK
 		)
 		half.spawn(Vector3.new(CORNER_FROM + 38, 0.5, laneZ))
-		for _, x in { 20, 60, 90 } do
+		for _, x in { 20, 90 } do
 			half.add(
 				"Pillar",
 				Vector3.new(4, UPPER - SLAB, 4),
@@ -364,7 +380,7 @@ local function buildHalf(map: Folder, team)
 	half.pickup("SniperPad", Vector3.new(134, UPPER + 0.2, -20), "Weapon", "Sniper")
 	half.pickup("ShotgunPad", Vector3.new(114, 0.2, 0), "Weapon", "Shotgun")
 	half.pickup("GrenadePad", Vector3.new(50, 0.2, 8), "Pickup", "Grenades")
-	half.pickup("LaserRiflePad", Vector3.new(20, UPPER + 0.2, 60), "Weapon", "LaserRifle")
+	half.pickup("LaserRiflePad", Vector3.new(16, UPPER + 0.2, 54), "Weapon", "LaserRifle")
 	half.pickup("IceGunPad", Vector3.new(28, 0.2, -10), "Weapon", "IceGun")
 end
 
