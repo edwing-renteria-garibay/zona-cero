@@ -164,6 +164,33 @@ local function buildShell(map: Folder)
 	Builder.pickupPad(map, "FlamethrowerPad", Vector3.new(0, 0.2, 22), "Weapon", "Flamethrower")
 end
 
+-- Un bloque de cobertura con forma de trapecio (como en el dibujo de edwing): un bloque al
+-- centro y una cuña a cada lado. Alto como un jugador de pie, para esconderse detrás.
+-- position: el centro de la base, sobre el piso; depth: lo que mide de fondo (en Z)
+local COVER_HEIGHT = 6
+local COVER_TOP = 6 -- largo de arriba
+local COVER_SLOPE = 4 -- lo que baja cada lado inclinado
+local function cover(half, position: Vector3, depth: number)
+	local middle = half.add(
+		"Cover",
+		Vector3.new(COVER_TOP, COVER_HEIGHT, depth),
+		position + Vector3.new(0, COVER_HEIGHT / 2, 0),
+		DARK
+	)
+	-- Una cuña de Roblox baja hacia su frente (-Z). Girada 90° su frente mira a -X, y -90° a +X
+	for _, dir in { -1, 1 } do
+		local wedge = Instance.new("WedgePart")
+		wedge.Name = "Cover"
+		wedge.Anchored = true
+		wedge.Size = Vector3.new(depth, COVER_HEIGHT, COVER_SLOPE)
+		local spot = position + Vector3.new(dir * (COVER_TOP + COVER_SLOPE) / 2, COVER_HEIGHT / 2, 0)
+		wedge.CFrame = half.place(CFrame.new(spot) * CFrame.Angles(0, -dir * math.pi / 2, 0))
+		wedge.Color = DARK.Color
+		wedge.Material = DARK.Material
+		wedge.Parent = middle.Parent
+	end
+end
+
 -- Lo de cada equipo. Todo se escribe para el Rojo (+X); el Azul es igual, girado 180°.
 -- Lo que va en los dos lados (Z positivo y negativo) se repite con side = 1 y side = -1.
 local function buildHalf(map: Folder, team)
@@ -208,6 +235,14 @@ local function buildHalf(map: Folder, team)
 			),
 			DECK
 		)
+		-- Coberturas en la plataforma, una contra el muro y otra contra la orilla, para que el
+		-- camino no sea recto
+		local wallZ = side * (HALF_WIDTH - 6)
+		local edgeZ = side * (SHELF_FROM + 6)
+		cover(half, Vector3.new(30, UPPER, wallZ), 12)
+		cover(half, Vector3.new(55, UPPER, edgeZ), 12)
+		cover(half, Vector3.new(80, UPPER, wallZ), 12)
+
 		-- Rampa de la esquina: sube del piso (junto al spawn) a la plataforma del lado
 		local laneZ = side * (SHELF_FROM + CORNER_STRIP + 6)
 		half.slope(

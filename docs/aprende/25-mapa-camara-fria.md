@@ -10,7 +10,10 @@ Mide 280 de largo (de base a base) por 140 de ancho.
 
 - **Arriba (a 20 de altura):** una plataforma corrida pegada a cada muro de los lados, que une
   las cubiertas de las dos bases. Al centro, unas pasarelas la unen con el puente oscuro que
-  cruza todo el mapa de base a base.
+  cruza todo el mapa de base a base. Sobre las plataformas hay bloques en forma de trapecio,
+  altos como un jugador de pie, unos contra el muro y otros contra la orilla, para cubrirse
+  y para que el camino no sea recto. Cada uno es un bloque (`Part`) con una cuña
+  (`WedgePart`) a cada lado; se hacen con la función `cover`.
 - **Lanzacohetes:** está en una plataforma sobre un poste, a 32 de altura. Se sube por cuatro
   rampas angostas que salen de las plataformas de los lados. Abajo del poste está el lanzallamas.
 - **Cada base:** una cubierta alta al fondo, con la bandera y un muro bajo para cubrirse.
