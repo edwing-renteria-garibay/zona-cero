@@ -12,6 +12,7 @@ local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Aim = require(script.Parent.Aim)
 local Sfx = require(script.Parent.Sfx)
+local ViewModel = require(script.Parent.ViewModel)
 
 local remotes = ReplicatedStorage:WaitForChild("Remotes")
 local fireWeapon = remotes:WaitForChild("FireWeapon") :: RemoteEvent
@@ -74,6 +75,7 @@ local function tryFire()
 	end
 	lastShot = now
 	fireWeapon:FireServer(origin, direction)
+	ViewModel.Kick() -- retroceso y fogonazo en primera persona
 	if not stats.automatic then
 		triggerHeld = false -- las armas semiautomáticas disparan una vez por clic
 	end
@@ -105,6 +107,29 @@ local function drawTracer(from: Vector3, to: Vector3)
 	Debris:AddItem(tracer, 0.1)
 end
 
+-- Fogonazo en la boca del arma de otro jugador (o la tuya en tercera persona): una luz que
+-- dura un instante
+local function drawMuzzleFlash(position: Vector3)
+	local flash = Instance.new("Part")
+	flash.Shape = Enum.PartType.Ball
+	flash.Anchored = true
+	flash.CanCollide = false
+	flash.CanQuery = false
+	flash.CanTouch = false
+	flash.CastShadow = false
+	flash.Material = Enum.Material.Neon
+	flash.Color = Color3.fromRGB(255, 205, 110)
+	flash.Size = Vector3.one * 0.5
+	flash.Position = position
+	local light = Instance.new("PointLight")
+	light.Color = flash.Color
+	light.Range = 10
+	light.Brightness = 3
+	light.Parent = flash
+	flash.Parent = workspace
+	Debris:AddItem(flash, 0.05)
+end
+
 -- Una bolita que crece y se desvanece donde pegó la bala
 local function drawImpact(position: Vector3, surface: string?)
 	local impact = Instance.new("Part")
@@ -130,8 +155,16 @@ local function onShotFired(
 	hit: boolean?,
 	surface: string?,
 	weaponName: string?,
-	source: BasePart?
+	source: BasePart?,
+	shooter: Player?
 )
+	-- Tus disparos en primera persona salen del arma que ves, no de la que está en tu mano
+	local viewMuzzle = if shooter == player then ViewModel.GetMuzzle() else nil
+	if viewMuzzle then
+		from = viewMuzzle
+	elseif weaponName ~= "Turret" then
+		drawMuzzleFlash(from)
+	end
 	local fireSound = weaponName and Sounds.fire[weaponName]
 	if weaponName and Sounds.burst[weaponName] and source then
 		Sfx.KeepBurst(fireSound, source)

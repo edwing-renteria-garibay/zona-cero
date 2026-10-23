@@ -134,6 +134,13 @@ local function setupPad(pad: BasePart)
 	text.Parent = billboard
 
 	local available = true
+	-- Las armas traen sus piezas dentro de la Handle: se muestran y esconden todas juntas
+	local pieces = { display }
+	for _, part in display:GetDescendants() do
+		if part:IsA("BasePart") then
+			table.insert(pieces, part)
+		end
+	end
 
 	-- Girar y flotar un poco; desaparece mientras no está disponible
 	local spin = 0
@@ -143,7 +150,9 @@ local function setupPad(pad: BasePart)
 			* CFrame.new(0, 2 + math.sin(spin * 2) * 0.3, 0)
 			* CFrame.Angles(0, spin, 0)
 		local shown = available and Rules.current.pickups ~= false
-		display.Transparency = if shown then 0 else 1
+		for _, part in pieces do
+			part.Transparency = if shown then 0 else 1
+		end
 		billboard.Enabled = shown
 	end)
 

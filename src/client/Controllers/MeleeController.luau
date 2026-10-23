@@ -7,6 +7,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Melee = require(ReplicatedStorage.Shared.Config.Melee)
+local ViewModel = require(script.Parent.ViewModel)
 
 local meleeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Melee") :: RemoteEvent
 
@@ -22,6 +23,7 @@ local function onAction(_name: string, state: Enum.UserInputState)
 	if now - lastMelee >= Melee.cooldown then
 		lastMelee = now
 		meleeRemote:FireServer()
+		ViewModel.Bash() -- en primera persona, el arma golpea hacia el frente
 	end
 	return Enum.ContextActionResult.Sink
 end
