@@ -8,9 +8,9 @@ Mide 220 de largo (de base a base) por 140 de ancho.
 
 ## Cómo está armado
 
-- **Centro, arriba (a 12 de altura):** dos repisas grandes, una en cada lado, unidas por
+- **Centro, arriba (a 20 de altura):** dos repisas grandes, una en cada lado, unidas por
   pasarelas con el puente oscuro que cruza todo el mapa de base a base.
-- **Lanzacohetes:** está en una plataforma sobre un poste, a 22 de altura. Se sube por cuatro
+- **Lanzacohetes:** está en una plataforma sobre un poste, a 32 de altura. Se sube por cuatro
   rampas angostas que salen de las repisas. Abajo del poste está el lanzallamas.
 - **Cada base:** una cubierta alta al fondo, con la bandera y un muro bajo para cubrirse.
   Debajo corre el **túnel**, que tiene ventanas que miran al centro y la escopeta adentro.

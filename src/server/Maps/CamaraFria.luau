@@ -2,7 +2,7 @@
 -- rectangular cerrado (con techo) y de dos pisos. En Halo una base era distinta de la otra;
 -- aquí las dos son iguales: cada base tiene su túnel con ventanas, como pidió edwing.
 --
---   * Al centro, en alto (a 12 studs): dos repisas a los lados, unidas por pasarelas con el
+--   * Al centro, en alto (a 20 studs): dos repisas a los lados, unidas por pasarelas con el
 --     puente que cruza todo el mapa. Encima, sobre un poste, la plataforma del lanzacohetes,
 --     a la que se sube por rampas angostas desde las repisas.
 --   * Cada base: una cubierta alta al fondo con la bandera. Debajo corre el túnel, con
@@ -40,14 +40,15 @@ local GLOW = { Color = Color3.fromRGB(170, 225, 255), Material = Enum.Material.N
 local HALF_LENGTH = 110 -- del centro a los muros de las bases, por dentro
 local HALF_WIDTH = 70 -- del centro a los muros de los lados, por dentro
 local WALL_THICK = 4
-local HEIGHT = 40 -- del piso al techo
-local UPPER = 12 -- altura del piso de arriba
+local HEIGHT = 56 -- del piso al techo
+local UPPER = 20 -- altura del piso de arriba
 local SLAB = 1 -- grosor de los pisos de arriba
-local ROCKET_HEIGHT = 22 -- altura de la plataforma del lanzacohetes
+local ROCKET_HEIGHT = 32 -- altura de la plataforma del lanzacohetes
 
 -- Base de cada equipo (medidas en X, para el Rojo)
 local TUNNEL_FROM = 76 -- el túnel va de x = 76 a x = 92, por debajo de la cubierta
 local TUNNEL_TO = 92
+local TUNNEL_CLEARANCE = 12 -- altura del túnel por dentro
 local DECK_FROM = 74 -- la cubierta va de x = 74 hasta el muro
 local DECK_HALF = 30 -- y de z = -30 a z = 30
 
@@ -178,7 +179,7 @@ local function buildHalf(map: Folder, team)
 		-- Pasarela de la repisa al puente
 		half.add("Walkway", Vector3.new(10, SLAB, 25), Vector3.new(35, UPPER - SLAB / 2, side * 17.5), BEAM)
 		-- Rampa del piso a la repisa, pegada al muro del lado
-		half.slope("Ramp", Vector3.new(66, 0, side * 60), Vector3.new(40, UPPER, side * 60), 12, DECK)
+		half.slope("Ramp", Vector3.new(78, 0, side * 60), Vector3.new(40, UPPER, side * 60), 12, DECK)
 		-- Rampa angosta de la repisa a la plataforma del lanzacohetes
 		half.slope(
 			"RocketRamp",
@@ -221,7 +222,7 @@ local function buildHalf(map: Folder, team)
 	half.add(
 		"TunnelWall",
 		Vector3.new(wallThick, UPPER - SLAB - 9, DECK_HALF * 2),
-		Vector3.new(wallX, 10, 0),
+		Vector3.new(wallX, (9 + UPPER - SLAB) / 2, 0),
 		DARK
 	)
 	for _, z in { -25, 0, 25 } do
@@ -232,6 +233,15 @@ local function buildHalf(map: Folder, team)
 			DARK
 		)
 	end
+	-- Techo del túnel: la cubierta está muy arriba, así que el túnel tiene su propio techo
+	-- más bajo (relleno macizo hasta la cubierta)
+	local tunnelWidth = TUNNEL_TO - TUNNEL_FROM
+	half.add(
+		"TunnelRoof",
+		Vector3.new(tunnelWidth, UPPER - SLAB - TUNNEL_CLEARANCE, DECK_HALF * 2),
+		Vector3.new((TUNNEL_FROM + TUNNEL_TO) / 2, (TUNNEL_CLEARANCE + UPPER - SLAB) / 2, 0),
+		DARK
+	)
 	half.add(
 		"TunnelLight",
 		Vector3.new(0.4, 0.4, DECK_HALF * 2 - 4),
