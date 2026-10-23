@@ -4,6 +4,7 @@
 -- Cohete: el servidor lo mueve en cada paso de la simulación (Heartbeat) y hace un
 -- raycast corto desde donde está hasta donde va a estar. Si toca algo, explota ahí.
 -- Granada: una bola con física real de Roblox; explota al chocar con algo o al acabarse la mecha.
+-- En "Lluvia de Simis" (rules.grenadeStyle = "Simi") se lanza un muñeco de Doctor Simi.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -133,6 +134,88 @@ function ProjectileService.FireRocket(
 	end)
 end
 
+-- Una pieza del muñeco; solo la primera (el cuerpo) choca con las cosas
+local function simiPart(name: string, size: Vector3, color: Color3, ball: boolean?): Part
+	local part = Instance.new("Part")
+	part.Name = name
+	part.Size = size
+	part.Color = color
+	part.Material = Enum.Material.SmoothPlastic
+	if ball then
+		part.Shape = Enum.PartType.Ball
+	end
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.Massless = true
+	return part
+end
+
+-- El Doctor Simi: cuerpo de bata blanca, cabeza, pelo y bigote blancos, ojitos y corbata.
+-- Las medidas son desde el centro del cuerpo; Z negativo = su frente.
+local SKIN = Color3.fromRGB(240, 200, 165)
+local COAT = Color3.fromRGB(245, 245, 245)
+local HAIR = Color3.fromRGB(235, 235, 235)
+local DARK = Color3.fromRGB(30, 30, 35)
+local TIE = Color3.fromRGB(40, 90, 190)
+local SIMI_PARTS = {
+	{ "Head", Vector3.one * 1.0, SKIN, true, CFrame.new(0, 0.95, 0) },
+	{ "Hair", Vector3.one * 1.04, HAIR, true, CFrame.new(0, 1.08, 0.14) },
+	{ "Mustache", Vector3.new(0.55, 0.14, 0.16), HAIR, false, CFrame.new(0, 0.8, -0.46) },
+	{ "LeftEye", Vector3.one * 0.12, DARK, true, CFrame.new(-0.17, 1.02, -0.45) },
+	{ "RightEye", Vector3.one * 0.12, DARK, true, CFrame.new(0.17, 1.02, -0.45) },
+	{ "Tie", Vector3.new(0.16, 0.45, 0.08), TIE, false, CFrame.new(0, 0.2, -0.66) },
+	{
+		"LeftArm",
+		Vector3.new(0.28, 0.6, 0.28),
+		COAT,
+		false,
+		CFrame.new(-0.72, 0, 0) * CFrame.Angles(0, 0, math.rad(-20)),
+	},
+	{
+		"RightArm",
+		Vector3.new(0.28, 0.6, 0.28),
+		COAT,
+		false,
+		CFrame.new(0.72, 0, 0) * CFrame.Angles(0, 0, math.rad(20)),
+	},
+	{ "LeftLeg", Vector3.new(0.3, 0.32, 0.34), DARK, false, CFrame.new(-0.28, -0.72, 0) },
+	{ "RightLeg", Vector3.new(0.3, 0.32, 0.34), DARK, false, CFrame.new(0.28, -0.72, 0) },
+}
+
+local function makeSimi(cframe: CFrame): BasePart
+	local body = simiPart("DoctorSimi", Vector3.one * 1.4, COAT, true)
+	body.CanCollide = true
+	body.CanTouch = true
+	body.Massless = false
+	body.CFrame = cframe
+	for _, info in SIMI_PARTS do
+		local part = simiPart(info[1], info[2], info[3], info[4])
+		part.CFrame = cframe * info[5]
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = body
+		weld.Part1 = part
+		weld.Parent = part
+		part.Parent = body
+	end
+	return body
+end
+
+local function makeGrenade(cframe: CFrame): BasePart
+	local grenade = Instance.new("Part")
+	grenade.Name = "Grenade"
+	grenade.Shape = Enum.PartType.Ball
+	grenade.Size = Vector3.one * 0.8
+	grenade.Color = Color3.fromRGB(60, 70, 45)
+	grenade.Material = Enum.Material.Metal
+	grenade.CFrame = cframe
+	local light = Instance.new("PointLight") -- luz roja para verla en el suelo
+	light.Color = Color3.fromRGB(255, 60, 40)
+	light.Range = 6
+	light.Parent = grenade
+	return grenade
+end
+
 -- velocity: la velocidad inicial que calculó el cliente para que caiga donde apuntaste
 local function onThrowGrenade(player: Player, velocity: any)
 	if typeof(velocity) ~= "Vector3" or velocity ~= velocity or velocity.Magnitude < 0.01 then
@@ -157,22 +240,24 @@ local function onThrowGrenade(player: Player, velocity: any)
 	if count <= 0 then
 		return
 	end
-	lastThrow[player] = now;
-	(character :: Model):SetAttribute("Grenades", count - 1)
+	lastThrow[player] = now
+	if not Rules.current.infiniteGrenades then
+		(character :: Model):SetAttribute("Grenades", count - 1)
+	end
 
-	local grenade = Instance.new("Part")
-	grenade.Name = "Grenade"
-	grenade.Shape = Enum.PartType.Ball
-	grenade.Size = Vector3.one * 0.8
-	grenade.Color = Color3.fromRGB(60, 70, 45)
-	grenade.Material = Enum.Material.Metal
-	-- Sale por encima de la cabeza (el cliente calcula el arco desde el mismo punto)
-	grenade.CFrame = CFrame.new(head.Position + Vector3.yAxis * Grenades.throwHeight)
+	-- Sale por encima de la cabeza (el cliente calcula el arco desde el mismo punto),
+	-- mirando hacia donde va
+	local origin = head.Position + Vector3.yAxis * Grenades.throwHeight
+	local flat = Vector3.new(velocity.X, 0, velocity.Z)
+	local start = if flat.Magnitude > 0.01 then CFrame.lookAt(origin, origin + flat) else CFrame.new(origin)
+	local simi = Rules.current.grenadeStyle == "Simi"
+	local grenade = if simi then makeSimi(start) else makeGrenade(start)
+	local blast = if simi then Grenades.simi.blast else Grenades.blast
 	grenade.AssemblyLinearVelocity = velocity
-	local light = Instance.new("PointLight") -- luz roja para verla en el suelo
-	light.Color = Color3.fromRGB(255, 60, 40)
-	light.Range = 6
-	light.Parent = grenade
+	if simi then
+		-- Da maromas hacia el frente mientras vuela
+		grenade.AssemblyAngularVelocity = start.RightVector * -Grenades.simi.spin
+	end
 	grenade.Parent = workspace
 	-- El servidor calcula su física: así todos la ven en el mismo sitio
 	grenade:SetNetworkOwner(nil)
@@ -187,7 +272,7 @@ local function onThrowGrenade(player: Player, velocity: any)
 		exploded = true
 		local position = grenade.Position
 		grenade:Destroy()
-		explodeAt(position, player, Grenades.blast)
+		explodeAt(position, player, blast)
 	end
 	-- Touched se dispara al chocar; se ignora a quien la lanzó (sale de su mano)
 	grenade.Touched:Connect(function(other: BasePart)
@@ -201,6 +286,9 @@ end
 -- Cada vida empieza con las granadas de Config/Grenades (o las que diga el modo)
 function ProjectileService.SetupCharacter(character: Model)
 	character:SetAttribute("Grenades", Rules.current.grenades or Grenades.count)
+	-- Para el HUD: "Simis ∞" en vez de "Granadas 2"
+	character:SetAttribute("InfiniteGrenades", Rules.current.infiniteGrenades or nil)
+	character:SetAttribute("GrenadeName", if Rules.current.grenadeStyle == "Simi" then "Simis" else nil)
 end
 
 function ProjectileService.Start()

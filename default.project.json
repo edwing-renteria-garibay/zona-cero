@@ -37,6 +37,9 @@
         },
         "Frozen": {
           "$className": "RemoteEvent"
+        },
+        "Knockback": {
+          "$className": "RemoteEvent"
         }
       }
     },
@@ -235,6 +238,36 @@
             "$properties": {
               "Size": [0.4, 0.6, 2],
               "Color": [0.2, 0.2, 0.2],
+              "CanCollide": false,
+              "Massless": true
+            }
+          }
+        },
+        "Machete": {
+          "$className": "Tool",
+          "$properties": {
+            "ToolTip": "Machete",
+            "CanBeDropped": false
+          },
+          "Handle": {
+            "$className": "Part",
+            "$properties": {
+              "Size": [0.2, 0.2, 1],
+              "CanCollide": false,
+              "Massless": true
+            }
+          }
+        },
+        "RubberChicken": {
+          "$className": "Tool",
+          "$properties": {
+            "ToolTip": "Pollo de hule",
+            "CanBeDropped": false
+          },
+          "Handle": {
+            "$className": "Part",
+            "$properties": {
+              "Size": [0.2, 0.2, 1],
               "CanCollide": false,
               "Massless": true
             }

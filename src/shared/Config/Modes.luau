@@ -46,6 +46,53 @@ local Modes = {
 		grenades = 0,
 		pickups = false,
 	},
+	-- A puño limpio: sin armas ni granadas; solo golpes (clic o F). Por la espalda, mata de uno
+	Brawl = {
+		name = "A puño limpio",
+		scoreToWin = 30, -- con muchos jugadores (ver scaleScore en Common)
+		minScoreToWin = 15, -- con pocos jugadores
+		timeLimit = 600,
+		teams = true,
+		vehicles = false,
+		scoreBy = "kills",
+		loadout = {},
+		testingKeepsLoadout = true, -- el modo de prueba no le da las 9 armas
+		shields = false,
+		grenades = 0,
+		pickups = false,
+	},
+	-- Pollos y machetes: solo armas de golpe (Config/Melee.weapons)
+	MeleeWeapons = {
+		name = "Pollos y machetes",
+		scoreToWin = 30, -- con muchos jugadores (ver scaleScore en Common)
+		minScoreToWin = 15, -- con pocos jugadores
+		timeLimit = 600,
+		teams = true,
+		vehicles = false,
+		scoreBy = "kills",
+		loadout = { "Machete", "RubberChicken" },
+		testingKeepsLoadout = true,
+		shields = false,
+		grenades = 0,
+		pickups = false,
+	},
+	-- Lluvia de Simis: sin armas; se lanzan Doctores Simi infinitos (G) y se puede golpear
+	SimiRain = {
+		name = "Lluvia de Simis",
+		scoreToWin = 50, -- con muchos jugadores (ver scaleScore en Common)
+		minScoreToWin = 25, -- con pocos jugadores
+		timeLimit = 600,
+		teams = true,
+		vehicles = false,
+		scoreBy = "kills",
+		loadout = {},
+		testingKeepsLoadout = true,
+		shields = false,
+		grenades = 1, -- con infiniteGrenades nunca se acaba
+		infiniteGrenades = true,
+		grenadeStyle = "Simi",
+		pickups = false,
+	},
 	-- Asesino en solitario: todos contra todos
 	FreeForAll = {
 		name = "Asesino en solitario",
@@ -123,6 +170,9 @@ Modes.randomPool = {
 	"SWATExplosive",
 	"Infection",
 	"Assault",
+	"Brawl",
+	"MeleeWeapons",
+	"SimiRain",
 }
 
 -- Modo de prueba: con enabled = true todas las partidas son cortas para probar rápido todos
@@ -151,7 +201,9 @@ Modes.Testing = {
 -- Valores comunes a todos los modos. Un modo puede cambiar algunos con su propio valor:
 -- loadout (armas al aparecer), shields = false (sin escudo), grenades (granadas al aparecer),
 -- pickups = false (sin objetos en el mapa), vehicles = false (sin jeeps),
--- infiniteAmmo = true (repuesto infinito), headshotKills = true (la cabeza mata de un tiro)
+-- infiniteAmmo = true (repuesto infinito), headshotKills = true (la cabeza mata de un tiro),
+-- infiniteGrenades = true (las granadas no se acaban), grenadeStyle = "Simi" (se lanza un
+-- Doctor Simi en vez de granada), testingKeepsLoadout = true (el modo de prueba respeta su loadout)
 Modes.Common = {
 	loadout = { "AssaultRifle", "Pistol" },
 	respawnDelay = 5, -- segundos muerto antes de reaparecer
