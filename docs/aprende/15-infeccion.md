@@ -6,7 +6,7 @@ Zombis contra sobrevivientes. El código está en `src/server/Services/Infection
 ## Las reglas
 
 1. Al empezar la partida se eligen zombis al azar: 1 por cada 4 jugadores, mínimo 1 y
-   máximo 3. Antes de empezar nadie sabe quién va a ser.
+   máximo 6. Antes de empezar nadie sabe quién va a ser.
 2. Los zombis no tienen armas de fuego, escudo ni granadas, pero tienen 150 de vida (un
    sobreviviente tiene 100). Llevan un **machete** y golpean con **F** o **clic**: un
    machetazo mata. Corren a 26

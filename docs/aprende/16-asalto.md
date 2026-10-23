@@ -7,14 +7,16 @@ ronda se cambian los papeles. El código está en `src/server/Services/AssaultSe
 
 1. La bomba aparece en la base de bandera de los atacantes (la misma pieza `FlagStand` de
    Captura la bandera). Cualquier atacante la toma al tocarla.
-2. Hay que llevarla a la base de bandera enemiga y quedarse ahí **3 segundos**. El letrero
-   de la bomba cuenta hacia atrás ("ARMANDO 2.0"). Si te alejas, se reinicia.
-3. Si explota, los atacantes ganan 1 punto y la ronda termina.
+2. Hay que llevarla a la base de bandera enemiga, marcada con una **zona naranja** y el
+   letrero "OBJETIVO" (se ve a través de las paredes), y quedarse dentro **3 segundos**. El
+   letrero de la bomba cuenta hacia atrás ("ARMANDO 2.0"). Si sales de la zona, se reinicia.
+3. Si explota, **mueren todos los defensores**, los atacantes ganan 1 punto y la ronda termina.
 4. Si matan al que la lleva, la bomba cae al piso y se queda ahí hasta que otro atacante
    la tome. Los defensores no la pueden mover: les toca cuidarla para que nadie la recoja.
 5. Cada ronda dura 2 min 30 s. Si nadie la detona, los defensores aguantaron y se cambian los
    papeles. Entre rondas todos reaparecen en su base.
-6. Gana el primer equipo en detonar **3 bombas** (o el límite de 15 minutos).
+6. Gana el primer equipo en detonar **3 bombas**. Si se acaban los 15 minutos, gana el que
+   lleve más; si van empatados, es empate. (Esto último aplica a todos los modos.)
 
 El letrero "BOMBA" se ve a través de las paredes: todos saben dónde está. Arriba, el
 marcador dice la ronda, si atacas o defiendes, y cuánto le queda a la ronda.

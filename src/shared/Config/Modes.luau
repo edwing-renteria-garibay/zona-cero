@@ -1,12 +1,15 @@
 -- Reglas de cada modo de juego. name es el nombre que ven los jugadores.
 -- teams: false = cada quien por su cuenta (Asesino en solitario): gana el primer jugador en
 -- llegar a scoreToWin bajas
+-- minScoreToWin: si un modo lo tiene, la meta depende de cuántos jugadores hay al empezar
+-- (ver scaleScore en Common)
 -- scoreBy: con qué suma puntos un equipo ("kills" = bajas, "captures" = banderas capturadas,
 -- "hill" = segundos solo en la colina)
 local Modes = {
 	TeamSlayer = {
 		name = "Asesino por equipos",
-		scoreToWin = 50,
+		scoreToWin = 50, -- con muchos jugadores (ver scaleScore en Common)
+		minScoreToWin = 25, -- con pocos jugadores
 		timeLimit = 600,
 		teams = true,
 		vehicles = true,
@@ -16,7 +19,8 @@ local Modes = {
 	-- y un tiro a la cabeza mata
 	SWAT = {
 		name = "SWAT",
-		scoreToWin = 50,
+		scoreToWin = 50, -- con muchos jugadores (ver scaleScore en Common)
+		minScoreToWin = 25, -- con pocos jugadores
 		timeLimit = 600,
 		teams = true,
 		vehicles = false,
@@ -30,7 +34,8 @@ local Modes = {
 	-- SWAT explosivo: igual, pero solo con lanzacohetes y cohetes infinitos
 	SWATExplosive = {
 		name = "SWAT explosivo",
-		scoreToWin = 50,
+		scoreToWin = 50, -- con muchos jugadores (ver scaleScore en Common)
+		minScoreToWin = 25, -- con pocos jugadores
 		timeLimit = 600,
 		teams = true,
 		vehicles = false,
@@ -44,7 +49,8 @@ local Modes = {
 	-- Asesino en solitario: todos contra todos
 	FreeForAll = {
 		name = "Asesino en solitario",
-		scoreToWin = 30,
+		scoreToWin = 30, -- con muchos jugadores
+		minScoreToWin = 15, -- con pocos jugadores
 		timeLimit = 600,
 		teams = false,
 		vehicles = false,
@@ -71,7 +77,7 @@ local Modes = {
 		scoreBy = "infection",
 		pickups = false,
 		playersPerZombie = 4, -- 1 zombi por cada 4 jugadores...
-		maxZombies = 3, -- ...hasta 3 (siempre al menos 1)
+		maxZombies = 6, -- ...hasta 6 (siempre al menos 1)
 		zombieSpeed = 26, -- los sobrevivientes caminan a 16
 		zombieHealth = 150, -- vida de un zombi (sin escudo); un sobreviviente tiene 100 + 100 de escudo
 		zombieMeleeDamage = 1000, -- un golpe de zombi mata
@@ -87,7 +93,7 @@ local Modes = {
 		roundTime = 150, -- segundos por ronda; si nadie detona, se cambian los papeles
 		roundBreak = 4, -- segundos de pausa entre rondas
 		pickupRadius = 5, -- studs para tomar la bomba
-		plantRadius = 6, -- studs de la base enemiga para armarla
+		plantRadius = 8, -- radio de la zona naranja (en la base enemiga) donde se arma
 		armTime = 3, -- segundos que hay que quedarse ahí para que explote
 	},
 	KingOfTheHill = {
@@ -130,6 +136,10 @@ Modes.Common = {
 	minPlayers = 2, -- jugadores necesarios para empezar
 	countdown = 10, -- cuenta regresiva antes de la partida
 	resultsTime = 12, -- segundos que se muestra la pantalla de resultados
+	-- Meta según jugadores (solo modos con minScoreToWin): con lowPlayers o menos la meta es
+	-- minScoreToWin, con highPlayers o más es scoreToWin, y en medio sube poco a poco
+	-- (redondeada de 5 en 5). Ej.: 10 jugadores = 25, 20 = 40, 30 = 50
+	scaleScore = { lowPlayers = 10, highPlayers = 30 },
 }
 
 return Modes

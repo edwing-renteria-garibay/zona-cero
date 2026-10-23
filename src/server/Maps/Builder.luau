@@ -15,6 +15,10 @@ Builder.SANDBAG = { Color = Color3.fromRGB(170, 150, 110), Material = Enum.Mater
 Builder.WOOD = { Color = Color3.fromRGB(140, 100, 60), Material = Enum.Material.WoodPlanks }
 Builder.METAL = { Color = Color3.fromRGB(85, 92, 60), Material = Enum.Material.Metal }
 Builder.PLATE = { Color = Color3.fromRGB(110, 110, 110), Material = Enum.Material.DiamondPlate }
+Builder.BRICK = { Color = Color3.fromRGB(138, 82, 66), Material = Enum.Material.Brick }
+Builder.RUST = { Color = Color3.fromRGB(96, 78, 66), Material = Enum.Material.CorrodedMetal }
+Builder.STONE = { Color = Color3.fromRGB(138, 132, 120), Material = Enum.Material.Slate }
+Builder.PAVEMENT = { Color = Color3.fromRGB(112, 110, 104), Material = Enum.Material.Pavement }
 
 Builder.TEAMS = {
 	-- El equipo Rojo está en +X y el Azul en -X
@@ -214,6 +218,104 @@ function Builder.half(map: Folder, team): Half
 		marker.Parent = workspace:FindFirstChild("VehicleSpawns")
 	end
 	return half
+end
+
+-- Acabados que se le agregan a un mapa ya construido, para que no se vea como maqueta:
+--   * Cada bloque cambia un poco de tono (unos más claros, otros más oscuros).
+--   * Los muros altos llevan un remate arriba y un zócalo abajo, de un tono más oscuro.
+--   * Cada punto de aparición brilla del color de su equipo.
+-- Solo es decoración: ninguna pieza nueva choca ni detiene balas.
+
+-- Muros a los que se les pone remate y zócalo (nadie camina encima de ellos)
+local TRIMMED = {
+	Wall = true,
+	BaseWall = true,
+	CanyonWall = true,
+	EndWall = true,
+	RoomWall = true,
+	BackWall = true,
+	FrontWall = true,
+	LowWall = true,
+	MiddleWall = true,
+	PlazaWall = true,
+	SideWall = true,
+	SpawnBack = true,
+	SpawnSide = true,
+	Arm = true,
+	Pillar = true,
+	Column = true,
+	Divider = true,
+}
+
+-- Piezas que conservan su color exacto (equipos, plataformas, marcadores)
+local function keepsColor(part: BasePart): boolean
+	return part.Material == Enum.Material.Neon
+		or part.Material == Enum.Material.SmoothPlastic
+		or part:IsA("SpawnLocation")
+		or part.Name:find("Pad") ~= nil
+		or part.Name:find("JeepSpawn") ~= nil
+end
+
+local function scaled(color: Color3, k: number): Color3
+	return Color3.new(math.min(color.R * k, 1), math.min(color.G * k, 1), math.min(color.B * k, 1))
+end
+
+local function trimPiece(wall: BasePart, name: string, size: Vector3, cframe: CFrame)
+	local piece = Instance.new("Part")
+	piece.Name = name
+	piece.Anchored = true
+	piece.CanCollide = false
+	piece.CanQuery = false -- las balas pegan en el muro, no en el adorno
+	piece.CanTouch = false
+	piece.Size = size
+	piece.CFrame = cframe
+	piece.Color = scaled(wall.Color, 0.72)
+	piece.Material = wall.Material
+	piece.TopSurface = Enum.SurfaceType.Smooth
+	piece.BottomSurface = Enum.SurfaceType.Smooth
+	piece.Parent = wall.Parent
+end
+
+function Builder.decorate(map: Instance, seed: number)
+	local random = Random.new(seed) -- con la misma semilla, el mapa sale igual cada vez
+	local parts = {}
+	for _, part in map:GetDescendants() do
+		if part:IsA("BasePart") then
+			table.insert(parts, part)
+		end
+	end
+	for _, part in parts do
+		if not keepsColor(part) then
+			part.Color = scaled(part.Color, random:NextNumber(0.93, 1.06))
+		end
+		if TRIMMED[part.Name] and part.Size.Y >= 8 then
+			local size = part.Size
+			-- Remate: una franja un poco más ancha en la parte de arriba
+			trimPiece(
+				part,
+				"WallCap",
+				Vector3.new(size.X + 0.6, 0.8, size.Z + 0.6),
+				part.CFrame * CFrame.new(0, size.Y / 2 + 0.4, 0)
+			)
+			-- Zócalo: una franja al nivel del piso, si el muro llega hasta el piso
+			local center = part.CFrame.Position
+			if center.Y - size.Y / 2 <= 0.5 and center.Y + size.Y / 2 > 2 then
+				trimPiece(
+					part,
+					"WallBase",
+					Vector3.new(size.X + 0.3, 1.2, size.Z + 0.3),
+					CFrame.new(center.X, 0.6, center.Z) * part.CFrame.Rotation
+				)
+			end
+		end
+		if part:IsA("SpawnLocation") then
+			local light = Instance.new("PointLight")
+			light.Color = part.Color
+			light.Range = 14
+			light.Brightness = 1.5
+			light.Parent = part
+		end
+	end
 end
 
 return Builder
