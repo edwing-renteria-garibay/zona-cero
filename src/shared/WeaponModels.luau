@@ -18,6 +18,16 @@ local STEEL = { Color3.fromRGB(78, 80, 84), Enum.Material.Metal }
 local POLYMER = { Color3.fromRGB(44, 44, 42), Enum.Material.SmoothPlastic }
 local OLIVE = { Color3.fromRGB(78, 82, 58), Enum.Material.SmoothPlastic }
 local OLIVE_DARK = { Color3.fromRGB(56, 60, 42), Enum.Material.Metal }
+local WOOD = { Color3.fromRGB(92, 60, 38), Enum.Material.Wood }
+local GUNMETAL = { Color3.fromRGB(70, 74, 72), Enum.Material.Metal }
+local WHITE = { Color3.fromRGB(215, 225, 232), Enum.Material.SmoothPlastic }
+local TANK_RED = { Color3.fromRGB(150, 40, 30), Enum.Material.SmoothPlastic }
+local ION_GREY = { Color3.fromRGB(84, 74, 72), Enum.Material.Metal }
+-- Piezas que brillan (Neon)
+local GLOW_GREEN = { Color3.fromRGB(80, 255, 90), Enum.Material.Neon }
+local GLOW_ICE = { Color3.fromRGB(120, 210, 255), Enum.Material.Neon }
+local GLOW_RED = { Color3.fromRGB(255, 50, 50), Enum.Material.Neon }
+local GLOW_FIRE = { Color3.fromRGB(255, 140, 40), Enum.Material.Neon }
 
 -- Un cilindro de Roblox es largo en X; girado 90° queda a lo largo de Z (como un cañón)
 local ALONG_Z = CFrame.Angles(0, rad(90), 0)
@@ -125,6 +135,119 @@ WeaponModels.Specs = {
 		view = C(1.1, -1.15, -1.4) * CFrame.Angles(0, rad(3), 0),
 		kick = 0.45,
 		kickAngle = 9,
+	},
+	-- Escopeta de corredera, con madera
+	Shotgun = {
+		pieces = {
+			box("Receiver", V(0.3, 0.4, 1.1), C(0, 0.3, -0.3), BLACK),
+			tube("Barrel", 2.0, 0.16, V(0, 0.42, -1.85), BLACK),
+			tube("Tube", 1.6, 0.16, V(0, 0.22, -1.7), STEEL),
+			box("Pump", V(0.3, 0.26, 0.7), C(0, 0.22, -1.6), WOOD),
+			box("Stock", V(0.24, 0.36, 1.1), C(0, 0.18, 0.75) * CFrame.Angles(rad(8), 0, 0), WOOD),
+			box("Grip", V(0.2, 0.42, 0.24), C(0, -0.05, 0.08) * CFrame.Angles(rad(-20), 0, 0), BLACK),
+			box("Bead", V(0.05, 0.06, 0.05), C(0, 0.53, -2.8), STEEL),
+		},
+		muzzle = C(0, 0.42, -2.9),
+		leftHand = C(0, 0.1, -1.6),
+		view = C(0.6, -0.8, -1.3) * CFrame.Angles(0, rad(5), 0),
+		kick = 0.3,
+		kickAngle = 8,
+	},
+	-- Lanzallamas con tanque rojo y piloto encendido
+	Flamethrower = {
+		pieces = {
+			box("Body", V(0.36, 0.4, 1.4), C(0, 0.35, -0.4), OLIVE_DARK),
+			tube("Nozzle", 1.2, 0.2, V(0, 0.4, -1.7), STEEL),
+			tube("Tip", 0.2, 0.28, V(0, 0.4, -2.35), BLACK),
+			tube("Tank", 0.8, 0.5, V(0, -0.02, -0.55), TANK_RED),
+			box("Pilot", V(0.08, 0.08, 0.08), C(0, 0.25, -2.4), GLOW_FIRE),
+			box("Grip", V(0.2, 0.45, 0.24), C(0, -0.05, 0.05) * CFrame.Angles(rad(-15), 0, 0), POLYMER),
+			box("ForeGrip", V(0.18, 0.4, 0.2), C(0, 0.12, -1.35), POLYMER),
+		},
+		muzzle = C(0, 0.4, -2.5),
+		leftHand = C(0, 0.05, -1.35),
+		view = C(0.65, -0.85, -1.3) * CFrame.Angles(0, rad(5), 0),
+		kick = 0.02,
+		kickAngle = 0.3,
+	},
+	-- Rayo de energía: cuerpo gris con líneas verdes que brillan
+	LaserRifle = {
+		pieces = {
+			box("Body", V(0.34, 0.5, 1.6), C(0, 0.35, -0.4), GUNMETAL),
+			box("Shroud", V(0.3, 0.2, 1.4), C(0, 0.68, -0.7), BLACK),
+			box("Barrel", V(0.22, 0.24, 1.3), C(0, 0.4, -1.8), GUNMETAL),
+			tube("Emitter", 0.2, 0.3, V(0, 0.4, -2.5), BLACK),
+			box("GlowTop", V(0.36, 0.06, 1.5), C(0, 0.47, -0.6), GLOW_GREEN),
+			box("GlowBarrel", V(0.24, 0.05, 1.2), C(0, 0.27, -1.8), GLOW_GREEN),
+			box("Cell", V(0.38, 0.18, 0.3), C(0, 0.3, 0.1), GLOW_GREEN),
+			box("Stock", V(0.26, 0.4, 0.8), C(0, 0.25, 0.75), GUNMETAL),
+			box("Grip", V(0.2, 0.45, 0.24), C(0, -0.05, 0.05) * CFrame.Angles(rad(-15), 0, 0), POLYMER),
+		},
+		muzzle = C(0, 0.4, -2.7),
+		leftHand = C(0, 0.15, -1.6),
+		view = C(0.62, -0.8, -1.35) * CFrame.Angles(0, rad(5), 0),
+		kick = 0.2,
+		kickAngle = 5,
+	},
+	-- Francotirador: cañón largo y mira telescópica
+	Sniper = {
+		pieces = {
+			box("Receiver", V(0.26, 0.36, 1.2), C(0, 0.32, -0.2), BLACK),
+			tube("Barrel", 2.8, 0.14, V(0, 0.36, -2.2), BLACK),
+			tube("Brake", 0.3, 0.22, V(0, 0.36, -3.65), STEEL),
+			tube("Scope", 1.3, 0.26, V(0, 0.78, -0.3), BLACK),
+			tube("ScopeFront", 0.12, 0.34, V(0, 0.78, -1.0), BLACK),
+			tube("ScopeBack", 0.12, 0.3, V(0, 0.78, 0.4), BLACK),
+			box("MountFront", V(0.1, 0.18, 0.1), C(0, 0.58, -0.6), STEEL),
+			box("MountBack", V(0.1, 0.18, 0.1), C(0, 0.58, 0.05), STEEL),
+			box("Stock", V(0.24, 0.42, 1.2), C(0, 0.2, 0.95), OLIVE),
+			box("Cheek", V(0.22, 0.12, 0.6), C(0, 0.46, 0.85), OLIVE),
+			box("Magazine", V(0.2, 0.36, 0.3), C(0, 0.0, -0.45), POLYMER),
+			box("Grip", V(0.2, 0.45, 0.24), C(0, -0.05, 0.08) * CFrame.Angles(rad(-18), 0, 0), POLYMER),
+		},
+		muzzle = C(0, 0.36, -3.85),
+		leftHand = C(0, 0.15, -1.3),
+		view = C(0.6, -0.8, -1.2) * CFrame.Angles(0, rad(5), 0),
+		kick = 0.35,
+		kickAngle = 9,
+	},
+	-- Arma de hielo: blanca, con una bobina azul que brilla
+	IceGun = {
+		pieces = {
+			box("Body", V(0.32, 0.42, 1.2), C(0, 0.32, -0.3), WHITE),
+			tube("Core", 1.1, 0.2, V(0, 0.36, -1.3), GLOW_ICE),
+			tube("Ring1", 0.1, 0.42, V(0, 0.36, -0.95), WHITE),
+			tube("Ring2", 0.1, 0.42, V(0, 0.36, -1.3), WHITE),
+			tube("Ring3", 0.1, 0.42, V(0, 0.36, -1.65), WHITE),
+			tube("Tip", 0.2, 0.26, V(0, 0.36, -1.95), STEEL),
+			tube("Tank", 0.6, 0.3, V(0, 0.68, -0.2), GLOW_ICE),
+			box("Grip", V(0.2, 0.45, 0.24), C(0, -0.05, 0.05) * CFrame.Angles(rad(-15), 0, 0), POLYMER),
+		},
+		muzzle = C(0, 0.36, -2.1),
+		leftHand = C(0, 0.05, -1.3),
+		view = C(0.55, -0.75, -1.35) * CFrame.Angles(0, rad(5), 0),
+		kick = 0.12,
+		kickAngle = 3,
+	},
+	-- Cañón de iones: grande, con anillos rojos y un puntero láser abajo
+	IonCannon = {
+		pieces = {
+			box("Body", V(0.5, 0.6, 1.8), C(0, 0.4, -0.5), ION_GREY),
+			box("Barrel", V(0.44, 0.5, 1.0), C(0, 0.45, -1.8), ION_GREY),
+			box("Ring1", V(0.5, 0.56, 0.1), C(0, 0.45, -1.45), GLOW_RED),
+			box("Ring2", V(0.5, 0.56, 0.1), C(0, 0.45, -1.65), GLOW_RED),
+			box("Ring3", V(0.5, 0.56, 0.1), C(0, 0.45, -1.85), GLOW_RED),
+			tube("Emitter", 0.4, 0.36, V(0, 0.45, -2.5), GLOW_RED),
+			box("Back", V(0.4, 0.5, 0.6), C(0, 0.35, 0.65), ION_GREY),
+			box("Pointer", V(0.08, 0.08, 0.4), C(0, 0.12, -1.8), BLACK),
+			box("PointerTip", V(0.06, 0.06, 0.04), C(0, 0.12, -2.02), GLOW_RED),
+			box("Grip", V(0.22, 0.5, 0.28), C(0, -0.05, 0.05) * CFrame.Angles(rad(-12), 0, 0), POLYMER),
+		},
+		muzzle = C(0, 0.45, -2.75),
+		leftHand = C(0, 0.12, -1.3),
+		view = C(0.75, -0.95, -1.5) * CFrame.Angles(0, rad(4), 0),
+		kick = 0.5,
+		kickAngle = 10,
 	},
 } :: { [string]: Spec }
 

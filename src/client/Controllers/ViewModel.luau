@@ -41,6 +41,7 @@ type Built = {
 }
 
 local current: Built? = nil
+local scoped = false -- con la mira del francotirador no se ve el arma
 local hiddenTool: Tool? = nil
 
 -- Movimientos (todos regresan solos a 0)
@@ -177,8 +178,12 @@ local function update(dt: number)
 		equipAmount = 1
 	end
 	local built = current :: Built
-	built.folder.Parent = camera
 	hideTool(tool)
+	if scoped then
+		built.folder.Parent = nil
+		return
+	end
+	built.folder.Parent = camera
 
 	-- Inercia: qué tan rápido gira la cámara
 	local pitch, yaw = camera.CFrame:ToOrientation()
@@ -245,6 +250,11 @@ function ViewModel.Kick()
 	kickAngle = math.min(kickAngle + spec.kickAngle * (0.8 + math.random() * 0.4), spec.kickAngle * 4)
 	kickYaw += (math.random() - 0.5) * spec.kickAngle * 0.4
 	flashUntil = os.clock() + FLASH_TIME
+end
+
+-- Lo llama SpecialWeapons al apuntar con la mira del francotirador
+function ViewModel.SetScoped(value: boolean)
+	scoped = value
 end
 
 -- Lo llama MeleeController al golpear: el arma se va hacia el frente y a la izquierda

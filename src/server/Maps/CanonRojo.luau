@@ -274,6 +274,16 @@ function CanonRojo.Build(map: Folder)
 	for _, team in Builder.TEAMS do
 		buildHalf(map, team)
 	end
+	-- Armas especiales (ver Config/Weapons): francotirador y escopeta, una de cada lado;
+	-- las demás a la misma distancia de las dos bases
+	Builder.pickupPad(map, "SniperPad", Vector3.new(120, 0.2, -39), "Weapon", "Sniper")
+	Builder.pickupPad(map, "SniperPad", Vector3.new(-120, 0.2, 39), "Weapon", "Sniper")
+	Builder.pickupPad(map, "ShotgunPad", Vector3.new(30, 0.2, 6), "Weapon", "Shotgun")
+	Builder.pickupPad(map, "ShotgunPad", Vector3.new(-30, 0.2, -6), "Weapon", "Shotgun")
+	Builder.pickupPad(map, "LaserRiflePad", Vector3.new(-9, 0.2, 60), "Weapon", "LaserRifle")
+	Builder.pickupPad(map, "IonCannonPad", Vector3.new(9, 0.2, -60), "Weapon", "IonCannon")
+	Builder.pickupPad(map, "FlamethrowerPad", Vector3.new(-3, 0.2, 27), "Weapon", "Flamethrower")
+	Builder.pickupPad(map, "IceGunPad", Vector3.new(3, 0.2, -30), "Weapon", "IceGun")
 end
 
 return CanonRojo

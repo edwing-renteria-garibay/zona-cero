@@ -23,6 +23,7 @@ local reloadWeapon = remotes.ReloadWeapon :: RemoteEvent
 local shotFired = remotes.ShotFired :: RemoteEvent
 local hitConfirmed = remotes.HitConfirmed :: RemoteEvent
 local meleeRemote = remotes.Melee :: RemoteEvent
+local frozenRemote = remotes.Frozen :: RemoteEvent
 
 local MAX_ORIGIN_DISTANCE = 10 -- studs permitidos entre la cabeza y el origen del disparo
 local FIRE_RATE_TOLERANCE = 0.8 -- acepta disparos un poco más seguidos por la latencia de la red
@@ -33,6 +34,8 @@ local lastShot: { [Player]: number } = {}
 local lastTurretShot: { [Player]: number } = {}
 local reloading: { [Player]: boolean } = {}
 local lastMelee: { [Player]: number } = {}
+local burning: { [Humanoid]: { ends: number, attacker: Player, damagePerSecond: number } } = {}
+local slowedUntil: { [Humanoid]: number } = {}
 
 -- Devuelve el arma que el jugador tiene en la mano y sus datos de Config/Weapons
 local function getEquippedWeapon(player: Player): (Tool?, any)
@@ -155,6 +158,153 @@ local function applyHit(
 	return surface
 end
 
+-- De dónde sale el disparo que ven todos: la boca del cañón (Attachment "Muzzle" de
+-- Shared/WeaponModels), o la Handle si el arma no tiene
+local function muzzleOf(tool: Tool, fallback: Vector3): Vector3
+	local muzzle = tool:FindFirstChild("Muzzle", true) :: Attachment?
+	local handle = tool:FindFirstChild("Handle") :: BasePart?
+	return if muzzle then muzzle.WorldPosition elseif handle then handle.Position else fallback
+end
+
+-- Una dirección un poco desviada al azar, hasta degrees grados (para los perdigones)
+local function spreadDirection(direction: Vector3, degrees: number): Vector3
+	local angle = math.rad(degrees) * math.sqrt(math.random())
+	local around = math.random() * 2 * math.pi
+	return (CFrame.lookAt(Vector3.zero, direction) * CFrame.Angles(0, 0, around) * CFrame.Angles(angle, 0, 0)).LookVector
+end
+
+-- El jugador dueño de una pieza golpeada (nil si es el escenario o un muñeco)
+local function humanoidOf(part: Instance): Humanoid?
+	local model = part:FindFirstAncestorOfClass("Model")
+	return model and model:FindFirstChildOfClass("Humanoid")
+end
+
+-- Quemadura del lanzallamas: daño cada medio segundo mientras dura. Si lo vuelven a quemar,
+-- se alarga (no se acumula).
+local function ignite(humanoid: Humanoid, attacker: Player, burn)
+	local already = burning[humanoid] ~= nil
+	burning[humanoid] = {
+		ends = os.clock() + burn.duration,
+		attacker = attacker,
+		damagePerSecond = burn.damagePerSecond,
+	}
+	if already then
+		return
+	end
+	local root = humanoid.RootPart
+	local fire = Instance.new("Fire") -- fuego visible sobre el personaje
+	fire.Heat = 6
+	fire.Size = 4
+	fire.Parent = root
+	task.spawn(function()
+		while true do
+			task.wait(0.5)
+			local entry = burning[humanoid]
+			if not entry or humanoid.Health <= 0 or not humanoid.Parent or os.clock() > entry.ends then
+				break
+			end
+			HealthService.Damage(humanoid, entry.damagePerSecond * 0.5, entry.attacker, "fire")
+		end
+		burning[humanoid] = nil
+		fire:Destroy()
+	end)
+end
+
+-- Arma de hielo: el enemigo camina más lento un rato y se ve azul. Solo él oye el sonido.
+local function slowDown(humanoid: Humanoid, slow)
+	local already = slowedUntil[humanoid] ~= nil
+	slowedUntil[humanoid] = os.clock() + slow.duration
+	local victim = Players:GetPlayerFromCharacter(humanoid.Parent)
+	if victim then
+		frozenRemote:FireClient(victim, slow.duration)
+	end
+	if already then
+		return
+	end
+	local normalSpeed = humanoid.WalkSpeed
+	humanoid.WalkSpeed = normalSpeed * slow.factor
+	local frost = Instance.new("Highlight")
+	frost.FillColor = Color3.fromRGB(150, 220, 255)
+	frost.FillTransparency = 0.5
+	frost.OutlineTransparency = 1
+	frost.Parent = humanoid.Parent
+	task.spawn(function()
+		while humanoid.Parent and os.clock() < (slowedUntil[humanoid] or 0) do
+			task.wait(0.1)
+		end
+		slowedUntil[humanoid] = nil
+		frost:Destroy()
+		if humanoid.Parent and humanoid.Health > 0 then
+			humanoid.WalkSpeed = normalSpeed
+		end
+	end)
+end
+
+-- Escopeta: varios perdigones, cada uno con su raycast y su trazadora
+local function firePellets(player: Player, tool: Tool, stats, origin: Vector3, direction: Vector3, params)
+	local from = muzzleOf(tool, origin)
+	for i = 1, stats.pellets do
+		local ray = spreadDirection(direction, stats.spread) * stats.range
+		local result = workspace:Raycast(origin, ray, params)
+		local surface = if result then applyHit(player, result, stats.damage, nil, tool.Name) else nil
+		-- Solo el primer perdigón lleva el sonido del disparo ("ShotgunPellet" no suena)
+		shotFired:FireAllClients(
+			from,
+			if result then result.Position else origin + ray,
+			result ~= nil,
+			surface,
+			if i == 1 then tool.Name else "ShotgunPellet",
+			nil,
+			player
+		)
+	end
+end
+
+-- Lanzallamas: daña a cada enemigo dentro del cono que no esté detrás de una pared
+local function fireFlame(player: Player, tool: Tool, stats, origin: Vector3, direction: Vector3, params)
+	local aim = direction.Unit
+	local wall = workspace:Raycast(origin, aim * stats.range, params)
+	local minDot = math.cos(math.rad(stats.cone))
+	for _, other in Players:GetPlayers() do
+		local character = other.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		local root = humanoid and humanoid.RootPart
+		if root and humanoid.Health > 0 and isEnemy(player, other) then
+			local toTarget = root.Position - origin
+			if toTarget.Magnitude <= stats.range and aim:Dot(toTarget.Unit) >= minDot then
+				local blocker = workspace:Raycast(origin, toTarget, params)
+				if not blocker or blocker.Instance:IsDescendantOf(character :: Model) then
+					local toShield, toHealth = HealthService.Damage(humanoid, stats.damage, player, tool.Name)
+					if toShield + toHealth > 0 then
+						ignite(humanoid, player, stats.burn)
+						local surface = if toHealth > 0 then "flesh" else "shield"
+						hitConfirmed:FireClient(player, "hit", toShield + toHealth, root.Position, surface)
+					end
+				end
+			end
+		end
+	end
+	local handle = tool:FindFirstChild("Handle") :: BasePart?
+	shotFired:FireAllClients(
+		muzzleOf(tool, origin),
+		if wall then wall.Position else origin + aim * stats.range,
+		false,
+		nil,
+		tool.Name,
+		handle, -- el sonido del lanzallamas se repite mientras dispara, pegado al arma
+		player
+	)
+end
+
+-- Cañón de iones: marca el punto al que apunta; ProjectileService hace caer el rayo
+local function fireIon(player: Player, tool: Tool, stats, origin: Vector3, direction: Vector3, params)
+	local ray = direction.Unit * stats.range
+	local result = workspace:Raycast(origin, ray, params)
+	local point = if result then result.Position else origin + ray
+	shotFired:FireAllClients(muzzleOf(tool, origin), point, false, nil, tool.Name, nil, player)
+	ProjectileService.IonStrike(point, player, stats)
+end
+
 local function onFire(player: Player, origin: any, direction: any)
 	-- Lo que llega del cliente puede ser cualquier cosa: primero se revisa el tipo
 	if typeof(origin) ~= "Vector3" or typeof(direction) ~= "Vector3" then
@@ -202,6 +352,18 @@ local function onFire(player: Player, origin: any, direction: any)
 	end
 	params.FilterDescendantsInstances = filter
 
+	-- Armas que no disparan una sola bala
+	if stats.kind == "pellets" then
+		firePellets(player, tool, stats, origin, direction, params)
+		return
+	elseif stats.kind == "flame" then
+		fireFlame(player, tool, stats, origin, direction, params)
+		return
+	elseif stats.kind == "ion" then
+		fireIon(player, tool, stats, origin, direction, params)
+		return
+	end
+
 	-- Armas de proyectil (lanzacohetes): en vez de un raycast, sale un cohete que vuela
 	if stats.projectile then
 		ExplosionService.PlaySoundAt(Sounds.fire[tool.Name], origin)
@@ -216,16 +378,21 @@ local function onFire(player: Player, origin: any, direction: any)
 	local surface = if result
 		then applyHit(player, result, stats.damage, stats.headshotMultiplier, tool.Name)
 		else nil
+	-- Arma de hielo: si le dio a un enemigo (a su escudo o a su vida), lo ralentiza
+	if stats.slow and result and (surface == "shield" or surface == "flesh") then
+		local target = humanoidOf(result.Instance)
+		if target then
+			slowDown(target, stats.slow)
+		end
+	end
 
 	-- Todos los jugadores dibujan la trazadora desde el arma hasta el impacto,
 	-- un destello en el impacto según lo que tocó (escudo, cuerpo, metal o escenario)
 	-- y el sonido del arma (tool.Name dice cuál). Sale de la boca del cañón (el Attachment
 	-- "Muzzle" de Shared/WeaponModels); player va al final para que quien disparó la dibuje
 	-- desde su arma en primera persona
-	local muzzle = tool:FindFirstChild("Muzzle", true) :: Attachment?
-	local handle = tool:FindFirstChild("Handle") :: BasePart?
 	shotFired:FireAllClients(
-		if muzzle then muzzle.WorldPosition elseif handle then handle.Position else origin,
+		muzzleOf(tool, origin),
 		hitPosition,
 		result ~= nil,
 		surface,

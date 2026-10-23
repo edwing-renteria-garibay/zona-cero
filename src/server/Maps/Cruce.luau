@@ -249,6 +249,16 @@ local function buildPoints(map: Folder)
 		Builder.pickupPad(map, "GrenadePad", onFloor(cell, 0.2), "Pickup", "Grenades")
 	end
 	Builder.pickupPad(map, "RocketLauncherPad", onFloor(ROCKET, 0.2), "Weapon", "RocketLauncher")
+	-- Armas especiales (ver Config/Weapons): francotirador y escopeta, una de cada lado;
+	-- las demás a la misma distancia de las dos bases
+	Builder.pickupPad(map, "SniperPad", Vector3.new(110.5, 0.2, 56.5), "Weapon", "Sniper")
+	Builder.pickupPad(map, "SniperPad", Vector3.new(-135.5, 0.2, -42.5), "Weapon", "Sniper")
+	Builder.pickupPad(map, "ShotgunPad", Vector3.new(-9.5, 0.2, 32.5), "Weapon", "Shotgun")
+	Builder.pickupPad(map, "ShotgunPad", Vector3.new(-33.5, 0.2, -6.5), "Weapon", "Shotgun")
+	Builder.pickupPad(map, "LaserRiflePad", Vector3.new(113.5, 0.2, -93.5), "Weapon", "LaserRifle")
+	Builder.pickupPad(map, "IonCannonPad", Vector3.new(137.5, 0.2, -105.5), "Weapon", "IonCannon")
+	Builder.pickupPad(map, "FlamethrowerPad", Vector3.new(-9.5, 0.2, 5.5), "Weapon", "Flamethrower")
+	Builder.pickupPad(map, "IceGunPad", Vector3.new(-33.5, 0.2, 20.5), "Weapon", "IceGun")
 end
 
 -- Construye todo el mapa dentro de la carpeta map

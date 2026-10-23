@@ -34,6 +34,9 @@
         },
         "KillFeed": {
           "$className": "RemoteEvent"
+        },
+        "Frozen": {
+          "$className": "RemoteEvent"
         }
       }
     },
@@ -95,6 +98,102 @@
             "$properties": {
               "Size": [0.7, 0.7, 4],
               "Color": [0.33, 0.36, 0.24],
+              "CanCollide": false,
+              "Massless": true
+            }
+          }
+        },
+        "Shotgun": {
+          "$className": "Tool",
+          "$properties": {
+            "ToolTip": "Escopeta",
+            "CanBeDropped": false
+          },
+          "Handle": {
+            "$className": "Part",
+            "$properties": {
+              "Size": [0.4, 0.6, 2],
+              "Color": [0.2, 0.2, 0.2],
+              "CanCollide": false,
+              "Massless": true
+            }
+          }
+        },
+        "Flamethrower": {
+          "$className": "Tool",
+          "$properties": {
+            "ToolTip": "Lanzallamas",
+            "CanBeDropped": false
+          },
+          "Handle": {
+            "$className": "Part",
+            "$properties": {
+              "Size": [0.4, 0.6, 2],
+              "Color": [0.2, 0.2, 0.2],
+              "CanCollide": false,
+              "Massless": true
+            }
+          }
+        },
+        "LaserRifle": {
+          "$className": "Tool",
+          "$properties": {
+            "ToolTip": "Rayo de energía",
+            "CanBeDropped": false
+          },
+          "Handle": {
+            "$className": "Part",
+            "$properties": {
+              "Size": [0.4, 0.6, 2],
+              "Color": [0.2, 0.2, 0.2],
+              "CanCollide": false,
+              "Massless": true
+            }
+          }
+        },
+        "Sniper": {
+          "$className": "Tool",
+          "$properties": {
+            "ToolTip": "Francotirador",
+            "CanBeDropped": false
+          },
+          "Handle": {
+            "$className": "Part",
+            "$properties": {
+              "Size": [0.4, 0.6, 2],
+              "Color": [0.2, 0.2, 0.2],
+              "CanCollide": false,
+              "Massless": true
+            }
+          }
+        },
+        "IceGun": {
+          "$className": "Tool",
+          "$properties": {
+            "ToolTip": "Arma de hielo",
+            "CanBeDropped": false
+          },
+          "Handle": {
+            "$className": "Part",
+            "$properties": {
+              "Size": [0.4, 0.6, 2],
+              "Color": [0.2, 0.2, 0.2],
+              "CanCollide": false,
+              "Massless": true
+            }
+          }
+        },
+        "IonCannon": {
+          "$className": "Tool",
+          "$properties": {
+            "ToolTip": "Cañón de iones",
+            "CanBeDropped": false
+          },
+          "Handle": {
+            "$className": "Part",
+            "$properties": {
+              "Size": [0.4, 0.6, 2],
+              "Color": [0.2, 0.2, 0.2],
               "CanCollide": false,
               "Massless": true
             }

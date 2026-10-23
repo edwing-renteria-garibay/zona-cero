@@ -8,6 +8,8 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local Debris = game:GetService("Debris")
+local TweenService = game:GetService("TweenService")
 
 local Grenades = require(ReplicatedStorage.Shared.Config.Grenades)
 local Rules = require(script.Parent.Rules)
@@ -33,6 +35,54 @@ local function explodeAt(position: Vector3, attacker: Player, blast: ExplosionSe
 			hitConfirmed:FireClient(attacker, "hit", hit.toShield + hit.toHealth, hit.position, surface)
 		end
 	end
+end
+
+-- Cañón de iones: un círculo rojo marca el lugar y, tras stats.delay segundos, cae un rayo
+-- del cielo que explota (stats.blast). Todos ven el aviso, así que da tiempo de huir.
+function ProjectileService.IonStrike(point: Vector3, attacker: Player, stats)
+	local radius = stats.blast.radius
+	local marker = Instance.new("Part")
+	marker.Name = "IonMarker"
+	marker.Shape = Enum.PartType.Cylinder
+	marker.Size = Vector3.new(0.2, radius * 2, radius * 2)
+	marker.CFrame = CFrame.new(point + Vector3.new(0, 0.1, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	marker.Color = Color3.fromRGB(255, 60, 60)
+	marker.Material = Enum.Material.Neon
+	marker.Transparency = 0.6
+	marker.Anchored = true
+	marker.CanCollide = false
+	marker.CanQuery = false
+	marker.CanTouch = false
+	marker.CastShadow = false
+	marker.Parent = workspace
+	-- El círculo se va cerrando hasta el centro: cuando llega, cae el rayo
+	TweenService:Create(marker, TweenInfo.new(stats.delay, Enum.EasingStyle.Linear), {
+		Size = Vector3.new(0.2, 2, 2),
+		Transparency = 0.2,
+	}):Play()
+
+	task.delay(stats.delay, function()
+		marker:Destroy()
+		local height = 300
+		local beam = Instance.new("Part")
+		beam.Name = "IonBeam"
+		beam.Shape = Enum.PartType.Cylinder
+		beam.Size = Vector3.new(height, 5, 5)
+		beam.CFrame = CFrame.new(point + Vector3.new(0, height / 2, 0)) * CFrame.Angles(0, 0, math.rad(90))
+		beam.Color = Color3.fromRGB(255, 120, 120)
+		beam.Material = Enum.Material.Neon
+		beam.Anchored = true
+		beam.CanCollide = false
+		beam.CanQuery = false
+		beam.CanTouch = false
+		beam.CastShadow = false
+		beam.Parent = workspace
+		TweenService
+			:Create(beam, TweenInfo.new(0.5), { Size = Vector3.new(height, 0.5, 0.5), Transparency = 1 })
+			:Play()
+		Debris:AddItem(beam, 0.5)
+		explodeAt(point, attacker, stats.blast)
+	end)
 end
 
 -- Lanza un cohete desde origin hacia direction. ignore: lo que el cohete atraviesa

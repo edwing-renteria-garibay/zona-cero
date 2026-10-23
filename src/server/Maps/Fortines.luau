@@ -80,6 +80,16 @@ local function buildPlaza(map: Folder)
 	end
 	-- El lanzacohetes en el centro, sin nada que lo cubra
 	Builder.pickupPad(map, "RocketLauncherPad", Vector3.new(0, 0.2, 0), "Weapon", "RocketLauncher")
+	-- Armas especiales (ver Config/Weapons): francotirador y escopeta, una de cada lado;
+	-- las demás a la misma distancia de las dos bases
+	Builder.pickupPad(map, "SniperPad", Vector3.new(64, 0.2, 37), "Weapon", "Sniper")
+	Builder.pickupPad(map, "SniperPad", Vector3.new(-64, 0.2, -37), "Weapon", "Sniper")
+	Builder.pickupPad(map, "ShotgunPad", Vector3.new(37, 0.2, -53), "Weapon", "Shotgun")
+	Builder.pickupPad(map, "ShotgunPad", Vector3.new(-37, 0.2, 53), "Weapon", "Shotgun")
+	Builder.pickupPad(map, "LaserRiflePad", Vector3.new(4, 0.2, 91), "Weapon", "LaserRifle")
+	Builder.pickupPad(map, "IonCannonPad", Vector3.new(4, 0.2, -92), "Weapon", "IonCannon")
+	Builder.pickupPad(map, "FlamethrowerPad", Vector3.new(1, 0.2, -14), "Weapon", "Flamethrower")
+	Builder.pickupPad(map, "IceGunPad", Vector3.new(1, 0.2, 16), "Weapon", "IceGun")
 end
 
 local function buildFort(map: Folder, team)
