@@ -8,14 +8,15 @@
 --                                                                   |  (cerrada,   |
 --      montículo       carril norte: cajas, contenedor, barreras    |  2 spawns)   |
 --     con el lanza- ---- muro divisorio con huecos ----              ---------------
---     cohetes (x=0)    carril sur                       [jeep]       ZONA DE SPAWN
+--     cohetes (x=0)    carril sur                                    ZONA DE SPAWN
 --                         [cuarto lateral                            (2 spawns)
 --                          con granadas]       rampa  /BASE ALTA\ ---- rampa roja
 --          [cornisa alta]                             \(mesa 16)/
 --   z=-80 ==================== pared del cañón ====================================
 --                                                                        x=+200
--- Tres rutas entre bases: los carriles del centro (jeeps), las cornisas altas junto a
--- las paredes y los cuartos laterales. Los jeeps no caben por las puertas de las bases.
+-- Tres rutas entre bases: los carriles del centro, las cornisas altas junto a las paredes
+-- y los cuartos laterales. No tiene jeeps: es muy chico para ellos (los vehículos van en
+-- mapas grandes).
 
 local Builder = require(script.Parent.Builder)
 
@@ -226,7 +227,7 @@ local function buildHalf(map: Folder, team)
 	-- Base de la bandera: en la esquina del fondo de la base baja
 	half.flagStand(Vector3.new(192, 0, 72))
 
-	-- Una duna en el carril norte: dos rampas que forman una loma de 3 studs (el jeep salta)
+	-- Una duna en el carril norte: dos rampas que forman una loma de 3 studs
 	slope(folder, "Dune", at(Vector3.new(28, 0, 52)), at(Vector3.new(40, 3, 52)), 16, SAND)
 	slope(folder, "Dune", at(Vector3.new(52, 0, 52)), at(Vector3.new(40, 3, 52)), 16, SAND)
 
@@ -255,9 +256,6 @@ local function buildHalf(map: Folder, team)
 	add("Sandbags", Vector3.new(10, 2.5, 2), Vector3.new(56, 1.25, 40), SANDBAG, -10)
 	add("Pillar", Vector3.new(3, 10, 3), Vector3.new(18, 5, 18), CONCRETE)
 	add("Pillar", Vector3.new(3, 10, 3), Vector3.new(18, 5, -18), CONCRETE)
-
-	-- Jeep: aparece frente a la base, mirando hacia el centro
-	half.jeep(Vector3.new(140, 1, 10))
 end
 
 -- Construye todo el mapa dentro de la carpeta map
