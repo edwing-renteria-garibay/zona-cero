@@ -15,6 +15,7 @@ En consola no hay teclado ni mouse, así que cada acción necesita un botón del
 | Cámara 1ª / 3ª persona | V | Y | Triángulo |
 | Cambiar por el arma del suelo | E | Flecha arriba | Flecha arriba |
 | Tienda | B | Flecha abajo | Flecha abajo |
+| Correr (mantén) | Shift | Apretar stick izquierdo (LS) | L3 |
 | Saltar | Espacio | A | Equis |
 
 ## Qué arreglamos
@@ -35,3 +36,19 @@ En consola no hay teclado ni mouse, así que cada acción necesita un botón del
 
 En Studio conecta un control de Xbox a tu PC (o uno de PlayStation) y dale *Play*:
 Roblox lo reconoce solo.
+
+## Otros ajustes de esta versión
+
+- **Correr** (`SprintController.luau`, `Config/Movement.luau`): mientras mantienes Shift
+  la velocidad sube de 16 a 24. Los zombis no corren porque ya son rápidos. Si el arma de
+  hielo te frenó, tampoco: solo se corre desde la velocidad normal.
+- **Más luz** en Fortines, La Estación y Cámara Fría (`Config/Maps.luau`, `lighting`).
+  Hay dos valores nuevos opcionales:
+  - `ambient`: la luz que llega a donde no da el sol (bajo techo, entre muros).
+  - `exposure`: sube la luz de toda la pantalla.
+  Si un mapa no los trae, `MapService` usa los normales.
+- **Fortines**: el muro bajo frente a la plataforma era tan largo que junto a los brazos
+  quedaba un hueco de 2 studs. Ahora mide de z = -38 a 38 y deja un paso de 12 studs.
+- **La Barranca con jeeps en todos los modos**: `Config/Maps.luau` tiene
+  `alwaysVehicles = { Barranca = true }`. `MatchService` enciende los jeeps si el modo los
+  permite **o** si el mapa está en esa lista.
