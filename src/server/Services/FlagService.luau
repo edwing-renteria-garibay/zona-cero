@@ -38,6 +38,7 @@ local flags: { Flag } = {}
 local folder: Folder? = nil
 local active = false
 local onCapture: ((Player, Team) -> ())? = nil
+local checking = false -- la revisión de cada fotograma ya está conectada
 
 -- Un aviso en el registro de bajas, del color de un equipo
 local function announce(text: string, team: Team?)
@@ -249,6 +250,11 @@ end
 
 -- Busca las bases de bandera del mapa y prepara una bandera por cada una
 function FlagService.Setup(map: Instance)
+	-- Si cambió el mapa, las banderas del anterior ya no sirven
+	for _, flag in flags do
+		flag.model:Destroy()
+	end
+	table.clear(flags)
 	for _, stand in map:GetDescendants() do
 		local team = stand:IsA("BasePart") and Teams:FindFirstChild(stand:GetAttribute("Team") or "")
 		if team and stand.Name == "FlagStand" then
@@ -267,6 +273,10 @@ function FlagService.Setup(map: Instance)
 		end
 	end
 
+	if checking then
+		return
+	end
+	checking = true
 	local elapsed = 0
 	RunService.Heartbeat:Connect(function(dt)
 		elapsed += dt

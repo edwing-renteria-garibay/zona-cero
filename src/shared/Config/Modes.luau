@@ -125,6 +125,16 @@ Modes.randomPool = {
 	"Assault",
 }
 
+-- Modo de prueba: con enabled = true todas las partidas son cortas para probar rápido todos
+-- los mapas y modos. Para jugar normal, ponlo en false.
+Modes.Testing = {
+	enabled = true,
+	scoreToWin = 2, -- bajas, banderas o bombas para ganar
+	hillSeconds = 20, -- Rey de la colina: segundos en la colina para ganar
+	timeLimit = 120, -- segundos por partida
+	roundTime = 50, -- Asalto: segundos por ronda
+}
+
 -- Valores comunes a todos los modos. Un modo puede cambiar algunos con su propio valor:
 -- loadout (armas al aparecer), shields = false (sin escudo), grenades (granadas al aparecer),
 -- pickups = false (sin objetos en el mapa), vehicles = false (sin jeeps),

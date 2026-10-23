@@ -389,6 +389,7 @@ end
 
 -- Busca las bases de bandera del mapa: ahí aparece la bomba y ahí se arma
 function AssaultService.Setup(map: Instance)
+	table.clear(stands) -- si cambió el mapa, las bases del anterior ya no sirven
 	for _, stand in map:GetDescendants() do
 		local team = stand:IsA("BasePart") and Teams:FindFirstChild(stand:GetAttribute("Team") or "")
 		if team and stand.Name == "FlagStand" then
