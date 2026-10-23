@@ -40,6 +40,9 @@
         },
         "Knockback": {
           "$className": "RemoteEvent"
+        },
+        "Shop": {
+          "$className": "RemoteFunction"
         }
       }
     },
@@ -90,6 +93,9 @@
       }
     },
     "StarterPlayer": {
+      "$properties": {
+        "LoadCharacterAppearance": false
+      },
       "StarterPlayerScripts": {
         "Client": {
           "$path": "src/client"

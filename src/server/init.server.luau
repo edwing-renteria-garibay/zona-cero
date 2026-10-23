@@ -15,6 +15,7 @@ local MapService = require(Services.MapService)
 local MatchService = require(Services.MatchService)
 local PickupService = require(Services.PickupService)
 local ProjectileService = require(Services.ProjectileService)
+local ShopService = require(Services.ShopService)
 local TeamMarkers = require(Services.TeamMarkers)
 local VehicleService = require(Services.VehicleService)
 
@@ -40,6 +41,7 @@ InfectionService.Start()
 CombatService.Start()
 VehicleService.Start()
 ProjectileService.Start()
+ShopService.Start() -- créditos, compras y lo que cada quien lleva puesto
 
 Players.PlayerAdded:Connect(function(player)
 	-- "leaderstats" es una carpeta especial: Roblox muestra sus valores en la lista de jugadores
