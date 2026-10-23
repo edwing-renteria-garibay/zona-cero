@@ -12,6 +12,7 @@ return {
 		Fortines = "Fortines",
 		Cruce = "El Cruce",
 		Estacion = "La Estación",
+		CamaraFria = "Cámara Fría",
 	},
 
 	-- La luz de cada mapa (la aplica MapService al construirlo). Los colores son RGB de 0 a 255.
@@ -55,6 +56,15 @@ return {
 			decay = { 40, 52, 70 },
 			density = 0.18,
 			tint = { 226, 238, 255 },
+		},
+		-- Cuarto cerrado de concreto: luz fría y pareja, un poco de bruma
+		CamaraFria = {
+			clockTime = 9,
+			brightness = 1.4,
+			haze = { 150, 176, 190 },
+			decay = { 70, 90, 104 },
+			density = 0.15,
+			tint = { 232, 244, 255 },
 		},
 	},
 }
