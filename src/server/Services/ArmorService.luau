@@ -202,6 +202,28 @@ local BUILDERS = {
 	Legs = buildLegs,
 }
 
+-- Uniforme base (Shop.uniform): quita la ropa y los accesorios del avatar de Roblox y pinta
+-- el cuerpo con los colores del uniforme
+function ArmorService.ApplyUniform(character: Model)
+	local uniform = Shop.uniform
+	if not uniform.enabled then
+		return
+	end
+	for _, item in character:GetChildren() do
+		if item:IsA("Shirt") or item:IsA("Pants") or item:IsA("ShirtGraphic") or item:IsA("Accessory") then
+			item:Destroy()
+		end
+	end
+	local colors = character:FindFirstChildOfClass("BodyColors") or Instance.new("BodyColors")
+	colors.HeadColor3 = uniform.skin
+	colors.TorsoColor3 = uniform.shirt
+	colors.LeftArmColor3 = uniform.shirt
+	colors.RightArmColor3 = uniform.shirt
+	colors.LeftLegColor3 = uniform.pants
+	colors.RightLegColor3 = uniform.pants
+	colors.Parent = character
+end
+
 -- Quita toda la armadura (y vuelve a mostrar el pelo y los sombreros)
 function ArmorService.Remove(character: Model)
 	for _, part in character:GetDescendants() do

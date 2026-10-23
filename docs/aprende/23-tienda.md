@@ -11,6 +11,21 @@ Con la tecla **B** (o el botón "Tienda" a la izquierda) se abre la tienda:
 Todo es solo visual: las balas atraviesan la armadura y pegan en el cuerpo, igual que sin ella.
 Nadie gana ventaja por pagar.
 
+## Uniforme base
+
+Para que la armadura no choque con la ropa de cada avatar, todos aparecen con el mismo cuerpo
+de bloques y un uniforme verde olivo, sin la ropa ni los accesorios de Roblox. Esto se logra
+con dos cosas:
+
+- En `default.project.json`, `StarterPlayer.LoadCharacterAppearance = false`. Así Roblox no
+  carga el avatar de cada jugador. Si Rojo no lo aplica, búscalo en Studio: **StarterPlayer** >
+  Propiedades > **LoadCharacterAppearance**, y desactívalo.
+- `ArmorService.ApplyUniform` quita cualquier ropa o accesorio que quede y pinta el cuerpo con
+  los colores de `Shop.uniform`.
+
+Para que cada quien use su avatar otra vez, pon `Shop.uniform.enabled = false` y
+`LoadCharacterAppearance` en `true`.
+
 ## Créditos (¢)
 
 Se ganan jugando (valores en `Shop.rewards`):

@@ -18,6 +18,7 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local StarterPlayer = game:GetService("StarterPlayer")
 
 local Modes = require(ReplicatedStorage.Shared.Config.Modes)
 local Shop = require(ReplicatedStorage.Shared.Config.Shop)
@@ -283,8 +284,9 @@ local function onPlayerAdded(player: Player)
 	player:SetAttribute("WeaponSkin", profile.equipped.Skin)
 
 	local function onCharacter(character: Model)
-		-- Espera a que el avatar termine de cargar (cambia las partes del cuerpo)
-		if not player:HasAppearanceLoaded() then
+		-- Espera a que el avatar termine de cargar (cambia las partes del cuerpo). Si Roblox no
+		-- carga avatares (StarterPlayer.LoadCharacterAppearance = false), no hay nada que esperar
+		if StarterPlayer.LoadCharacterAppearance and not player:HasAppearanceLoaded() then
 			local loaded = false
 			task.delay(5, function()
 				loaded = true
@@ -299,6 +301,9 @@ local function onPlayerAdded(player: Player)
 		end
 		if player.Character ~= character then
 			return
+		end
+		if player:GetAttribute("Side") ~= "Zombie" then
+			ArmorService.ApplyUniform(character) -- los zombis tienen su propia piel
 		end
 		applyArmor(player)
 		-- Toda arma que llegue a la mochila o a la mano recibe la skin
