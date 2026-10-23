@@ -6,12 +6,14 @@ base.
 
 ## Cómo está armado
 
-- **El cañón:** piso de pasto, paredes de roca de 64 de alto y peñascos pegados a las
+- **El cañón:** piso de pasto, paredes de roca de 100 de alto y peñascos pegados a las
   paredes, para que no se vean rectas.
-- **El camino:** una S de tierra que va de una base a la otra, pasando por el centro.
-- **Las lomas:** lomas suaves de pasto que tapan la vista entre las bases. En las dos del
-  centro están el **lanzacohetes** y el **cañón de iones**; en la más grande de cada lado,
-  el rifle láser.
+- **Las montañas:** 5, de distinta altura: una en cada esquina y una en el centro (la más
+  alta, 40). Los jeeps no las pueden subir y tienen que rodearlas; a pie sí se suben. En la
+  cima de la del centro están el **lanzacohetes** y el **cañón de iones**; en la más alta de
+  las esquinas de cada equipo, el rifle láser. Cada montaña es una loma ancha de pasto con
+  una punta de roca encima (función `mountain`).
+- **El camino:** de cada base a la montaña del centro, y luego un anillo alrededor de ella.
 - **Las bases:** un búnker de metal con una puerta al centro de cada lado y azotea. A la
   azotea se sube por una rampa por detrás; ahí está el francotirador. Adentro están la
   bandera (en una esquina del fondo) y la escopeta.
@@ -29,7 +31,7 @@ terrain:FillCylinder(CFrame.new(0, -2, 0), 4, 10, Enum.Material.Ground) -- un ci
 ```
 
 - Lo que se rellena después **reemplaza** lo que había. Por eso el camino se pinta antes que
-  las lomas: si se tocan, gana el pasto.
+  las montañas: si se tocan, gana la montaña.
 - Una **loma suave** es la punta de una esfera muy grande que casi toda queda bajo el piso
   (función `mound`). Mientras más grande la esfera, más suave la loma.
 - El terreno se mide en cuadros de 4 studs, así que las medidas no quedan exactas al stud.
@@ -50,7 +52,8 @@ Todo está en `src/server/Maps/Barranca.luau`:
 | Qué | Dónde |
 | --- | --- |
 | Tamaño del cañón | `HALF_LENGTH`, `HALF_WIDTH`, `WALL_HEIGHT` |
+| El anillo del camino | `RING` (qué tan lejos del centro pasa) |
 | El camino | la lista `path` en `buildHalf` |
-| Las lomas | la lista de lomas en `buildHalf` (x, z, ancho, alto) |
+| Las montañas | `CENTER_RADIUS` y `CENTER_HEIGHT` para la del centro; las de las esquinas, en `buildHalf` (altura 30 y 22) |
 | Las rocas | la lista de rocas en `buildHalf` (x, z, tamaño) |
 | La base | `buildBase` |
