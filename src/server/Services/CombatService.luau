@@ -34,7 +34,9 @@ local lastShot: { [Player]: number } = {}
 local lastTurretShot: { [Player]: number } = {}
 local reloading: { [Player]: boolean } = {}
 local lastMelee: { [Player]: number } = {}
-local burning: { [Humanoid]: { ends: number, attacker: Player, damagePerSecond: number } } = {}
+local burning: {
+	[Humanoid]: { ends: number, attacker: Player, stacks: number, lastStack: number },
+} = {}
 local slowedUntil: { [Humanoid]: number } = {}
 
 -- Devuelve el arma que el jugador tiene en la mano y sus datos de Config/Weapons
@@ -173,24 +175,58 @@ local function spreadDirection(direction: Vector3, degrees: number): Vector3
 	return (CFrame.lookAt(Vector3.zero, direction) * CFrame.Angles(0, 0, around) * CFrame.Angles(angle, 0, 0)).LookVector
 end
 
+-- Una bala con caída: va recta hasta dropStart studs y después empieza a bajar, cada vez más
+-- (drop dice qué tan rápido). Se revisa en tramos cortos para seguir la curva. Si no toca nada
+-- en range studs, se pierde. Devuelve lo que tocó (o nil) y dónde terminó.
+local SEGMENT = 25 -- studs por tramo
+local function castBullet(origin: Vector3, direction: Vector3, stats, params): (RaycastResult?, Vector3)
+	local unit = direction.Unit
+	local dropStart = stats.dropStart or math.huge
+	local drop = stats.drop or 0
+	local function pointAt(distance: number): Vector3
+		local beyond = math.max(0, distance - dropStart)
+		return origin + unit * distance - Vector3.yAxis * drop * beyond * beyond
+	end
+	local travelled = 0
+	local from = origin
+	while travelled < stats.range do
+		-- Mientras va recta, un solo raycast hasta donde empieza a caer
+		local nextDistance = if travelled < dropStart
+			then math.min(dropStart, stats.range)
+			else math.min(travelled + SEGMENT, stats.range)
+		local to = pointAt(nextDistance)
+		local result = workspace:Raycast(from, to - from, params)
+		if result then
+			return result, result.Position
+		end
+		from = to
+		travelled = nextDistance
+	end
+	return nil, from
+end
+
 -- El jugador dueño de una pieza golpeada (nil si es el escenario o un muñeco)
 local function humanoidOf(part: Instance): Humanoid?
 	local model = part:FindFirstAncestorOfClass("Model")
 	return model and model:FindFirstChildOfClass("Humanoid")
 end
 
--- Quemadura del lanzallamas: daño cada medio segundo mientras dura. Si lo vuelven a quemar,
--- se alarga (no se acumula).
+-- Quemadura del lanzallamas: daño cada medio segundo mientras dura. Se acumula: mientras más
+-- tiempo te alcanza la llama, más fuerte quema (una capa más cada stackEvery segundos, hasta
+-- maxStacks), y se alarga con cada llamarada.
 local function ignite(humanoid: Humanoid, attacker: Player, burn)
-	local already = burning[humanoid] ~= nil
-	burning[humanoid] = {
-		ends = os.clock() + burn.duration,
-		attacker = attacker,
-		damagePerSecond = burn.damagePerSecond,
-	}
-	if already then
+	local now = os.clock()
+	local entry = burning[humanoid]
+	if entry then
+		entry.ends = now + burn.duration
+		entry.attacker = attacker
+		if now - entry.lastStack >= burn.stackEvery then
+			entry.stacks = math.min(entry.stacks + 1, burn.maxStacks)
+			entry.lastStack = now
+		end
 		return
 	end
+	burning[humanoid] = { ends = now + burn.duration, attacker = attacker, stacks = 1, lastStack = now }
 	local root = humanoid.RootPart
 	local fire = Instance.new("Fire") -- fuego visible sobre el personaje
 	fire.Heat = 6
@@ -199,11 +235,17 @@ local function ignite(humanoid: Humanoid, attacker: Player, burn)
 	task.spawn(function()
 		while true do
 			task.wait(0.5)
-			local entry = burning[humanoid]
-			if not entry or humanoid.Health <= 0 or not humanoid.Parent or os.clock() > entry.ends then
+			local current = burning[humanoid]
+			if not current or humanoid.Health <= 0 or not humanoid.Parent or os.clock() > current.ends then
 				break
 			end
-			HealthService.Damage(humanoid, entry.damagePerSecond * 0.5, entry.attacker, "fire")
+			fire.Size = 3 + current.stacks -- más capas, más fuego
+			HealthService.Damage(
+				humanoid,
+				burn.damagePerStack * current.stacks * 0.5,
+				current.attacker,
+				"fire"
+			)
 		end
 		burning[humanoid] = nil
 		fire:Destroy()
@@ -244,13 +286,13 @@ end
 local function firePellets(player: Player, tool: Tool, stats, origin: Vector3, direction: Vector3, params)
 	local from = muzzleOf(tool, origin)
 	for i = 1, stats.pellets do
-		local ray = spreadDirection(direction, stats.spread) * stats.range
-		local result = workspace:Raycast(origin, ray, params)
+		local result, endPosition =
+			castBullet(origin, spreadDirection(direction, stats.spread), stats, params)
 		local surface = if result then applyHit(player, result, stats.damage, nil, tool.Name) else nil
 		-- Solo el primer perdigón lleva el sonido del disparo ("ShotgunPellet" no suena)
 		shotFired:FireAllClients(
 			from,
-			if result then result.Position else origin + ray,
+			endPosition,
 			result ~= nil,
 			surface,
 			if i == 1 then tool.Name else "ShotgunPellet",
@@ -371,9 +413,7 @@ local function onFire(player: Player, origin: any, direction: any)
 		return
 	end
 
-	local ray = direction.Unit * stats.range
-	local result = workspace:Raycast(origin, ray, params)
-	local hitPosition = if result then result.Position else origin + ray
+	local result, hitPosition = castBullet(origin, direction, stats, params)
 
 	local surface = if result
 		then applyHit(player, result, stats.damage, stats.headshotMultiplier, tool.Name)
