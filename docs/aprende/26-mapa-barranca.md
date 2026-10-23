@@ -40,6 +40,8 @@ terrain:FillCylinder(CFrame.new(0, -2, 0), 4, 10, Enum.Material.Ground) -- un ci
 - El Rey de la colina calcula qué tan grande es el mapa con sus bloques. Como el terreno no
   cuenta, hay 4 bloques invisibles en las esquinas (`BoundsMarker`).
 
+**Piso invisible.** Cuando el servidor crea el terreno, Roblox tarda un momento en hacerlo sólido. Los jeeps aparecen enseguida, así que lo atravesaban y caían al vacío. Por eso debajo del pasto hay una pieza invisible, `Ground`, con su cara de arriba en `y = 0`: es sólida desde el principio. Tiene material de pasto para que los pasos y las balas suenen igual.
+
 ## Probarlo
 
 En `src/shared/Config/Maps.luau` pon `selected = "Barranca"`. Usa un modo con vehículos

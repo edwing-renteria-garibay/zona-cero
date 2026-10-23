@@ -475,6 +475,11 @@ local function onFireTurret(player: Player, direction: any)
 		return
 	end
 
+	-- Solo dispara hacia el frente (Config/Vehicles, turretArc)
+	if not VehicleService.InTurretArc(vehicle, direction) then
+		return
+	end
+
 	local turret, rockets = VehicleService.GetWeapon(vehicle)
 	local now = os.clock()
 	if now - (lastTurretShot[player] or 0) < FIRE_RATE_TOLERANCE / turret.fireRate then

@@ -515,17 +515,34 @@ function VehicleService.GetWeapon(model: Model): ({ [string]: any }, boolean)
 	return stats.rockets or stats.turret, stats.rockets ~= nil
 end
 
--- Mueve el cañón para que apunte (solo de lado a lado) en la dirección dada
-function VehicleService.AimTurret(model: Model, direction: Vector3)
+-- Cuánto gira la torreta (en radianes) para apuntar en la dirección dada: 0 es de frente,
+-- positivo a la izquierda y negativo a la derecha
+local function turretYaw(model: Model, direction: Vector3): number?
 	local mount = model:FindFirstChild("TurretMount") :: BasePart?
-	local barrel = model:FindFirstChild("TurretBarrel")
-	local weld = barrel and barrel:FindFirstChild("TurretWeld") :: Weld?
-	if not mount or not weld then
-		return
+	if not mount then
+		return nil
 	end
 	local localDirection = mount.CFrame:VectorToObjectSpace(direction)
-	local yaw = math.atan2(-localDirection.X, -localDirection.Z)
-	weld.C0 = CFrame.Angles(0, yaw, 0) * CFrame.new(0, 0, -2)
+	return math.atan2(-localDirection.X, -localDirection.Z)
+end
+
+-- ¿La dirección queda dentro de lo que la torreta puede cubrir? (turretArc a cada lado del frente)
+function VehicleService.InTurretArc(model: Model, direction: Vector3): boolean
+	local yaw = turretYaw(model, direction)
+	return yaw ~= nil and math.abs(yaw) <= math.rad(statsOf(model).turretArc)
+end
+
+-- Mueve el cañón para que apunte (solo de lado a lado) en la dirección dada. Nunca pasa
+-- del límite: si apuntas hacia atrás, se queda en el borde
+function VehicleService.AimTurret(model: Model, direction: Vector3)
+	local barrel = model:FindFirstChild("TurretBarrel")
+	local weld = barrel and barrel:FindFirstChild("TurretWeld") :: Weld?
+	local yaw = turretYaw(model, direction)
+	if not weld or not yaw then
+		return
+	end
+	local limit = math.rad(statsOf(model).turretArc)
+	weld.C0 = CFrame.Angles(0, math.clamp(yaw, -limit, limit), 0) * CFrame.new(0, 0, -2)
 end
 
 function VehicleService.Spawn(spawnPoint: SpawnPoint): Model
@@ -595,8 +612,11 @@ local function updateJeep(model: Model)
 	local steering = chassis:FindFirstChild("Steering") :: AngularVelocity
 	local stats = statsOf(model)
 
-	local throttle = seat.ThrottleFloat -- W = 1, S = -1
-	local steer = seat.SteerFloat -- D = 1, A = -1
+	-- Sin conductor no se acelera ni se gira. El asiento puede quedarse con lo último que
+	-- pulsó quien se bajó, y el jeep seguía avanzando solo.
+	local hasDriver = seat.Occupant ~= nil
+	local throttle = if hasDriver then seat.ThrottleFloat else 0 -- W = 1, S = -1
+	local steer = if hasDriver then seat.SteerFloat else 0 -- D = 1, A = -1
 	-- Las llantas ponchadas restan velocidad y giro (nunca por debajo de 0)
 	local flats = model:GetAttribute("FlatTires") :: number
 	local flatFronts = model:GetAttribute("FlatFrontTires") :: number

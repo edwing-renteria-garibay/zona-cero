@@ -21,6 +21,10 @@ local base = {
 	-- Explosión al ser destruido: blastDamage completo hasta blastInnerRadius (studs)
 	-- desde el centro del jeep, y luego baja hasta 0 en blastRadius.
 	-- Un jugador tiene 200 en total (100 de escudo + 100 de vida). También daña a otros jeeps.
+	-- La torreta (ametralladora o lanzacohetes) solo dispara hacia el frente: hasta
+	-- turretArc grados a la izquierda o a la derecha (90 = 180° en total).
+	-- Para disparar hacia atrás hay que girar el jeep.
+	turretArc = 90,
 	blastDamage = 250,
 	blastInnerRadius = 6,
 	blastRadius = 16,

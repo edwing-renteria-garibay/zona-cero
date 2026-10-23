@@ -44,6 +44,22 @@ function VehicleController.GetTurretWeapon(vehicle: Model): ({ [string]: any }, 
 	return stats.rockets or stats.turret, stats.rockets ~= nil
 end
 
+-- ¿Puede la torreta disparar hacia target? Solo hacia el frente del jeep: hasta turretArc
+-- grados a cada lado (el servidor revisa lo mismo)
+function VehicleController.InTurretArc(vehicle: Model, target: Vector3): boolean
+	local mount = vehicle:FindFirstChild("TurretMount") :: BasePart?
+	local barrel = vehicle:FindFirstChild("TurretBarrel") :: BasePart?
+	local stats = Vehicles[vehicle:GetAttribute("Vehicle")] or Vehicles.TurretJeep
+	if not mount or not barrel then
+		return false
+	end
+	-- La misma dirección que recibe el servidor: de la punta del cañón al objetivo
+	local tip = (barrel.CFrame * CFrame.new(0, 0, -2)).Position
+	local localDirection = mount.CFrame:VectorToObjectSpace(target - tip)
+	local yaw = math.atan2(-localDirection.X, -localDirection.Z)
+	return math.abs(yaw) <= math.rad(stats.turretArc)
+end
+
 -- Balas (o cohetes) que le quedan a la torreta de un jeep (el servidor guarda el valor real)
 function VehicleController.GetTurretAmmo(vehicle: Model): number
 	return vehicle:GetAttribute("TurretAmmo") or VehicleController.GetTurretWeapon(vehicle).magazine
@@ -106,9 +122,14 @@ function VehicleController.Start()
 		if not barrel then
 			return
 		end
+		local target = Aim.GetTarget()
+		-- Hacia atrás no dispara: hay que girar el jeep
+		if not VehicleController.InTurretArc(vehicle, target) then
+			return
+		end
 		lastShot = now
 		local tip = (barrel.CFrame * CFrame.new(0, 0, -2)).Position
-		fireTurret:FireServer(Aim.GetTarget() - tip)
+		fireTurret:FireServer(target - tip)
 	end)
 end
 
