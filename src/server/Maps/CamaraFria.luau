@@ -2,23 +2,25 @@
 -- rectangular cerrado (con techo) y de dos pisos. En Halo una base era distinta de la otra;
 -- aquí las dos son iguales: cada base tiene su túnel con ventanas, como pidió edwing.
 --
---   * Al centro, en alto (a 20 studs): dos repisas a los lados, unidas por pasarelas con el
---     puente que cruza todo el mapa. Encima, sobre un poste, la plataforma del lanzacohetes,
---     a la que se sube por rampas angostas desde las repisas.
+--   * Arriba (a 20 studs): una plataforma corrida pegada a cada muro de los lados, que une
+--     las cubiertas de las dos bases. Al centro, unas pasarelas la unen con el puente que
+--     cruza todo el mapa. Encima, sobre un poste, la plataforma del lanzacohetes, a la que
+--     se sube por rampas angostas desde las plataformas de los lados.
 --   * Cada base: una cubierta alta al fondo con la bandera. Debajo corre el túnel, con
---     ventanas que miran al centro. Se sube por dos rampas pegadas a los muros de los lados.
---   * Abajo: el piso con cajas para cubrirse.
+--     ventanas que miran al centro.
+--   * Abajo: el piso con cajas para cubrirse. Si te caes, subes por la escalera que hay en
+--     medio de cada lado.
 --
 -- Vista desde arriba (el Rojo está en +X, a la derecha; el Azul es igual, girado 180°):
 --
 --   +--------------------------------------------------------------+
---   |  rampa/     [repisa]   |   [repisa]     \rampa               |
---   |      [cubierta]  pasarela  |  pasarela    [cubierta]         |
---   |  túnel|=========== puente ==[o]== puente ===========|túnel   |
---   |      [cubierta]  pasarela  |  pasarela    [cubierta]         |
---   |  rampa\     [repisa]   |   [repisa]     /rampa               |
+--   |[==================== plataforma del lado ===================]|
+--   |[cubierta]           pasarela  #  pasarela          [cubierta]|
+--   |[ túnel  ]=========== puente ==[o]== puente =========[ túnel  ]|
+--   |[cubierta]           pasarela  #  pasarela          [cubierta]|
+--   |[==================== plataforma del lado ===================]|
 --   +--------------------------------------------------------------+
---                     [o] = plataforma del lanzacohetes
+--          [o] = plataforma del lanzacohetes     # = escalera
 --
 -- Medidas desde el centro del mapa: X va de base a base, Z de lado a lado.
 
@@ -145,6 +147,18 @@ local function buildShell(map: Folder)
 		"Weapon",
 		"RocketLauncher"
 	)
+	-- Una escalera en medio de cada lado, para volver a subir si te caes
+	for _, side in { 1, -1 } do
+		local ladder = Instance.new("TrussPart")
+		ladder.Name = "Ladder"
+		ladder.Anchored = true
+		ladder.Size = Vector3.new(2, UPPER, 2)
+		ladder.CFrame = CFrame.new(0, UPPER / 2, side * (SHELF_FROM - 1))
+		ladder.Color = DARK.Color
+		ladder.Material = Enum.Material.Metal
+		ladder.Parent = folder
+	end
+
 	Builder.pickupPad(map, "FlamethrowerPad", Vector3.new(0, 0.2, 22), "Weapon", "Flamethrower")
 end
 
@@ -171,20 +185,23 @@ local function buildHalf(map: Folder, team)
 	end
 
 	for _, side in { 1, -1 } do
-		-- Repisa alta del centro, pegada al muro del lado, con su columna
+		-- Plataforma alta pegada al muro del lado, del centro hasta la cubierta de la base,
+		-- con columnas debajo
 		local shelfDepth = HALF_WIDTH - SHELF_FROM
 		half.add(
 			"Shelf",
-			Vector3.new(40, SLAB, shelfDepth),
-			Vector3.new(20, UPPER - SLAB / 2, side * (SHELF_FROM + shelfDepth / 2)),
+			Vector3.new(HALF_LENGTH, SLAB, shelfDepth),
+			Vector3.new(HALF_LENGTH / 2, UPPER - SLAB / 2, side * (SHELF_FROM + shelfDepth / 2)),
 			DECK
 		)
-		half.add(
-			"Pillar",
-			Vector3.new(4, UPPER - SLAB, 4),
-			Vector3.new(20, (UPPER - SLAB) / 2, side * (SHELF_FROM + 6)),
-			PILLAR
-		)
+		for _, x in { 20, 60, 90 } do
+			half.add(
+				"Pillar",
+				Vector3.new(4, UPPER - SLAB, 4),
+				Vector3.new(x, (UPPER - SLAB) / 2, side * (SHELF_FROM + 6)),
+				PILLAR
+			)
+		end
 		-- Pasarela de la repisa al puente
 		half.add(
 			"Walkway",
@@ -192,8 +209,6 @@ local function buildHalf(map: Folder, team)
 			Vector3.new(35, UPPER - SLAB / 2, side * (SHELF_FROM + 5) / 2),
 			BEAM
 		)
-		-- Rampa del piso a la repisa, pegada al muro del lado
-		half.slope("Ramp", Vector3.new(78, 0, side * 60), Vector3.new(40, UPPER, side * 60), 12, DECK)
 		-- Rampa angosta de la repisa a la plataforma del lanzacohetes
 		half.slope(
 			"RocketRamp",
@@ -202,22 +217,13 @@ local function buildHalf(map: Folder, team)
 			4,
 			BEAM
 		)
-
-		-- Rampa del piso a la cubierta de la base, pegada al muro del lado
-		half.slope(
-			"Ramp",
-			Vector3.new(130, 0, side * 66),
-			Vector3.new(130, UPPER, side * DECK_HALF),
-			12,
-			DECK
-		)
 	end
 
-	-- Cubierta de la base, encima del túnel
+	-- Cubierta de la base, encima del túnel. Llega hasta las plataformas de los lados
 	local deckLength = HALF_LENGTH - DECK_FROM
 	half.add(
 		"BaseDeck",
-		Vector3.new(deckLength, SLAB, DECK_HALF * 2),
+		Vector3.new(deckLength, SLAB, SHELF_FROM * 2),
 		Vector3.new(DECK_FROM + deckLength / 2, UPPER - SLAB / 2, 0),
 		DECK
 	)

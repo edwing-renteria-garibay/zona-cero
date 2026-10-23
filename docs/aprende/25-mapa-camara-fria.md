@@ -8,14 +8,16 @@ Mide 280 de largo (de base a base) por 140 de ancho.
 
 ## Cómo está armado
 
-- **Centro, arriba (a 20 de altura):** dos repisas pegadas a los muros de los lados, unidas por
-  pasarelas con el puente oscuro que cruza todo el mapa de base a base.
+- **Arriba (a 20 de altura):** una plataforma corrida pegada a cada muro de los lados, que une
+  las cubiertas de las dos bases. Al centro, unas pasarelas la unen con el puente oscuro que
+  cruza todo el mapa de base a base.
 - **Lanzacohetes:** está en una plataforma sobre un poste, a 32 de altura. Se sube por cuatro
-  rampas angostas que salen de las repisas. Abajo del poste está el lanzallamas.
+  rampas angostas que salen de las plataformas de los lados. Abajo del poste está el lanzallamas.
 - **Cada base:** una cubierta alta al fondo, con la bandera y un muro bajo para cubrirse.
   Debajo corre el **túnel**, que tiene ventanas que miran al centro y la escopeta adentro.
-- **Para subir:** 8 rampas en total. Cada base tiene dos rampas a su cubierta y dos a las
-  repisas, todas pegadas a los muros de los lados.
+- **Para subir:** no hay rampas desde el piso. Si te caes, subes por la **escalera** que hay
+  en medio de cada lado. Es un `TrussPart`, la pieza de Roblox por la que se trepa sola al
+  caminar contra ella.
 
 ## Cada equipo
 
@@ -29,7 +31,7 @@ vuelta (`Builder.half`). Lo que va a los dos lados de una base se hace en un `fo
 | Bandera | Al fondo de la cubierta |
 | Francotirador | En la cubierta, en una esquina |
 | Escopeta | En el túnel |
-| Rifle láser | En una de las repisas |
+| Rifle láser | En una de las plataformas de los lados |
 | Granadas, pistola de hielo | Abajo, en el centro |
 
 ## Probarlo
