@@ -11,7 +11,9 @@ local mapModules = script.Parent.Parent.Maps
 
 local MapService = {}
 
--- El nombre del mapa a construir: el elegido, o uno al azar de la lista
+local currentName: string? = nil -- el mapa que está puesto ahora
+
+-- El nombre del mapa a construir: el elegido, o uno al azar de la lista (distinto al actual)
 local function chooseMap(): string
 	if Maps.selected ~= "Aleatorio" and Maps.list[Maps.selected] then
 		return Maps.selected
@@ -21,7 +23,12 @@ local function chooseMap(): string
 	end
 	local names = {}
 	for name in Maps.list do
-		table.insert(names, name)
+		if name ~= currentName then
+			table.insert(names, name)
+		end
+	end
+	if #names == 0 then
+		return currentName :: string
 	end
 	return names[math.random(#names)]
 end
@@ -61,9 +68,11 @@ function MapService.Build(): Folder
 	local map = workspace:FindFirstChild("Map") :: Folder?
 	if not map then
 		local mapName = chooseMap()
+		currentName = mapName
 		map = Instance.new("Folder")
 		map.Name = "Map"
 		map:SetAttribute("MapName", Maps.list[mapName])
+		map:SetAttribute("Generated", true) -- hecho por código: se puede cambiar por otro
 		-- Carpetas que llenan los mapas: dónde aparecen los jeeps y las plataformas de objetos
 		local vehicleSpawns = Instance.new("Folder")
 		vehicleSpawns.Name = "VehicleSpawns"
@@ -88,6 +97,24 @@ function MapService.Build(): Folder
 		end
 	end
 	return map
+end
+
+-- Cambia al siguiente mapa: quita el actual y construye otro. Un mapa hecho a mano en Studio
+-- (sin el atributo Generated) se queda siempre. Devuelve el mapa nuevo, o nil si no cambió.
+function MapService.Next(): Folder?
+	local old = workspace:FindFirstChild("Map")
+	if not old or not old:GetAttribute("Generated") then
+		return nil
+	end
+	if Maps.selected ~= "Aleatorio" and Maps.selected == currentName then
+		return nil -- se eligió un solo mapa: no hace falta reconstruirlo
+	end
+	old:Destroy()
+	local spawns = workspace:FindFirstChild("VehicleSpawns")
+	if spawns then
+		spawns:Destroy()
+	end
+	return MapService.Build()
 end
 
 return MapService

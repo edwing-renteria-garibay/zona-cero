@@ -68,4 +68,17 @@ Players.PlayerAdded:Connect(function(player)
 	end)
 end)
 
-task.spawn(MatchService.Run) -- el modo se elige en Config/Modes
+-- Entre partidas cambia el mapa (Config/Maps); lo que depende de él se vuelve a preparar
+local function changeMap()
+	local newMap = MapService.Next()
+	if not newMap then
+		return
+	end
+	PickupService.Start(newMap)
+	FlagService.Setup(newMap)
+	AssaultService.Setup(newMap)
+	HillService.Setup(newMap)
+	VehicleService.Reset()
+end
+
+task.spawn(MatchService.Run, changeMap) -- el modo se elige en Config/Modes

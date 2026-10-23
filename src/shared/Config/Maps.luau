@@ -1,6 +1,7 @@
 -- Qué mapa se juega. Cada mapa está en src/server/Maps/ (un archivo por mapa).
 --
 -- selected: el nombre de un mapa de la lista, o "Aleatorio" para que el servidor elija uno.
+-- Con "Aleatorio", cada partida nueva se juega en un mapa distinto al anterior.
 
 return {
 	selected = "Aleatorio",

@@ -264,6 +264,23 @@ local function scoreGoal(rules, playerCount: number): number
 	return math.floor(goal / 5 + 0.5) * 5
 end
 
+-- Modo de prueba (Modes.Testing): partidas cortas para probar todos los mapas y modos
+local function applyTesting(rules)
+	local testing = Modes.Testing
+	if not testing.enabled then
+		return
+	end
+	rules.timeLimit = testing.timeLimit
+	if rules.scoreBy == "hill" then
+		rules.scoreToWin = testing.hillSeconds
+	elseif rules.scoreBy ~= "infection" then
+		rules.scoreToWin = testing.scoreToWin
+	end
+	if rules.roundTime then
+		rules.roundTime = math.min(rules.roundTime, testing.roundTime)
+	end
+end
+
 -- timeUp: true cuando ya se acabó el tiempo
 local function winner(rules, timeUp: boolean): Winner?
 	if rules.scoreBy == "infection" then
@@ -321,8 +338,11 @@ function MatchService.SetupCharacter(player: Player, character: Model)
 	character:PivotTo(spawn.CFrame * CFrame.new(0, 4, 0))
 end
 
-function MatchService.Run()
+-- changeMap: cambia al siguiente mapa (lo prepara init.server); se llama antes de cada
+-- partida menos la primera, que usa el mapa con el que arrancó el servidor
+function MatchService.Run(changeMap: () -> ())
 	local common = Modes.Common
+	local firstMatch = true
 
 	-- Quien entra a mitad de partida va a un equipo, o a ninguno en solitario
 	Players.PlayerAdded:Connect(function(player)
@@ -344,10 +364,16 @@ function MatchService.Run()
 			task.wait(1)
 		end
 
+		if not firstMatch then
+			changeMap()
+		end
+		firstMatch = false
+
 		local modeName = chooseMode()
 		-- Copia de las reglas para poder ajustar la meta sin cambiar Config/Modes
 		local rules = table.clone(Modes[modeName])
 		rules.scoreToWin = scoreGoal(rules, #Players:GetPlayers())
+		applyTesting(rules)
 		currentRules = rules
 		Rules.current = rules
 		applyTeams(rules)
@@ -359,6 +385,12 @@ function MatchService.Run()
 		ReplicatedStorage:SetAttribute("MatchEndsAt", workspace:GetServerTimeNow() + rules.timeLimit)
 		setPhase("Playing")
 		broadcast("Started", { mode = modeName, scoreToWin = rules.scoreToWin })
+		-- Aviso en el registro: qué mapa y qué modo tocaron
+		local map = workspace:FindFirstChild("Map")
+		killFeed:FireAllClients({
+			message = `{map and map:GetAttribute("MapName") or "Mapa"} · {rules.name}`,
+			color = Color3.new(1, 1, 1),
+		})
 		if rules.scoreBy == "infection" then
 			InfectionService.Begin(rules) -- los zombis se eligen antes de aparecer
 		end
