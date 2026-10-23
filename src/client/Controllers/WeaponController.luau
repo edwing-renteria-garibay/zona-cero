@@ -11,6 +11,7 @@ local UserInputService = game:GetService("UserInputService")
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Aim = require(script.Parent.Aim)
+local CameraController = require(script.Parent.CameraController)
 local Sfx = require(script.Parent.Sfx)
 local ViewModel = require(script.Parent.ViewModel)
 
@@ -75,7 +76,10 @@ local function tryFire()
 	end
 	lastShot = now
 	fireWeapon:FireServer(origin, direction)
-	ViewModel.Kick() -- retroceso y fogonazo en primera persona
+	ViewModel.Kick() -- el arma se mueve y hace fogonazo en primera persona
+	if stats.recoil then
+		CameraController.Kick(stats.recoil) -- la mira sube (escopeta, lanzacohetes, francotirador)
+	end
 	if not stats.automatic then
 		triggerHeld = false -- las armas semiautomáticas disparan una vez por clic
 	end
@@ -180,7 +184,7 @@ end
 local FLAME_COLORS =
 	{ Color3.fromRGB(255, 200, 80), Color3.fromRGB(255, 120, 30), Color3.fromRGB(230, 70, 20) }
 local function drawFlame(from: Vector3, to: Vector3)
-	for i = 1, 3 do
+	for i = 1, 4 do
 		local flame = Instance.new("Part")
 		flame.Shape = Enum.PartType.Ball
 		flame.Anchored = true
@@ -189,14 +193,15 @@ local function drawFlame(from: Vector3, to: Vector3)
 		flame.CanTouch = false
 		flame.CastShadow = false
 		flame.Material = Enum.Material.Neon
-		flame.Color = FLAME_COLORS[i]
+		flame.Color = FLAME_COLORS[(i - 1) % #FLAME_COLORS + 1]
 		flame.Size = Vector3.one * 0.5
 		flame.Position = from
 		flame.Parent = workspace
 		local time = 0.2 + i * 0.06
-		local spread = Vector3.new(math.random() - 0.5, math.random() - 0.5, math.random() - 0.5) * 2
+		-- Las llamas se abren a los lados: el lanzallamas quema un área ancha y corta
+		local spread = Vector3.new(math.random() - 0.5, math.random() - 0.5, math.random() - 0.5) * 7
 		TweenService:Create(flame, TweenInfo.new(time, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-			Position = from:Lerp(to, 0.6 + i * 0.13) + spread,
+			Position = from:Lerp(to, 0.5 + i * 0.12) + spread,
 			Size = Vector3.one * (1.5 + i),
 			Transparency = 1,
 		}):Play()

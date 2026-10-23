@@ -18,6 +18,13 @@ local SHOULDER_OFFSET = Vector3.new(2, 0.5, 0) -- la cámara un poco a la derech
 local CameraController = {}
 
 local firstPerson = true
+local recoil = 0 -- grados que la mira debe estar levantada por el retroceso; baja sola
+local recoilApplied = 0 -- grados que ya se le sumaron a la cámara
+
+-- Retroceso: levanta la mira unos grados (WeaponController lo llama al disparar)
+function CameraController.Kick(degrees: number)
+	recoil += degrees
+end
 
 function CameraController.IsFirstPerson(): boolean
 	return firstPerson
@@ -71,7 +78,16 @@ function CameraController.Start()
 	apply()
 
 	-- Después de la cámara de Roblox, en cada fotograma
-	RunService:BindToRenderStep("ZonaCeroCamera", Enum.RenderPriority.Camera.Value + 1, function()
+	RunService:BindToRenderStep("ZonaCeroCamera", Enum.RenderPriority.Camera.Value + 1, function(dt)
+		-- Retroceso: la cámara de Roblox sigue desde donde quedó, así que solo se le suma la
+		-- diferencia de cada fotograma. Primero sube de golpe y luego baja poco a poco.
+		recoil = if recoil > 0.01 then recoil * math.exp(-8 * dt) else 0
+		local delta = recoil - recoilApplied
+		if math.abs(delta) > 0.0001 then
+			local camera = workspace.CurrentCamera
+			camera.CFrame *= CFrame.Angles(math.rad(delta), 0, 0)
+			recoilApplied = recoil
+		end
 		if firstPerson then
 			return -- en primera persona Roblox ya fija el mouse y gira al personaje
 		end

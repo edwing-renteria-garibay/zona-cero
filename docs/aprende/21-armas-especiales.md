@@ -74,3 +74,17 @@ con cada llama.
 
 El cañón de iones no tenía sonido propio, así que su explosión usa la del cohete. Puedes cambiarla
 en `explosion.ion`.
+
+## Caída de bala y retroceso
+
+- **Caída de bala:** las balas ya no son infinitas. En Config/Weapons, cada arma tiene dos
+  valores:
+  - `dropStart`: cuántos studs vuela recta.
+  - `drop`: qué tan rápido cae después.
+  
+  `castBullet` (en CombatService) sigue la curva en tramos de 25 studs. Si no toca nada antes de
+  `range`, la bala se pierde.
+- **Retroceso:** solo lo tienen la escopeta, el lanzacohetes y el francotirador (`recoil`, en
+  grados). `CameraController.Kick` sube la mira, y luego baja sola poco a poco.
+- **Lanzallamas:** ahora llega a 14 studs, pero quema un área ancha (40°). La quemadura se
+  acumula: mientras más tiempo te alcanza la llama, más capas tiene (hasta 6) y más daño hace.

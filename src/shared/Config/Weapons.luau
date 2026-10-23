@@ -13,6 +13,9 @@
 --   "ion" = marca un punto; tras delay segundos cae un rayo que explota (blast)
 -- beam: cómo se ve el disparo ("laser" verde, "ice" azul); sin beam, una trazadora normal
 -- zoom: campo de visión al apuntar con clic derecho (francotirador)
+-- dropStart y drop: la bala va recta hasta dropStart studs y luego cae (drop = qué tan rápido);
+-- si no toca nada antes de range, se pierde
+-- recoil: grados que sube la mira al disparar (solo escopeta, lanzacohetes y francotirador)
 -- slow: el disparo ralentiza al enemigo (factor de velocidad y segundos)
 local Weapons = {
 	-- Rifle: rápido pero flojo en el cuerpo (29 balas); en la cabeza, 15
@@ -23,6 +26,8 @@ local Weapons = {
 		magazine = 32,
 		reloadTime = 2,
 		range = 300,
+		dropStart = 120,
+		drop = 0.002,
 		automatic = true,
 	},
 	-- Pistola tipo Desert Eagle: lenta y precisa; 7 tiros en el cuerpo, 3 en la cabeza
@@ -33,6 +38,8 @@ local Weapons = {
 		magazine = 8,
 		reloadTime = 1.6,
 		range = 400,
+		dropStart = 100,
+		drop = 0.002,
 		automatic = false,
 	},
 	-- Lanzacohetes: se recoge en lo alto del montículo central. El cohete vuela (no es instantáneo)
@@ -47,6 +54,7 @@ local Weapons = {
 		reserve = 4,
 		reloadTime = 3,
 		range = 500,
+		recoil = 8,
 		pickupRespawn = 120,
 		automatic = false,
 		blast = {
@@ -68,20 +76,25 @@ local Weapons = {
 		reserve = 18,
 		reloadTime = 2.6,
 		range = 55,
+		dropStart = 30,
+		drop = 0.006,
+		recoil = 6,
 		pickupRespawn = 60,
 		automatic = false,
 	},
-	-- Lanzallamas: daña a todos los enemigos en un cono corto y los deja quemándose
+	-- Lanzallamas: daña a todos los enemigos en un área corta y ancha y los deja quemándose
 	Flamethrower = {
 		kind = "flame",
-		damage = 6,
-		cone = 14,
+		damage = 3,
+		cone = 40,
 		fireRate = 12,
 		magazine = 120,
 		reserve = 120,
 		reloadTime = 3,
-		range = 26,
-		burn = { damagePerSecond = 12, duration = 3 },
+		range = 14,
+		-- Se acumula: una capa más cada 0.3 s que la llama te alcanza (hasta 6); cada capa quema
+		-- 4 por segundo. Dura 3 s después de la última llamarada.
+		burn = { damagePerStack = 4, maxStacks = 6, stackEvery = 0.3, duration = 3 },
 		pickupRespawn = 90,
 		automatic = true,
 	},
@@ -95,6 +108,8 @@ local Weapons = {
 		reserve = 12,
 		reloadTime = 2.4,
 		range = 600,
+		dropStart = 250,
+		drop = 0.001,
 		pickupRespawn = 90,
 		automatic = false,
 	},
@@ -107,6 +122,9 @@ local Weapons = {
 		reserve = 12,
 		reloadTime = 3,
 		range = 1000,
+		dropStart = 300,
+		drop = 0.0008,
+		recoil = 7,
 		zoom = 18,
 		pickupRespawn = 90,
 		automatic = false,
@@ -121,6 +139,8 @@ local Weapons = {
 		reserve = 30,
 		reloadTime = 2,
 		range = 160,
+		dropStart = 80,
+		drop = 0.003,
 		slow = { factor = 0.45, duration = 2.5 },
 		pickupRespawn = 60,
 		automatic = false,
