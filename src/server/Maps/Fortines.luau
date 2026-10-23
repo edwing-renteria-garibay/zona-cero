@@ -20,8 +20,9 @@
 
 local Builder = require(script.Parent.Builder)
 
-local CONCRETE, DARK, ASPHALT = Builder.CONCRETE, Builder.DARK_CONCRETE, Builder.ASPHALT
+local CONCRETE, DARK = Builder.CONCRETE, Builder.DARK_CONCRETE
 local PLATE, SANDBAG, WOOD = Builder.PLATE, Builder.SANDBAG, Builder.WOOD
+local STONE, PAVEMENT = Builder.STONE, Builder.PAVEMENT -- muros de afuera y piso
 
 local Fortines = {}
 
@@ -67,7 +68,7 @@ local function buildPlaza(map: Folder)
 	folder.Parent = map
 	local length = (PLAZA + DEPTH + THICK) * 2
 	local width = (INNER + THICK) * 2
-	Builder.block(folder, "Floor", Vector3.new(length, 2, width), CFrame.new(0, -1, 0), ASPHALT)
+	Builder.block(folder, "Floor", Vector3.new(length, 2, width), CFrame.new(0, -1, 0), PAVEMENT)
 	-- Muros de los lados de la plaza: cierran el hueco entre los dos fuertes
 	for _, side in { 1, -1 } do
 		Builder.block(
@@ -75,7 +76,7 @@ local function buildPlaza(map: Folder)
 			"PlazaWall",
 			Vector3.new(PLAZA * 2, OUTER_HEIGHT, THICK),
 			CFrame.new(0, OUTER_HEIGHT / 2, side * (INNER + THICK / 2)),
-			CONCRETE
+			STONE
 		)
 	end
 	-- El lanzacohetes en el centro, sin nada que lo cubra
@@ -86,13 +87,13 @@ local function buildFort(map: Folder, team)
 	local half = Builder.half(map, team)
 
 	-- Muros de afuera: el del fondo y los dos de los lados (abiertos hacia la plaza)
-	wallBox(half, "BackWall", DEPTH, DEPTH + THICK, -INNER - THICK, INNER + THICK, OUTER_HEIGHT, CONCRETE)
+	wallBox(half, "BackWall", DEPTH, DEPTH + THICK, -INNER - THICK, INNER + THICK, OUTER_HEIGHT, STONE)
 	for _, side in { 1, -1 } do
 		local z0, z1 = INNER, INNER + THICK
 		if side == -1 then
 			z0, z1 = -z1, -z0
 		end
-		wallBox(half, "SideWall", 0, DEPTH, z0, z1, OUTER_HEIGHT, CONCRETE)
+		wallBox(half, "SideWall", 0, DEPTH, z0, z1, OUTER_HEIGHT, STONE)
 	end
 	-- Franja del color del equipo en el muro del fondo
 	half.add("TeamStripe", Vector3.new(0.4, 2, INNER * 2), pos(DEPTH - 0.2, OUTER_HEIGHT - 4, 0), half.stripe)
@@ -113,7 +114,7 @@ local function buildFort(map: Folder, team)
 			wallBox(half, name, d0, d1, math.min(z0, z1), math.max(z0, z1), height, style)
 		end
 		-- Brazos que salen de los muros de los lados (la "T" del dibujo)
-		box("Arm", 42, 50, 50, INNER, OUTER_HEIGHT, CONCRETE)
+		box("Arm", 42, 50, 50, INNER, OUTER_HEIGHT, STONE)
 		half.add("TeamStripe", Vector3.new(8.4, 2, 0.4), pos(46, OUTER_HEIGHT - 4, 49.8 * side), half.stripe)
 		-- Muro de enfrente: entre él y el de en medio pasa un pasillo de 10 studs.
 		-- Acceso central de 20 studs (z de -10 a 10) y laterales de 18 (z de 78 a 96)

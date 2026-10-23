@@ -16,8 +16,8 @@
 
 local Builder = require(script.Parent.Builder)
 
-local CONCRETE, DARK, ASPHALT = Builder.CONCRETE, Builder.DARK_CONCRETE, Builder.ASPHALT
-local PLATE = Builder.PLATE
+local DARK, ASPHALT = Builder.DARK_CONCRETE, Builder.ASPHALT
+local PLATE, BRICK, RUST = Builder.PLATE, Builder.BRICK, Builder.RUST
 
 local Cruce = {}
 
@@ -187,12 +187,12 @@ local function buildGround(map: Folder)
 	folder.Name = "Ground"
 	folder.Parent = map
 	fill(folder, "Floor", ".tRrPp^", -2, 0, ASPHALT) -- piso bajo todo lo que no es muro
-	fill(folder, "Wall", "#", -2, WALL_TOP, CONCRETE)
+	fill(folder, "Wall", "#", -2, WALL_TOP, BRICK) -- zona industrial: muros de ladrillo
 	fill(folder, "HighFloor", "^p", 0, HIGH, DARK)
 	fill(folder, "Column", "P", 0, COLUMN_HEIGHT, DARK)
 	fill(folder, "Column", "p", HIGH, HIGH + COLUMN_HEIGHT, DARK)
 	-- El techo de los túneles es un bloque macizo hasta lo alto de los muros: nadie camina encima
-	fill(folder, "TunnelRoof", "t", TUNNEL_HEIGHT, WALL_TOP, CONCRETE)
+	fill(folder, "TunnelRoof", "t", TUNNEL_HEIGHT, WALL_TOP, RUST)
 end
 
 -- Cada rampa es una losa inclinada; si va en un túnel, lleva encima un techo inclinado igual
@@ -223,7 +223,7 @@ local function buildRamps(map: Folder)
 				"TunnelRoof",
 				Vector3.new(width, thickness, slab.Size.Z),
 				slab.CFrame * CFrame.new(0, 0.5 + TUNNEL_HEIGHT + thickness / 2, 0),
-				CONCRETE
+				RUST
 			)
 		end
 	end

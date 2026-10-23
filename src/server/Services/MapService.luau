@@ -2,6 +2,7 @@
 -- que el mapa se juegue bien y después se decora. Si ya hay una carpeta Workspace.Map
 -- (por ejemplo, un mapa hecho a mano en Studio), se usa esa y no se construye nada.
 
+local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Maps = require(ReplicatedStorage.Shared.Config.Maps)
@@ -25,6 +26,34 @@ local function chooseMap(): string
 	return names[math.random(#names)]
 end
 
+local function rgb(values: { number }): Color3
+	return Color3.fromRGB(values[1], values[2], values[3])
+end
+
+-- La luz del mapa: hora del día, sol, niebla y tono (Config/Maps, lighting).
+-- Lo fijo (sombras, efectos) está en default.project.json, dentro de Lighting.
+local function applyLighting(mapName: string)
+	local settings = Maps.lighting[mapName]
+	if not settings then
+		return
+	end
+	Lighting.ClockTime = settings.clockTime
+	Lighting.Brightness = settings.brightness
+	local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
+	if atmosphere then
+		atmosphere.Density = settings.density
+		atmosphere.Offset = 0.2
+		atmosphere.Color = rgb(settings.haze)
+		atmosphere.Decay = rgb(settings.decay)
+		atmosphere.Glare = 0.3
+		atmosphere.Haze = 1.5
+	end
+	local correction = Lighting:FindFirstChildOfClass("ColorCorrectionEffect")
+	if correction then
+		correction.TintColor = rgb(settings.tint)
+	end
+end
+
 -- Construye el mapa si no existe y quita lo que trae la plantilla de Studio: desactiva los
 -- puntos de aparición que no son del mapa y borra la Baseplate (queda a la misma altura que
 -- el piso del mapa y los dos pisos parpadean al moverse la cámara)
@@ -43,7 +72,10 @@ function MapService.Build(): Folder
 		pickups.Name = "WeaponPickups"
 		pickups.Parent = map
 		require(mapModules:FindFirstChild(mapName) :: ModuleScript).Build(map)
+		-- Acabados: tonos, remates de muros y luces en los puntos de aparición
+		require(mapModules.Builder).decorate(map, #mapName)
 		map.Parent = workspace
+		applyLighting(mapName)
 		print("[Map] Mapa:", Maps.list[mapName])
 	end
 	local baseplate = workspace:FindFirstChild("Baseplate")
