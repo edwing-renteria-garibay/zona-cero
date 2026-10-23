@@ -1,7 +1,9 @@
 -- Objetos del mapa que se recogen al tocar su plataforma y reaparecen después de un tiempo.
 -- Las plataformas están dentro de Map.WeaponPickups y dicen qué dan con un atributo:
 --   Weapon = "RocketLauncher"  → da esa arma (se copia de ServerStorage.Weapons);
---                                si ya la tienes, te rellena la munición
+--                                si ya la tienes, te rellena la munición. Solo se cargan
+--                                Modes.Common.maxWeapons armas: con las manos llenas hay
+--                                que pulsar E en la plataforma para cambiar la de la mano
 --   Pickup = "Grenades"        → da granadas (Config/Grenades)
 -- En los modos con pickups = false (SWAT) las plataformas se apagan.
 
@@ -11,6 +13,7 @@ local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 
 local Grenades = require(ReplicatedStorage.Shared.Config.Grenades)
+local Modes = require(ReplicatedStorage.Shared.Config.Modes)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Rules = require(script.Parent.Rules)
 
@@ -23,9 +26,25 @@ type PickupKind = {
 	label: string, -- texto que flota encima
 	model: BasePart, -- lo que gira sobre la plataforma
 	respawnTime: number,
-	-- Intenta dárselo al jugador; devuelve false si no lo necesita (y no se gasta)
-	give: (player: Player, character: Model) -> boolean,
+	-- Intenta dárselo al jugador; devuelve false si no lo necesita (y no se gasta).
+	-- swap = true: si ya carga el máximo de armas, cambia la de la mano por esta
+	give: (player: Player, character: Model, swap: boolean) -> boolean,
+	isWeapon: boolean,
 }
+
+-- Las armas de fuego que lleva el jugador (en la mano y en la mochila). La primera es la
+-- de la mano, si lleva una
+local function carriedWeapons(character: Model, backpack: Backpack): { Tool }
+	local tools = {}
+	for _, container in { character, backpack } do
+		for _, tool in container:GetChildren() do
+			if tool:IsA("Tool") and Weapons[tool.Name] then
+				table.insert(tools, tool)
+			end
+		end
+	end
+	return tools
+end
 
 -- Rellena el cargador y el repuesto de un arma que el jugador ya tiene.
 -- Devuelve false si ya estaba llena (así la plataforma no se gasta).
@@ -60,7 +79,8 @@ local function weaponKind(weaponName: string): PickupKind?
 		label = template.ToolTip,
 		model = (template:FindFirstChild("Handle") :: BasePart):Clone(),
 		respawnTime = stats and stats.pickupRespawn or DEFAULT_RESPAWN,
-		give = function(player, character)
+		isWeapon = true,
+		give = function(player, character, swap)
 			local backpack = player:FindFirstChildOfClass("Backpack")
 			if not backpack then
 				return false
@@ -72,7 +92,26 @@ local function weaponKind(weaponName: string): PickupKind?
 			if owned then
 				return refillAmmo(owned, stats)
 			end
-			template:Clone().Parent = backpack
+			local carried = carriedWeapons(character, backpack)
+			local limit = Rules.current.maxWeapons or Modes.Common.maxWeapons
+			if Modes.Testing.enabled and Modes.Testing.loadout and not Rules.current.testingKeepsLoadout then
+				limit = math.huge -- en el modo de prueba se cargan las 9
+			end
+			if #carried >= limit then
+				if not swap then
+					return false -- manos llenas: hay que pulsar E para cambiar
+				end
+				-- Suelta la de la mano (o, si no lleva ninguna en la mano, la primera que carga)
+				carried[1]:Destroy()
+			end
+			local tool = template:Clone()
+			tool.Parent = backpack
+			if swap then
+				local humanoid = character:FindFirstChildOfClass("Humanoid")
+				if humanoid then
+					humanoid:EquipTool(tool)
+				end
+			end
 			return true
 		end,
 	}
@@ -88,7 +127,8 @@ local function grenadeKind(): PickupKind
 		label = "Granadas",
 		model = model,
 		respawnTime = Grenades.pickupRespawn,
-		give = function(_player, character)
+		isWeapon = false,
+		give = function(_player, character, _swap)
 			local count = character:GetAttribute("Grenades") or 0
 			if count >= Grenades.max then
 				return false
@@ -134,6 +174,7 @@ local function setupPad(pad: BasePart)
 	text.Parent = billboard
 
 	local available = true
+	local prompt: ProximityPrompt? = nil -- botón de "Cambiar" (solo en armas)
 	-- Las armas traen sus piezas dentro de la Handle: se muestran y esconden todas juntas
 	local pieces = { display }
 	for _, part in display:GetDescendants() do
@@ -154,29 +195,52 @@ local function setupPad(pad: BasePart)
 			part.Transparency = if shown then 0 else 1
 		end
 		billboard.Enabled = shown
+		if prompt then
+			prompt.Enabled = shown
+		end
 	end)
 	-- Al cambiar de mapa la plataforma se borra: deja de girar
 	pad.Destroying:Connect(function()
 		connection:Disconnect()
 	end)
 
-	pad.Touched:Connect(function(hit: BasePart)
+	local function tryGive(character: Instance?, swap: boolean)
 		if not available or Rules.current.pickups == false then
 			return
 		end
-		local character = hit.Parent
 		local player = character and Players:GetPlayerFromCharacter(character)
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		if not player or not humanoid or humanoid.Health <= 0 then
 			return
 		end
-		if kind.give(player, character :: Model) then
+		if kind.give(player, character :: Model, swap) then
 			available = false
 			task.delay(kind.respawnTime, function()
 				available = true
 			end)
 		end
+	end
+
+	-- Al pisarla se recoge, si cabe
+	pad.Touched:Connect(function(hit: BasePart)
+		tryGive(hit.Parent, false)
 	end)
+
+	-- Con las manos llenas: E (o mantener el botón en móvil) cambia el arma de la mano por esta
+	if kind.isWeapon then
+		local newPrompt = Instance.new("ProximityPrompt")
+		newPrompt.ActionText = "Cambiar"
+		newPrompt.ObjectText = kind.label
+		newPrompt.KeyboardKeyCode = Enum.KeyCode.E
+		newPrompt.HoldDuration = 0.25
+		newPrompt.MaxActivationDistance = 8
+		newPrompt.RequiresLineOfSight = false
+		newPrompt.Parent = pad
+		newPrompt.Triggered:Connect(function(player)
+			tryGive(player.Character, true)
+		end)
+		prompt = newPrompt
+	end
 end
 
 function PickupService.Start(map: Instance)
