@@ -49,7 +49,8 @@ local Modes = {
 	-- Asesino en solitario: todos contra todos
 	FreeForAll = {
 		name = "Asesino en solitario",
-		scoreToWin = 30,
+		scoreToWin = 30, -- con muchos jugadores
+		minScoreToWin = 15, -- con pocos jugadores
 		timeLimit = 600,
 		teams = false,
 		vehicles = false,

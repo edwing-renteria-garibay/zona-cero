@@ -1,15 +1,15 @@
 # 18. Meta de bajas según los jugadores
 
-En Asesino por equipos, SWAT y SWAT explosivo la meta ya no es siempre 50 bajas: depende de
-cuántos jugadores hay cuando empieza la partida.
+En Asesino por equipos, SWAT, SWAT explosivo y Asesino en solitario la meta de bajas ya no es
+fija: depende de cuántos jugadores hay cuando empieza la partida.
 
-| Jugadores al empezar | Meta |
-| --- | --- |
-| 10 o menos | 25 |
-| 15 | 30 |
-| 20 | 40 |
-| 25 | 45 |
-| 30 o más | 50 |
+| Jugadores al empezar | Por equipos y SWAT | En solitario |
+| --- | --- | --- |
+| 10 o menos | 25 | 15 |
+| 15 | 30 | 20 |
+| 20 | 40 | 25 |
+| 25 | 45 | 25 |
+| 30 o más | 50 | 30 |
 
 ## Dónde se configura
 
@@ -26,8 +26,7 @@ Y en `Modes.Common` está cuántos jugadores son "pocos" y cuántos "muchos":
 scaleScore = { lowPlayers = 10, highPlayers = 30 },
 ```
 
-Si un modo no tiene `minScoreToWin`, su meta es siempre `scoreToWin` (por ejemplo, Asesino en
-solitario se queda en 30). Si quieres que otro modo también se ajuste, solo agrégale
+Si un modo no tiene `minScoreToWin`, su meta es siempre `scoreToWin`. Si quieres que otro modo también se ajuste, solo agrégale
 `minScoreToWin`.
 
 ## Cómo se calcula
