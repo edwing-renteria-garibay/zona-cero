@@ -74,7 +74,26 @@ En `updateJeep`, cada llanta ponchada quita un 20 % de velocidad, y cada delante
 
 La barra sobre el jeep es un `BillboardGui`: una interfaz que flota en el mundo 3D pegada a una pieza. El servidor cambia el ancho y el color de la barra con cada daño, y todos los jugadores lo ven.
 
-## 7. Prueba a cambiar cosas
+## 7. Carrocería, sonido y atropellar
+
+**Carrocería.** `buildBody` arma el jeep con piezas de adorno: capó con cresta, parrilla, faros y calaveras de neón, defensas gruesas con tubo de empuje, guardafangos, parabrisas, jaula antivuelco y llanta de refacción. Cada llanta tiene un rin de metal. Las piezas de adorno se crean con `addDetail`, que les quita la colisión (`CanCollide = false`): solo el chasis y las llantas chocan, así que el adorno no cambia cómo se maneja. Las balas sí les pegan y dañan al jeep. El vidrio tiene `CanQuery = false` para que no estorbe al apuntar desde adentro.
+
+**Sonido.** `addSounds` pone dos sonidos en el chasis (`Config/Sounds.luau`, `vehicle`):
+
+- `Start` suena cuando se sube el conductor (se escucha el cambio de `Occupant` del asiento).
+- `Engine` se repite (`Looped`) mientras hay conductor. En `updateJeep` su volumen sube con la velocidad (parado no suena) y su `PlaybackSpeed` también, así el motor se oye más agudo al ir rápido.
+
+Como el servidor los toca, todos los oyen desde el jeep.
+
+**Atropellar.** En cada fotograma, si el jeep tiene conductor y va a más de `runOver.minSpeed`, `runOver` busca personajes en una caja un poco más grande que el chasis (`GetPartBoundsInBox`). A cada enemigo que encuentra:
+
+1. Le quita `runOver.damage` (80: primero el escudo, luego la vida), pero **nunca lo mata**: siempre le deja al menos 1 de vida.
+2. Suena el golpe (`Sounds.vehicle.runOver`).
+3. Lo avienta hacia donde va el jeep y hacia su lado, con el mismo `Knockback` que usa el pollo de hule. Así sale volando antes de que el jeep se le suba encima.
+
+A la misma persona no se le puede volver a atropellar hasta pasado `runOver.cooldown` (1 segundo). A los compañeros del conductor no les pasa nada.
+
+## 8. Prueba a cambiar cosas
 
 En `src/shared/Config/Vehicles.luau`:
 
@@ -82,5 +101,6 @@ En `src/shared/Config/Vehicles.luau`:
 - Cambia `turnRate` a 3 para que gire más cerrado.
 - Baja `health` a 100 para probar la explosión sin disparar tanto.
 - Baja `tireHealth` a 20 para poncharlas con 3 disparos.
+- Sube `runOver.damage` a 150 para que atropellar duela más (sigue sin matar).
 
 Para que los jeeps aparezcan en otro lugar, crea en Workspace una carpeta `VehicleSpawns` con una pieza por jeep, orientada hacia donde debe mirar el jeep.

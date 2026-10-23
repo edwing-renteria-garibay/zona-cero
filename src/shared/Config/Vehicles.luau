@@ -22,6 +22,16 @@ local Vehicles = {
 		blastDamage = 250,
 		blastInnerRadius = 6,
 		blastRadius = 16,
+		-- Atropellar: a partir de minSpeed (studs por segundo), un enemigo que toca el jeep
+		-- pierde damage (primero el escudo, luego la vida) y sale volando con fuerza
+		-- knockback. Nunca lo mata: siempre le deja al menos 1 de vida. A la misma persona
+		-- solo se le puede volver a atropellar después de cooldown segundos.
+		runOver = {
+			minSpeed = 15,
+			damage = 80,
+			knockback = 45,
+			cooldown = 1,
+		},
 		-- La ametralladora de la torreta no gasta munición
 		turret = {
 			damage = 10,

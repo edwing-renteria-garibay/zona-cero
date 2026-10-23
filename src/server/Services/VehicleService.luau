@@ -9,11 +9,13 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local Vehicles = require(ReplicatedStorage.Shared.Config.Vehicles)
 local ExplosionService = require(script.Parent.ExplosionService)
 local HealthService = require(script.Parent.HealthService)
 
 local stats = Vehicles.TurretJeep
+local knockbackRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Knockback") :: RemoteEvent
 
 -- Dónde aparecen los jeeps si el mapa no tiene una carpeta Workspace.VehicleSpawns
 local DEFAULT_SPAWNS = {
@@ -22,7 +24,9 @@ local DEFAULT_SPAWNS = {
 }
 
 local OLIVE = Color3.fromRGB(85, 92, 60)
+local OLIVE_DARK = Color3.fromRGB(64, 70, 46)
 local DARK = Color3.fromRGB(35, 35, 35)
+local STEEL = Color3.fromRGB(120, 124, 128)
 
 local VehicleService = {}
 
@@ -30,6 +34,7 @@ local jeeps: { [Model]: boolean } = {}
 local spawnPoints: { CFrame } = {} -- dónde aparece cada jeep
 local vehiclesEnabled = true
 local spawnGeneration = 0 -- cambia cada vez que se apagan o prenden los jeeps
+local lastRunOver: { [Humanoid]: number } = setmetatable({}, { __mode = "k" }) :: any -- cuándo atropellaron a cada quien por última vez
 
 -- Crea una pieza soldada al chasis. offset es su posición relativa al chasis
 local function addPart(model: Model, chassis: BasePart, props: { [string]: any }, offset: CFrame): BasePart
@@ -46,6 +51,111 @@ local function addPart(model: Model, chassis: BasePart, props: { [string]: any }
 	weld.Parent = part
 	part.Parent = model
 	return part
+end
+
+-- Una pieza de adorno: no choca con nada (solo el chasis y las llantas chocan), así la
+-- forma del jeep no cambia cómo se maneja. Las balas sí le pegan y dañan al jeep.
+local function addDetail(model: Model, chassis: BasePart, props: { [string]: any }, offset: CFrame): BasePart
+	props.Material = props.Material or Enum.Material.Metal
+	local part = addPart(model, chassis, props, offset)
+	part.CanCollide = false
+	part.CanTouch = false
+	return part
+end
+
+-- La carrocería: capó, defensas, guardafangos, parabrisas, jaula antivuelco y luces.
+-- El frente del jeep es su lado -Z
+local function buildBody(model: Model, chassis: BasePart)
+	local function box(size: Vector3, color: Color3, offset: CFrame, extra: { [string]: any }?): BasePart
+		local props: { [string]: any } = { Size = size, Color = color }
+		if extra then
+			for key, value in extra do
+				props[key] = value
+			end
+		end
+		return addDetail(model, chassis, props, offset)
+	end
+	local plate = { Material = Enum.Material.DiamondPlate }
+
+	-- Capó, con una cresta al centro, y la parrilla al frente
+	box(Vector3.new(6.6, 1.2, 3), OLIVE, CFrame.new(0, 1.35, -3.8))
+	box(Vector3.new(2, 0.3, 3), OLIVE_DARK, CFrame.new(0, 2.05, -3.8))
+	box(Vector3.new(6, 1.6, 0.3), DARK, CFrame.new(0, 0.95, -5.45), plate)
+	-- Faros y calaveras
+	for _, x in { -2.3, 2.3 } do
+		box(Vector3.new(1, 0.6, 0.2), Color3.fromRGB(255, 244, 214), CFrame.new(x, 1.35, -5.65), {
+			Material = Enum.Material.Neon,
+		})
+	end
+	for _, x in { -3, 3 } do
+		box(Vector3.new(0.8, 0.5, 0.2), Color3.fromRGB(200, 30, 30), CFrame.new(x, 1.1, 5.65), {
+			Material = Enum.Material.Neon,
+		})
+	end
+	-- Defensas gruesas: la de enfrente con tubo de empuje
+	box(Vector3.new(7.6, 0.9, 0.9), DARK, CFrame.new(0, -0.2, -6), plate)
+	box(Vector3.new(7.6, 0.9, 0.9), DARK, CFrame.new(0, -0.2, 6), plate)
+	for _, x in { -1.8, 1.8 } do
+		box(Vector3.new(0.4, 2, 0.4), DARK, CFrame.new(x, 0.9, -6.2))
+	end
+	box(Vector3.new(4, 0.4, 0.4), DARK, CFrame.new(0, 1.9, -6.2))
+	-- Costados, panel de atrás y guardafangos sobre cada llanta
+	for _, x in { -3.55, 3.55 } do
+		box(Vector3.new(0.3, 1.2, 6), OLIVE, CFrame.new(x, 1.35, 1.5))
+		for _, z in { -3.8, 3.8 } do
+			box(Vector3.new(2.2, 0.5, 4.2), OLIVE_DARK, CFrame.new(x * 1.1, 1.25, z))
+		end
+	end
+	box(Vector3.new(7, 1.4, 0.3), OLIVE, CFrame.new(0, 1.45, 5.45))
+	-- Llanta de refacción atrás
+	addDetail(model, chassis, {
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(1.2, 2.8, 2.8),
+		Color = DARK,
+		Material = Enum.Material.Rubber,
+	}, CFrame.new(0, 1.8, 6.25) * CFrame.Angles(0, math.pi / 2, 0))
+	-- Parabrisas: marco y vidrio (los rayos lo atraviesan para que no estorbe al apuntar)
+	for _, x in { -3.1, 3.1 } do
+		box(Vector3.new(0.3, 2.2, 0.3), DARK, CFrame.new(x, 2.85, -2.2))
+	end
+	box(Vector3.new(6.5, 0.3, 0.3), DARK, CFrame.new(0, 3.95, -2.2))
+	local glass = box(Vector3.new(5.9, 1.9, 0.15), Color3.fromRGB(150, 180, 190), CFrame.new(0, 2.8, -2.2), {
+		Material = Enum.Material.Glass,
+		Transparency = 0.6,
+	})
+	glass.CanQuery = false
+	-- Jaula antivuelco detrás de los asientos: dos postes y la barra de arriba
+	for _, x in { -3.1, 3.1 } do
+		box(Vector3.new(0.4, 2.75, 0.4), DARK, CFrame.new(x, 2.1, 1))
+	end
+	box(Vector3.new(6.6, 0.4, 0.4), DARK, CFrame.new(0, 3.5, 1))
+end
+
+-- El motor: un sonido que se repite mientras hay conductor (updateJeep ajusta qué tan
+-- fuerte y agudo suena), y el arranque cuando se sube el conductor
+local function addSounds(model: Model, chassis: BasePart)
+	local engine = Instance.new("Sound")
+	engine.Name = "Engine"
+	engine.SoundId = Sounds.vehicle.engine
+	engine.Looped = true
+	engine.Volume = 0
+	engine.RollOffMaxDistance = 250
+	engine.Parent = chassis
+	local start = Instance.new("Sound")
+	start.Name = "Start"
+	start.SoundId = Sounds.vehicle.start
+	start.RollOffMaxDistance = 200
+	start.Parent = chassis
+
+	local seat = model:FindFirstChild("DriverSeat") :: VehicleSeat
+	seat:GetPropertyChangedSignal("Occupant"):Connect(function()
+		if seat.Occupant then
+			start:Play()
+			engine:Play()
+		else
+			engine:Stop()
+		end
+	end)
 end
 
 local function buildJeep(spawnCFrame: CFrame): Model
@@ -69,7 +179,7 @@ local function buildJeep(spawnCFrame: CFrame): Model
 	local wheelProps = function()
 		return {
 			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(1.2, 3, 3),
+			Size = Vector3.new(1.4, 3.4, 3.4),
 			Color = DARK,
 			Material = Enum.Material.Rubber,
 			CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0),
@@ -82,24 +192,19 @@ local function buildJeep(spawnCFrame: CFrame): Model
 			wheel.Name = "Wheel"
 			wheel:SetAttribute("TireHealth", stats.tireHealth)
 			wheel:SetAttribute("Front", z < 0)
+			-- Rin de metal, un poco más ancho que la llanta para que se vea de los dos lados
+			addDetail(model, chassis, {
+				Shape = Enum.PartType.Cylinder,
+				Size = Vector3.new(1.5, 1.5, 1.5),
+				Color = STEEL,
+				Material = Enum.Material.DiamondPlate,
+			}, CFrame.new(x, -0.8, z))
 		end
 	end
 	model:SetAttribute("FlatTires", 0)
 	model:SetAttribute("FlatFrontTires", 0)
 
-	-- Carrocería: capó delante y barra antivuelco detrás de los asientos
-	addPart(
-		model,
-		chassis,
-		{ Size = Vector3.new(6.6, 1.2, 3), Color = OLIVE, Material = Enum.Material.Metal },
-		CFrame.new(0, 1.35, -3.8)
-	)
-	addPart(
-		model,
-		chassis,
-		{ Size = Vector3.new(6.6, 0.4, 0.4), Color = DARK, Material = Enum.Material.Metal },
-		CFrame.new(0, 3.5, 1)
-	)
+	buildBody(model, chassis)
 
 	-- Asientos. El frente de un asiento es su lado -Z, igual que el del chasis
 	addPart(model, chassis, {
@@ -171,6 +276,8 @@ local function buildJeep(spawnCFrame: CFrame): Model
 	steering.MaxTorque = 1e7
 	steering.AngularVelocity = Vector3.zero
 	steering.Parent = chassis
+
+	addSounds(model, chassis)
 
 	-- Barra de vida sobre el jeep, visible para todos los jugadores cercanos
 	local billboard = Instance.new("BillboardGui")
@@ -287,7 +394,7 @@ local function damageTire(model: Model, wheel: BasePart, amount: number)
 	if tireHealth > 0 then
 		return
 	end
-	wheel.Size = Vector3.new(1.2, 2.3, 2.3)
+	wheel.Size = Vector3.new(1.4, 2.6, 2.6)
 	wheel.Color = Color3.fromRGB(70, 70, 70)
 	model:SetAttribute("FlatTires", (model:GetAttribute("FlatTires") :: number) + 1)
 	if wheel:GetAttribute("Front") then
@@ -360,6 +467,57 @@ function VehicleService.Spawn(spawnCFrame: CFrame): Model
 	return model
 end
 
+-- ¿Son enemigos? (en los modos sin equipos, todos lo son)
+local function areEnemies(a: Player, b: Player): boolean
+	return a ~= b and (a.Neutral or b.Neutral or a.Team ~= b.Team)
+end
+
+-- Atropellar: los enemigos que toca el jeep yendo rápido pierden vida (sin morir) y salen
+-- volando hacia donde va el jeep. Se buscan con una caja un poco más grande que el chasis,
+-- así se les avienta antes de que el jeep se les suba encima.
+local function runOver(model: Model, driver: Player, speed: number)
+	local chassis = model.PrimaryPart :: BasePart
+	local params = OverlapParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { model }
+	local area = chassis.CFrame * CFrame.new(0, 1, 0)
+	local now = os.clock()
+	local hit: { [Humanoid]: boolean } = {}
+	for _, part in workspace:GetPartBoundsInBox(area, Vector3.new(8.5, 5, 14), params) do
+		local character = part.Parent
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		local victim = humanoid and Players:GetPlayerFromCharacter(character)
+		if
+			humanoid
+			and victim
+			and not hit[humanoid]
+			and humanoid.Health > 0
+			and not humanoid.SeatPart
+			and areEnemies(driver, victim)
+			and now - (lastRunOver[humanoid] or 0) >= stats.runOver.cooldown
+		then
+			hit[humanoid] = true
+			lastRunOver[humanoid] = now
+			-- Nunca lo mata: le deja al menos 1 de vida
+			local shield = (character :: Model):GetAttribute("Shield") or 0
+			local amount = math.min(stats.runOver.damage, shield + humanoid.Health - 1)
+			if amount > 0 then
+				HealthService.Damage(humanoid, amount, driver, "jeep")
+			end
+			ExplosionService.PlaySoundAt(Sounds.vehicle.runOver, chassis.Position)
+			-- Lo avienta hacia donde va el jeep y hacia un lado (el lado donde ya estaba)
+			local forward = chassis.CFrame.LookVector * math.sign(speed)
+			local side = chassis.CFrame.RightVector
+			local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if root and chassis.CFrame:PointToObjectSpace(root.Position).X < 0 then
+				side = -side
+			end
+			local push = Vector3.new(forward.X + side.X, 0, forward.Z + side.Z).Unit * stats.runOver.knockback
+			knockbackRemote:FireClient(victim, push + Vector3.yAxis * stats.runOver.knockback * 0.5)
+		end
+	end
+end
+
 -- Cada fotograma: leer el asiento del conductor y ajustar el motor
 local function updateJeep(model: Model)
 	local chassis = model.PrimaryPart :: BasePart
@@ -389,6 +547,20 @@ local function updateJeep(model: Model)
 	local speed = chassis.AssemblyLinearVelocity:Dot(chassis.CFrame.LookVector)
 	local turnFactor = math.clamp(math.abs(speed) / 12, 0, 1) * math.sign(speed)
 	steering.AngularVelocity = Vector3.new(0, -steer * stats.turnRate * turnScale * turnFactor, 0)
+
+	-- El motor suena más fuerte y más agudo mientras más rápido vas; parado no suena
+	local engine = chassis:FindFirstChild("Engine") :: Sound?
+	if engine then
+		local pace = math.clamp(math.abs(speed) / stats.maxSpeed, 0, 1)
+		engine.Volume = math.clamp(math.abs(speed) / 8, 0, 1) * 0.7
+		engine.PlaybackSpeed = 0.85 + 0.4 * pace
+	end
+
+	local driverHumanoid = seat.Occupant
+	local driver = driverHumanoid and Players:GetPlayerFromCharacter(driverHumanoid.Parent)
+	if driver and math.abs(speed) >= stats.runOver.minSpeed then
+		runOver(model, driver, speed)
+	end
 end
 
 -- Hay jeeps o no, según el modo (vehicles = false en Config/Modes). Al apagarlos se quitan
