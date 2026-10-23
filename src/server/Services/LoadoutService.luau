@@ -37,11 +37,11 @@ function LoadoutService.SetupCharacter(player: Player)
 	if not backpack then
 		return
 	end
-	-- Los zombis de Infección no llevan armas
+	-- Los zombis de Infección no llevan armas. En modo de prueba, todas las armas (menos en los
+	-- modos sin armas de fuego)
 	local testing = Modes.Testing
 	local loadout = if player:GetAttribute("Side") == "Zombie"
-		then {}		-- Modo de prueba: todas las armas (menos en los modos sin armas de fuego)
-
+		then {}
 		elseif testing.enabled and testing.loadout and not rules.testingKeepsLoadout then testing.loadout
 		else rules.loadout or Modes.Common.loadout
 	for _, name in loadout do

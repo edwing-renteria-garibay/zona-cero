@@ -76,9 +76,9 @@ local Modes = {
 		grenades = 0,
 		pickups = false,
 	},
-	-- Lluvia de Simis: sin armas; se lanzan Doctores Simi infinitos (G) y se puede golpear
+	-- Lluvia de SimiOs: sin armas; se lanzan Doctores SimiO infinitos (G) y se puede golpear
 	SimiRain = {
-		name = "Lluvia de Simis",
+		name = "Lluvia de SimiOs",
 		scoreToWin = 50, -- con muchos jugadores (ver scaleScore en Common)
 		minScoreToWin = 25, -- con pocos jugadores
 		timeLimit = 600,
@@ -203,7 +203,7 @@ Modes.Testing = {
 -- pickups = false (sin objetos en el mapa), vehicles = false (sin jeeps),
 -- infiniteAmmo = true (repuesto infinito), headshotKills = true (la cabeza mata de un tiro),
 -- infiniteGrenades = true (las granadas no se acaban), grenadeStyle = "Simi" (se lanza un
--- Doctor Simi en vez de granada), testingKeepsLoadout = true (el modo de prueba respeta su loadout)
+-- Doctor SimiO en vez de granada), testingKeepsLoadout = true (el modo de prueba respeta su loadout)
 Modes.Common = {
 	loadout = { "AssaultRifle", "Pistol" },
 	respawnDelay = 5, -- segundos muerto antes de reaparecer

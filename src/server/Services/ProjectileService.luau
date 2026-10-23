@@ -4,7 +4,7 @@
 -- Cohete: el servidor lo mueve en cada paso de la simulación (Heartbeat) y hace un
 -- raycast corto desde donde está hasta donde va a estar. Si toca algo, explota ahí.
 -- Granada: una bola con física real de Roblox; explota al chocar con algo o al acabarse la mecha.
--- En "Lluvia de Simis" (rules.grenadeStyle = "Simi") se lanza un muñeco de Doctor Simi.
+-- En "Lluvia de SimiOs" (rules.grenadeStyle = "Simi") se lanza un muñeco de Doctor SimiO.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -151,19 +151,23 @@ local function simiPart(name: string, size: Vector3, color: Color3, ball: boolea
 	return part
 end
 
--- El Doctor Simi: cuerpo de bata blanca, cabeza, pelo y bigote blancos, ojitos y corbata.
--- Las medidas son desde el centro del cuerpo; Z negativo = su frente.
-local SKIN = Color3.fromRGB(240, 200, 165)
+-- El Doctor SimiO: cuerpo de doctor (bata blanca y corbata) con cara de chango: cabeza de
+-- pelo café, cara clara, orejas, ojitos y nariz. Las medidas son desde el centro del cuerpo;
+-- Z negativo = su frente.
+local FUR = Color3.fromRGB(110, 70, 40)
+local FACE = Color3.fromRGB(225, 185, 140)
 local COAT = Color3.fromRGB(245, 245, 245)
-local HAIR = Color3.fromRGB(235, 235, 235)
 local DARK = Color3.fromRGB(30, 30, 35)
 local TIE = Color3.fromRGB(40, 90, 190)
 local SIMI_PARTS = {
-	{ "Head", Vector3.one * 1.0, SKIN, true, CFrame.new(0, 0.95, 0) },
-	{ "Hair", Vector3.one * 1.04, HAIR, true, CFrame.new(0, 1.08, 0.14) },
-	{ "Mustache", Vector3.new(0.55, 0.14, 0.16), HAIR, false, CFrame.new(0, 0.8, -0.46) },
-	{ "LeftEye", Vector3.one * 0.12, DARK, true, CFrame.new(-0.17, 1.02, -0.45) },
-	{ "RightEye", Vector3.one * 0.12, DARK, true, CFrame.new(0.17, 1.02, -0.45) },
+	{ "Head", Vector3.one * 1.0, FUR, true, CFrame.new(0, 0.95, 0) },
+	{ "Face", Vector3.new(0.7, 0.6, 0.4), FACE, true, CFrame.new(0, 0.9, -0.32) },
+	{ "Snout", Vector3.new(0.5, 0.32, 0.3), FACE, true, CFrame.new(0, 0.78, -0.5) },
+	{ "Nose", Vector3.new(0.16, 0.08, 0.06), DARK, false, CFrame.new(0, 0.84, -0.66) },
+	{ "LeftEar", Vector3.new(0.12, 0.34, 0.34), FACE, true, CFrame.new(-0.55, 0.98, 0) },
+	{ "RightEar", Vector3.new(0.12, 0.34, 0.34), FACE, true, CFrame.new(0.55, 0.98, 0) },
+	{ "LeftEye", Vector3.one * 0.12, DARK, true, CFrame.new(-0.15, 1.04, -0.5) },
+	{ "RightEye", Vector3.one * 0.12, DARK, true, CFrame.new(0.15, 1.04, -0.5) },
 	{ "Tie", Vector3.new(0.16, 0.45, 0.08), TIE, false, CFrame.new(0, 0.2, -0.66) },
 	{
 		"LeftArm",
@@ -179,12 +183,14 @@ local SIMI_PARTS = {
 		false,
 		CFrame.new(0.72, 0, 0) * CFrame.Angles(0, 0, math.rad(20)),
 	},
+	{ "LeftHand", Vector3.one * 0.24, FUR, true, CFrame.new(-0.84, -0.3, 0) },
+	{ "RightHand", Vector3.one * 0.24, FUR, true, CFrame.new(0.84, -0.3, 0) },
 	{ "LeftLeg", Vector3.new(0.3, 0.32, 0.34), DARK, false, CFrame.new(-0.28, -0.72, 0) },
 	{ "RightLeg", Vector3.new(0.3, 0.32, 0.34), DARK, false, CFrame.new(0.28, -0.72, 0) },
 }
 
 local function makeSimi(cframe: CFrame): BasePart
-	local body = simiPart("DoctorSimi", Vector3.one * 1.4, COAT, true)
+	local body = simiPart("DoctorSimiO", Vector3.one * 1.4, COAT, true)
 	body.CanCollide = true
 	body.CanTouch = true
 	body.Massless = false
@@ -286,9 +292,9 @@ end
 -- Cada vida empieza con las granadas de Config/Grenades (o las que diga el modo)
 function ProjectileService.SetupCharacter(character: Model)
 	character:SetAttribute("Grenades", Rules.current.grenades or Grenades.count)
-	-- Para el HUD: "Simis ∞" en vez de "Granadas 2"
+	-- Para el HUD: "SimiOs ∞" en vez de "Granadas 2"
 	character:SetAttribute("InfiniteGrenades", Rules.current.infiniteGrenades or nil)
-	character:SetAttribute("GrenadeName", if Rules.current.grenadeStyle == "Simi" then "Simis" else nil)
+	character:SetAttribute("GrenadeName", if Rules.current.grenadeStyle == "Simi" then "SimiOs" else nil)
 end
 
 function ProjectileService.Start()

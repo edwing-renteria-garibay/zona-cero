@@ -7,7 +7,7 @@ en la rotación aleatoria (`randomPool`).
 | --- | --- | --- |
 | A puño limpio | `Brawl` | Solo golpes (clic o F) |
 | Pollos y machetes | `MeleeWeapons` | Machete (tecla 1) y pollo de hule (tecla 2) |
-| Lluvia de Simis | `SimiRain` | Doctores Simi infinitos (G) y golpes |
+| Lluvia de SimiOs | `SimiRain` | Doctores SimiO infinitos (G) y golpes |
 
 Los tres van sin escudo, sin jeeps y sin objetos en el mapa.
 
@@ -21,11 +21,11 @@ testingKeepsLoadout = true, -- el modo de prueba no le da las 9 armas
 grenades = 0, -- sin granadas
 ```
 
-Y en Lluvia de Simis:
+Y en Lluvia de SimiOs:
 
 ```lua
 infiniteGrenades = true, -- lanzar no gasta
-grenadeStyle = "Simi", -- en vez de la granada sale un Doctor Simi
+grenadeStyle = "Simi", -- en vez de la granada sale un Doctor SimiO
 ```
 
 ## Golpear con clic
@@ -60,15 +60,15 @@ En Roblox, tu personaje lo mueve tu propia computadora (es su "dueño de red"). 
 cambia su velocidad, tu computadora la vuelve a escribir y el empujón no se nota. Por eso el
 servidor le manda al golpeado el aviso `Knockback`, y su cliente salta y sale volando.
 
-## El Doctor Simi
+## El Doctor SimiO
 
 Está en `ProjectileService.luau` (`makeSimi`). Son piezas soldadas al cuerpo con
-`WeldConstraint`: bata blanca, cabeza, pelo y bigote blancos, ojos y corbata. Solo el cuerpo
+`WeldConstraint`: cuerpo de doctor (bata blanca y corbata) y cara de chango (cabeza café,
+cara clara, orejas, ojos y nariz). Solo el cuerpo
 choca con las cosas. Al lanzarlo da maromas (`AssemblyAngularVelocity`) y explota igual que una
 granada. Sus valores están en `Config/Grenades.luau`, en `simi`.
 
 ## Sonidos
 
-- `Sounds.melee.RubberChicken`: el sonido al pegar con el pollo. Está vacío; pon ahí el ID que
-  quieras.
-- `Sounds.explosion.simi`: la explosión del Simi. Por ahora es la de la granada.
+- `Sounds.melee.RubberChicken`: el sonido al pegar con el pollo.
+- `Sounds.explosion.simi`: la explosión del SimiO. Por ahora es la de la granada.

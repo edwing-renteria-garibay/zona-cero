@@ -19,7 +19,7 @@ return {
 		vehicleDamage = 150,
 		sound = "grenade",
 	},
-	-- El Doctor Simi: en el modo "Lluvia de Simis" se lanza en vez de la granada (con G, igual).
+	-- El Doctor SimiO: en el modo "Lluvia de SimiOs" se lanza en vez de la granada (con G, igual).
 	-- Vuela dando vueltas y explota al chocar, como la granada.
 	simi = {
 		spin = 12, -- qué tan rápido da vueltas en el aire
