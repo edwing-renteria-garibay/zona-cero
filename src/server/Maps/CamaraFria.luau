@@ -37,6 +37,7 @@ local DARK = { Color = Color3.fromRGB(44, 50, 58), Material = Enum.Material.Conc
 local CEILING = { Color = Color3.fromRGB(60, 72, 82), Material = Enum.Material.Concrete }
 local PILLAR = { Color = Color3.fromRGB(96, 110, 120), Material = Enum.Material.Concrete }
 local CRATE = { Color = Color3.fromRGB(130, 148, 156), Material = Enum.Material.Concrete }
+local COVER = { Color = Color3.fromRGB(150, 166, 176), Material = Enum.Material.Concrete }
 local GLOW = { Color = Color3.fromRGB(170, 225, 255), Material = Enum.Material.Neon }
 
 local HALF_LENGTH = 140 -- del centro a los muros de las bases, por dentro
@@ -181,8 +182,20 @@ local function cover(half, position: Vector3, depth: number)
 		"Cover",
 		Vector3.new(COVER_TOP, COVER_HEIGHT, depth),
 		position + Vector3.new(0, COVER_HEIGHT / 2, 0),
-		DARK
+		COVER
 	)
+	-- Franja de luz arriba, a lo largo, para que se vea en la penumbra
+	local strip = half.add(
+		"CoverLight",
+		Vector3.new(0.6, 0.2, depth - 1),
+		position + Vector3.new(0, COVER_HEIGHT + 0.1, 0),
+		GLOW
+	)
+	local light = Instance.new("PointLight")
+	light.Color = GLOW.Color
+	light.Range = 14
+	light.Brightness = 1.5
+	light.Parent = strip
 	-- Una cuña de Roblox baja hacia su frente (-Z). Girada 90° su frente mira a -X, y -90° a +X
 	for _, dir in { -1, 1 } do
 		local wedge = Instance.new("WedgePart")
@@ -191,8 +204,8 @@ local function cover(half, position: Vector3, depth: number)
 		wedge.Size = Vector3.new(depth, COVER_HEIGHT, COVER_SLOPE)
 		local spot = position + Vector3.new(dir * (COVER_TOP + COVER_SLOPE) / 2, COVER_HEIGHT / 2, 0)
 		wedge.CFrame = half.place(CFrame.new(spot) * CFrame.Angles(0, -dir * math.pi / 2, 0))
-		wedge.Color = DARK.Color
-		wedge.Material = DARK.Material
+		wedge.Color = COVER.Color
+		wedge.Material = COVER.Material
 		wedge.Parent = middle.Parent
 	end
 end
