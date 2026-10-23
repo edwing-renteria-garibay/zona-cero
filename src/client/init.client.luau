@@ -1,4 +1,4 @@
--- Punto de entrada del cliente: arranca la cámara, el arma en primera persona, los controles de armas, golpe, granada y jeep, el HUD, la mira
+-- Punto de entrada del cliente: arranca la cámara, el arma en primera persona, la mira y el láser de algunas armas, los controles de armas, golpe, granada y jeep, el HUD, la mira
 -- los avisos de daño (números, barras sobre la cabeza), el marcador, el registro de bajas
 -- la pantalla de resultados y lo que se ve en Infección.
 
@@ -6,6 +6,7 @@ local CameraController = require(script.Controllers.CameraController)
 local GrenadeController = require(script.Controllers.GrenadeController)
 local MeleeController = require(script.Controllers.MeleeController)
 local VehicleController = require(script.Controllers.VehicleController)
+local SpecialWeapons = require(script.Controllers.SpecialWeapons)
 local ViewModel = require(script.Controllers.ViewModel)
 local WeaponController = require(script.Controllers.WeaponController)
 local Crosshair = require(script.UI.Crosshair)
@@ -19,6 +20,7 @@ local Scoreboard = require(script.UI.Scoreboard)
 
 CameraController.Start()
 ViewModel.Start()
+SpecialWeapons.Start()
 WeaponController.Start()
 VehicleController.Start()
 MeleeController.Start()

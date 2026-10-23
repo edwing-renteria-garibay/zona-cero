@@ -7,6 +7,13 @@
 -- reserve: balas de repuesto (si no se indica, son infinitas)
 -- pickupRespawn: segundos que tarda en reaparecer en el mapa (armas que se recogen)
 -- Un jugador aguanta 200 en total (100 de escudo + 100 de vida).
+-- kind: cómo dispara, si no es una bala normal:
+--   "pellets" = varios perdigones a la vez (pellets cuántos, spread qué tan abiertos, en grados)
+--   "flame" = llamas de corto alcance en cono (cone en grados) que además queman (burn)
+--   "ion" = marca un punto; tras delay segundos cae un rayo que explota (blast)
+-- beam: cómo se ve el disparo ("laser" verde, "ice" azul); sin beam, una trazadora normal
+-- zoom: campo de visión al apuntar con clic derecho (francotirador)
+-- slow: el disparo ralentiza al enemigo (factor de velocidad y segundos)
 local Weapons = {
 	-- Rifle: rápido pero flojo en el cuerpo (29 balas); en la cabeza, 15
 	AssaultRifle = {
@@ -48,6 +55,94 @@ local Weapons = {
 			radius = 14,
 			vehicleDamage = 350,
 			sound = "rocket",
+		},
+	},
+	-- Escopeta: 8 perdigones; de cerca mata de un tiro (8 x 25 = 200), de lejos casi no hace nada
+	Shotgun = {
+		kind = "pellets",
+		pellets = 8,
+		spread = 6,
+		damage = 25,
+		fireRate = 1.1,
+		magazine = 6,
+		reserve = 18,
+		reloadTime = 2.6,
+		range = 55,
+		pickupRespawn = 60,
+		automatic = false,
+	},
+	-- Lanzallamas: daña a todos los enemigos en un cono corto y los deja quemándose
+	Flamethrower = {
+		kind = "flame",
+		damage = 6,
+		cone = 14,
+		fireRate = 12,
+		magazine = 120,
+		reserve = 120,
+		reloadTime = 3,
+		range = 26,
+		burn = { damagePerSecond = 12, duration = 3 },
+		pickupRespawn = 90,
+		automatic = true,
+	},
+	-- Rayo de energía (estilo SE Ray): instantáneo y preciso; 2 tiros matan
+	LaserRifle = {
+		beam = "laser",
+		damage = 100,
+		headshotMultiplier = 1.5,
+		fireRate = 1.2,
+		magazine = 6,
+		reserve = 12,
+		reloadTime = 2.4,
+		range = 600,
+		pickupRespawn = 90,
+		automatic = false,
+	},
+	-- Francotirador: clic derecho para apuntar con zoom; a la cabeza mata de un tiro
+	Sniper = {
+		damage = 120,
+		headshotMultiplier = 2.5,
+		fireRate = 0.8,
+		magazine = 4,
+		reserve = 12,
+		reloadTime = 3,
+		range = 1000,
+		zoom = 18,
+		pickupRespawn = 90,
+		automatic = false,
+	},
+	-- Arma de hielo: poco daño, pero el enemigo queda lento un rato
+	IceGun = {
+		beam = "ice",
+		damage = 15,
+		headshotMultiplier = 1,
+		fireRate = 3,
+		magazine = 10,
+		reserve = 30,
+		reloadTime = 2,
+		range = 160,
+		slow = { factor = 0.45, duration = 2.5 },
+		pickupRespawn = 60,
+		automatic = false,
+	},
+	-- Cañón de iones: apuntas con el láser, disparas y 1.5 s después cae un rayo del cielo
+	IonCannon = {
+		kind = "ion",
+		beam = "ion",
+		fireRate = 0.4,
+		magazine = 1,
+		reserve = 2,
+		reloadTime = 4,
+		range = 500,
+		delay = 1.5,
+		pickupRespawn = 150,
+		automatic = false,
+		blast = {
+			damage = 250,
+			innerRadius = 5,
+			radius = 14,
+			vehicleDamage = 400,
+			sound = "ion",
 		},
 	},
 }

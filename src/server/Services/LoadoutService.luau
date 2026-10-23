@@ -38,8 +38,10 @@ function LoadoutService.SetupCharacter(player: Player)
 		return
 	end
 	-- Los zombis de Infección no llevan armas
+	local testing = Modes.Testing
 	local loadout = if player:GetAttribute("Side") == "Zombie"
 		then {}
+		elseif testing.enabled and testing.loadout then testing.loadout -- modo de prueba: todas las armas
 		else rules.loadout or Modes.Common.loadout
 	for _, name in loadout do
 		local template = ServerStorage.Weapons:FindFirstChild(name)

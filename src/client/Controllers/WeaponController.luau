@@ -64,7 +64,7 @@ local function tryFire()
 		return
 	end
 	if WeaponController.GetAmmo(tool, stats) <= 0 then
-		Sfx.PlayLocal(Sounds.empty)
+		Sfx.PlayLocal(Sounds.emptyBy[tool.Name] or Sounds.empty)
 		reloadWeapon:FireServer() -- cargador vacío: recarga automática
 		triggerHeld = false -- suelta el gatillo para no pedir la recarga en cada fotograma
 		return
@@ -149,6 +149,61 @@ local function drawImpact(position: Vector3, surface: string?)
 	Debris:AddItem(impact, 0.2)
 end
 
+-- Rayos de energía: más gruesos que una bala y de color (Config/Weapons, beam)
+local BEAMS = {
+	laser = { color = Color3.fromRGB(80, 255, 90), width = 0.3, time = 0.3 },
+	ice = { color = Color3.fromRGB(150, 220, 255), width = 0.22, time = 0.25 },
+	ion = { color = Color3.fromRGB(255, 60, 60), width = 0.08, time = 0.15 },
+}
+
+local function drawBeam(from: Vector3, to: Vector3, style)
+	local length = (to - from).Magnitude
+	local beam = Instance.new("Part")
+	beam.Anchored = true
+	beam.CanCollide = false
+	beam.CanQuery = false
+	beam.CanTouch = false
+	beam.CastShadow = false
+	beam.Material = Enum.Material.Neon
+	beam.Color = style.color
+	beam.Size = Vector3.new(style.width, style.width, length)
+	beam.CFrame = CFrame.lookAt(from, to) * CFrame.new(0, 0, -length / 2)
+	beam.Parent = workspace
+	TweenService:Create(beam, TweenInfo.new(style.time), {
+		Transparency = 1,
+		Size = Vector3.new(style.width * 0.2, style.width * 0.2, length),
+	}):Play()
+	Debris:AddItem(beam, style.time)
+end
+
+-- Llamas: bolas naranjas que salen del arma, crecen y se apagan
+local FLAME_COLORS =
+	{ Color3.fromRGB(255, 200, 80), Color3.fromRGB(255, 120, 30), Color3.fromRGB(230, 70, 20) }
+local function drawFlame(from: Vector3, to: Vector3)
+	for i = 1, 3 do
+		local flame = Instance.new("Part")
+		flame.Shape = Enum.PartType.Ball
+		flame.Anchored = true
+		flame.CanCollide = false
+		flame.CanQuery = false
+		flame.CanTouch = false
+		flame.CastShadow = false
+		flame.Material = Enum.Material.Neon
+		flame.Color = FLAME_COLORS[i]
+		flame.Size = Vector3.one * 0.5
+		flame.Position = from
+		flame.Parent = workspace
+		local time = 0.2 + i * 0.06
+		local spread = Vector3.new(math.random() - 0.5, math.random() - 0.5, math.random() - 0.5) * 2
+		TweenService:Create(flame, TweenInfo.new(time, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+			Position = from:Lerp(to, 0.6 + i * 0.13) + spread,
+			Size = Vector3.one * (1.5 + i),
+			Transparency = 1,
+		}):Play()
+		Debris:AddItem(flame, time)
+	end
+end
+
 local function onShotFired(
 	from: Vector3,
 	to: Vector3,
@@ -160,18 +215,27 @@ local function onShotFired(
 )
 	-- Tus disparos en primera persona salen del arma que ves, no de la que está en tu mano
 	local viewMuzzle = if shooter == player then ViewModel.GetMuzzle() else nil
+	local stats = weaponName and Weapons[weaponName]
+	-- Los perdigones de la escopeta después del primero no suenan ni hacen fogonazo
+	local extraPellet = weaponName == "ShotgunPellet"
 	if viewMuzzle then
 		from = viewMuzzle
-	elseif weaponName ~= "Turret" then
+	elseif weaponName ~= "Turret" and not extraPellet and not (stats and stats.beam) then
 		drawMuzzleFlash(from)
 	end
 	local fireSound = weaponName and Sounds.fire[weaponName]
 	if weaponName and Sounds.burst[weaponName] and source then
 		Sfx.KeepBurst(fireSound, source)
-	else
+	elseif not extraPellet then
 		Sfx.PlayAt(fireSound, from)
 	end
-	drawTracer(from, to)
+	if stats and stats.kind == "flame" then
+		drawFlame(from, to)
+	elseif stats and stats.beam then
+		drawBeam(from, to, BEAMS[stats.beam])
+	else
+		drawTracer(from, to)
+	end
 	if hit then
 		drawImpact(to, surface)
 		-- En el escenario o en un jeep suena el material; en un jugador, el aviso de acierto
@@ -193,6 +257,12 @@ local function connectTool(tool: Instance)
 	end)
 	tool.Unequipped:Connect(function()
 		triggerHeld = false
+	end)
+	-- Sonido de recarga (Config/Sounds, reload): el servidor marca "Reloading" al empezar
+	tool:GetAttributeChangedSignal("Reloading"):Connect(function()
+		if tool:GetAttribute("Reloading") and tool.Parent == player.Character then
+			Sfx.PlayLocal(Sounds.reload[tool.Name])
+		end
 	end)
 end
 
