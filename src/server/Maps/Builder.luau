@@ -161,7 +161,7 @@ export type Half = {
 	wall: (from: Vector3, to: Vector3, height: number, gaps: { { number } }, style: any) -> (),
 	slope: (name: string, low: Vector3, high: Vector3, width: number, style: any) -> Part,
 	pickup: (name: string, position: Vector3, attribute: string, value: string) -> Part,
-	jeep: (position: Vector3) -> (),
+	jeep: (position: Vector3, kind: string?) -> (),
 	flagStand: (position: Vector3) -> Part,
 }
 
@@ -204,17 +204,19 @@ function Builder.half(map: Folder, team): Half
 	function half.pickup(name: string, position: Vector3, attribute: string, value: string): Part
 		return Builder.pickupPad(map, name, half.at(position), attribute, value)
 	end
-	-- Un jeep que aparece aquí, mirando hacia el centro
 	function half.flagStand(position: Vector3): Part
 		return Builder.flagStand(folder, team, half.at(position))
 	end
-	function half.jeep(position: Vector3)
+	-- Un jeep que aparece aquí, mirando hacia el centro. kind es el tipo de jeep
+	-- ("TurretJeep" o "RocketJeep", ver Config/Vehicles); sin él, el de ametralladora
+	function half.jeep(position: Vector3, kind: string?)
 		local marker = Instance.new("Part")
 		marker.Name = "JeepSpawn" .. team.name
 		marker.Anchored = true
 		marker.Size = Vector3.new(8, 1, 12)
 		local world = half.at(position)
 		marker.CFrame = CFrame.lookAt(world, Vector3.new(0, world.Y, world.Z))
+		marker:SetAttribute("Vehicle", kind or "TurretJeep")
 		marker.Parent = workspace:FindFirstChild("VehicleSpawns")
 	end
 	return half

@@ -1,4 +1,4 @@
--- Jeeps con torreta: los construye, los mueve según lo que pulsa el conductor,
+-- Jeeps (con ametralladora o con lanzacohetes): los construye, los mueve según lo que pulsa el conductor,
 -- les quita vida, los hace explotar y los vuelve a aparecer.
 --
 -- Conducción "arcade": en lugar de simular motor y ruedas, dos restricciones de física
@@ -14,13 +14,15 @@ local Vehicles = require(ReplicatedStorage.Shared.Config.Vehicles)
 local ExplosionService = require(script.Parent.ExplosionService)
 local HealthService = require(script.Parent.HealthService)
 
-local stats = Vehicles.TurretJeep
 local knockbackRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Knockback") :: RemoteEvent
 
+-- Dónde aparece un jeep y de qué tipo es ("TurretJeep" o "RocketJeep", ver Config/Vehicles)
+type SpawnPoint = { cframe: CFrame, kind: string }
+
 -- Dónde aparecen los jeeps si el mapa no tiene una carpeta Workspace.VehicleSpawns
-local DEFAULT_SPAWNS = {
-	CFrame.new(25, 3, 0),
-	CFrame.new(-25, 3, 0),
+local DEFAULT_SPAWNS: { SpawnPoint } = {
+	{ cframe = CFrame.new(25, 3, 0), kind = "TurretJeep" },
+	{ cframe = CFrame.new(-25, 3, 0), kind = "TurretJeep" },
 }
 
 local OLIVE = Color3.fromRGB(85, 92, 60)
@@ -31,10 +33,15 @@ local STEEL = Color3.fromRGB(120, 124, 128)
 local VehicleService = {}
 
 local jeeps: { [Model]: boolean } = {}
-local spawnPoints: { CFrame } = {} -- dónde aparece cada jeep
+local spawnPoints: { SpawnPoint } = {} -- dónde aparece cada jeep
 local vehiclesEnabled = true
 local spawnGeneration = 0 -- cambia cada vez que se apagan o prenden los jeeps
 local lastRunOver: { [Humanoid]: number } = setmetatable({}, { __mode = "k" }) :: any -- cuándo atropellaron a cada quien por última vez
+
+-- Los datos (Config/Vehicles) del tipo de jeep que es model
+local function statsOf(model: Model): { [string]: any }
+	return Vehicles[model:GetAttribute("Vehicle") :: string] or Vehicles.TurretJeep
+end
 
 -- Crea una pieza soldada al chasis. offset es su posición relativa al chasis
 local function addPart(model: Model, chassis: BasePart, props: { [string]: any }, offset: CFrame): BasePart
@@ -158,10 +165,65 @@ local function addSounds(model: Model, chassis: BasePart)
 	end)
 end
 
-local function buildJeep(spawnCFrame: CFrame): Model
+-- Lo que gira arriba del jeep: el cañón de la ametralladora o la caja del lanzacohetes.
+-- Se llama "TurretBarrel" en los dos, y su punta (donde salen balas o cohetes) está
+-- 2 studs delante de su centro
+local function buildWeapon(kind: string, mount: BasePart): BasePart
+	local barrel = Instance.new("Part")
+	barrel.Name = "TurretBarrel"
+	barrel.Color = DARK
+	barrel.Material = Enum.Material.Metal
+	barrel.Massless = true
+	barrel.CanCollide = false
+	barrel.CFrame = mount.CFrame * CFrame.new(0, 0, -2)
+	if kind == "RocketJeep" then
+		-- Caja de 6 tubos (3 × 2), con una franja amarilla a los lados para reconocerla de lejos
+		barrel.Size = Vector3.new(2.6, 1.6, 4)
+		barrel.Color = OLIVE_DARK
+		local function attach(props: { [string]: any }, offset: CFrame)
+			local part = Instance.new("Part")
+			for key, value in props do
+				(part :: any)[key] = value
+			end
+			part.Massless = true
+			part.CanCollide = false
+			part.CanTouch = false
+			part.CanQuery = false -- las balas pegan en la caja, no en estos adornos
+			part.CFrame = barrel.CFrame * offset
+			local weld = Instance.new("WeldConstraint")
+			weld.Part0 = barrel
+			weld.Part1 = part
+			weld.Parent = part
+			part.Parent = barrel
+		end
+		for _, x in { -0.8, 0, 0.8 } do
+			for _, y in { -0.38, 0.38 } do
+				attach({
+					Shape = Enum.PartType.Cylinder,
+					Size = Vector3.new(0.3, 0.6, 0.6),
+					Color = Color3.fromRGB(20, 20, 20),
+					Material = Enum.Material.Metal,
+				}, CFrame.new(x, y, -2.05) * CFrame.Angles(0, math.pi / 2, 0))
+			end
+		end
+		for _, x in { -1.32, 1.32 } do
+			attach({
+				Size = Vector3.new(0.1, 0.4, 3.6),
+				Color = Color3.fromRGB(230, 180, 40),
+				Material = Enum.Material.SmoothPlastic,
+			}, CFrame.new(x, 0, 0))
+		end
+	else
+		barrel.Size = Vector3.new(0.5, 0.5, 4)
+	end
+	return barrel
+end
+
+local function buildJeep(spawnCFrame: CFrame, kind: string): Model
+	local stats = Vehicles[kind]
 	local model = Instance.new("Model")
-	model.Name = "TurretJeep"
-	model:SetAttribute("Vehicle", "TurretJeep")
+	model.Name = kind
+	model:SetAttribute("Vehicle", kind)
 	model:SetAttribute("Health", stats.health)
 
 	local chassis = Instance.new("Part")
@@ -228,7 +290,7 @@ local function buildJeep(spawnCFrame: CFrame): Model
 	}, CFrame.new(0, 1.75, 3.6))
 	turretSeat:SetAttribute("Turret", true)
 
-	-- Torreta: una base fija y un cañón que gira (Weld con C0 que cambiamos al apuntar)
+	-- Torreta: una base fija y un arma que gira (Weld con C0 que cambiamos al apuntar)
 	-- Va delante de la cabeza del artillero, por encima de la barra antivuelco
 	local mount = addPart(model, chassis, {
 		Name = "TurretMount",
@@ -237,14 +299,7 @@ local function buildJeep(spawnCFrame: CFrame): Model
 		Material = Enum.Material.Metal,
 		CanCollide = false,
 	}, CFrame.new(0, 4.4, 2.2))
-	local barrel = Instance.new("Part")
-	barrel.Name = "TurretBarrel"
-	barrel.Size = Vector3.new(0.5, 0.5, 4)
-	barrel.Color = DARK
-	barrel.Material = Enum.Material.Metal
-	barrel.Massless = true
-	barrel.CanCollide = false
-	barrel.CFrame = mount.CFrame * CFrame.new(0, 0, -2)
+	local barrel = buildWeapon(kind, mount)
 	local turretWeld = Instance.new("Weld")
 	turretWeld.Name = "TurretWeld"
 	turretWeld.Part0 = mount
@@ -338,12 +393,14 @@ local function canDamage(model: Model, attacker: Player?): boolean
 end
 
 -- La explosión del jeep, en el formato de ExplosionService
-local jeepBlast: ExplosionService.Blast = {
-	damage = stats.blastDamage,
-	innerRadius = stats.blastInnerRadius,
-	radius = stats.blastRadius,
-	sound = "jeep",
-}
+local function jeepBlast(stats): ExplosionService.Blast
+	return {
+		damage = stats.blastDamage,
+		innerRadius = stats.blastInnerRadius,
+		radius = stats.blastRadius,
+		sound = "jeep",
+	}
+end
 
 local function explode(model: Model, attacker: Player?)
 	local chassis = model.PrimaryPart :: BasePart
@@ -355,18 +412,23 @@ local function explode(model: Model, attacker: Player?)
 		end
 	end
 	local center = chassis.Position
-	local spawnCFrame = model:GetAttribute("SpawnCFrame") :: CFrame
+	local stats = statsOf(model)
+	local spawnPoint = {
+		cframe = model:GetAttribute("SpawnCFrame") :: CFrame,
+		kind = model:GetAttribute("Vehicle") :: string,
+	}
 	jeeps[model] = nil
 	model:Destroy()
 
 	-- Daño a quien esté cerca, y a otros jeeps (puede haber explosiones en cadena)
-	ExplosionService.Blast(center, attacker, jeepBlast)
-	VehicleService.BlastVehicles(center, attacker, jeepBlast)
+	local blast = jeepBlast(stats)
+	ExplosionService.Blast(center, attacker, blast)
+	VehicleService.BlastVehicles(center, attacker, blast)
 	local generation = spawnGeneration
 	task.delay(stats.respawnTime, function()
 		-- Si mientras tanto se apagaron o reiniciaron los jeeps, este ya no vuelve
 		if generation == spawnGeneration then
-			VehicleService.Spawn(spawnCFrame)
+			VehicleService.Spawn(spawnPoint)
 		end
 	end)
 end
@@ -376,7 +438,7 @@ local function updateHealthBar(model: Model, health: number)
 	local billboard = chassis:FindFirstChild("HealthBar")
 	local fill = billboard and billboard:FindFirstChild("Fill", true) :: Frame?
 	if fill then
-		local ratio = math.clamp(health / stats.health, 0, 1)
+		local ratio = math.clamp(health / statsOf(model).health, 0, 1)
 		fill.Size = UDim2.fromScale(ratio, 1)
 		-- Verde con mucha vida, rojo con poca
 		fill.BackgroundColor3 = Color3.fromRGB(90, 200, 90):Lerp(Color3.fromRGB(220, 60, 50), 1 - ratio)
@@ -410,7 +472,7 @@ function VehicleService.Damage(model: Model, amount: number, attacker: Player?, 
 	end
 	if hitPart and hitPart.Name == "Wheel" then
 		damageTire(model, hitPart, amount)
-		amount *= stats.tireHitShare
+		amount *= statsOf(model).tireHitShare
 	end
 	local health = (model:GetAttribute("Health") :: number) - amount
 	model:SetAttribute("Health", math.max(health, 0))
@@ -447,6 +509,12 @@ function VehicleService.GetVehicle(part: Instance?): Model?
 	return nil
 end
 
+-- El arma del jeep: (los datos de su ametralladora o de su lanzacohetes, y si es de cohetes)
+function VehicleService.GetWeapon(model: Model): ({ [string]: any }, boolean)
+	local stats = statsOf(model)
+	return stats.rockets or stats.turret, stats.rockets ~= nil
+end
+
 -- Mueve el cañón para que apunte (solo de lado a lado) en la dirección dada
 function VehicleService.AimTurret(model: Model, direction: Vector3)
 	local mount = model:FindFirstChild("TurretMount") :: BasePart?
@@ -460,9 +528,9 @@ function VehicleService.AimTurret(model: Model, direction: Vector3)
 	weld.C0 = CFrame.Angles(0, yaw, 0) * CFrame.new(0, 0, -2)
 end
 
-function VehicleService.Spawn(spawnCFrame: CFrame): Model
-	local model = buildJeep(spawnCFrame)
-	model:SetAttribute("SpawnCFrame", spawnCFrame)
+function VehicleService.Spawn(spawnPoint: SpawnPoint): Model
+	local model = buildJeep(spawnPoint.cframe, spawnPoint.kind)
+	model:SetAttribute("SpawnCFrame", spawnPoint.cframe)
 	jeeps[model] = true
 	return model
 end
@@ -477,6 +545,7 @@ end
 -- así se les avienta antes de que el jeep se les suba encima.
 local function runOver(model: Model, driver: Player, speed: number)
 	local chassis = model.PrimaryPart :: BasePart
+	local stats = statsOf(model)
 	local params = OverlapParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { model }
@@ -524,6 +593,7 @@ local function updateJeep(model: Model)
 	local seat = model:FindFirstChild("DriverSeat") :: VehicleSeat
 	local drive = chassis:FindFirstChild("Drive") :: LinearVelocity
 	local steering = chassis:FindFirstChild("Steering") :: AngularVelocity
+	local stats = statsOf(model)
 
 	local throttle = seat.ThrottleFloat -- W = 1, S = -1
 	local steer = seat.SteerFloat -- D = 1, A = -1
@@ -576,13 +646,14 @@ function VehicleService.SetEnabled(enabled: boolean)
 		model:Destroy()
 	end
 	if enabled then
-		for _, spawnCFrame in spawnPoints do
-			VehicleService.Spawn(spawnCFrame)
+		for _, spawnPoint in spawnPoints do
+			VehicleService.Spawn(spawnPoint)
 		end
 	end
 end
 
--- Lee dónde aparecen los jeeps (la carpeta VehicleSpawns que llena cada mapa)
+-- Lee dónde aparecen los jeeps (la carpeta VehicleSpawns que llena cada mapa). El atributo
+-- Vehicle de cada marca dice qué jeep sale ahí; sin él, sale el de ametralladora
 local function loadSpawnPoints()
 	spawnPoints = {}
 	local spawnFolder = workspace:FindFirstChild("VehicleSpawns")
@@ -591,7 +662,11 @@ local function loadSpawnPoints()
 			if spawnPart:IsA("BasePart") then
 				spawnPart.Transparency = 1
 				spawnPart.CanCollide = false
-				table.insert(spawnPoints, spawnPart.CFrame + Vector3.new(0, 3, 0))
+				local kind = spawnPart:GetAttribute("Vehicle")
+				table.insert(spawnPoints, {
+					cframe = spawnPart.CFrame + Vector3.new(0, 3, 0),
+					kind = if typeof(kind) == "string" and Vehicles[kind] then kind else "TurretJeep",
+				})
 			end
 		end
 	else
@@ -608,16 +683,16 @@ function VehicleService.Reset()
 	end
 	loadSpawnPoints()
 	if vehiclesEnabled then
-		for _, spawnCFrame in spawnPoints do
-			VehicleService.Spawn(spawnCFrame)
+		for _, spawnPoint in spawnPoints do
+			VehicleService.Spawn(spawnPoint)
 		end
 	end
 end
 
 function VehicleService.Start()
 	loadSpawnPoints()
-	for _, spawnCFrame in spawnPoints do
-		VehicleService.Spawn(spawnCFrame)
+	for _, spawnPoint in spawnPoints do
+		VehicleService.Spawn(spawnPoint)
 	end
 
 	RunService.Heartbeat:Connect(function()

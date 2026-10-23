@@ -10,7 +10,8 @@
 --     el lanzacohetes y el cañón de iones.
 --   * Un camino de tierra va de cada base a la montaña del centro y le da la vuelta.
 --   * Cada base es un búnker de metal con puertas por los 4 lados y azotea, a la que se sube
---     por una rampa por detrás. Frente a cada base aparecen 2 jeeps.
+--     por una rampa por detrás. Frente a cada base aparecen 6 jeeps: 3 con ametralladora
+--     y 3 con lanzacohetes.
 --
 -- Vista desde arriba (el Rojo está en +X, a la derecha; el Azul es igual, girado 180°):
 --
@@ -262,9 +263,12 @@ local function buildHalf(map: Folder, team)
 
 	buildBase(half)
 
-	-- Dos jeeps frente a la base, mirando al centro
-	half.jeep(Vector3.new(BASE_X - 30, 1, -28))
-	half.jeep(Vector3.new(BASE_X - 30, 1, 28))
+	-- Seis jeeps frente a la base, mirando al centro: adelante 3 con ametralladora y
+	-- atrás 3 con lanzacohetes
+	for _, z in { -36, 0, 36 } do
+		half.jeep(Vector3.new(BASE_X - 52, 1, z), "TurretJeep")
+		half.jeep(Vector3.new(BASE_X - 30, 1, z), "RocketJeep")
+	end
 end
 
 function Barranca.Build(map: Folder)
