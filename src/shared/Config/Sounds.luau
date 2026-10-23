@@ -60,6 +60,12 @@ return {
 		simi = "rbxassetid://87630300241395", -- el Doctor SimiO (por ahora, el de la granada)
 	},
 	grenadeThrow = "rbxassetid://118254779238351",
+	-- Jeep: los oyen todos, desde el jeep
+	vehicle = {
+		engine = "rbxassetid://532147820", -- motor al avanzar: se repite y suena más fuerte y agudo con la velocidad
+		start = "rbxassetid://140685060", -- al encenderlo (cuando se sube el conductor)
+		runOver = "rbxassetid://127729552755617", -- al atropellar a un enemigo
+	},
 	-- Armas de golpe (Config/Melee): suena al pegarle a alguien, lo oyen todos
 	melee = {
 		RubberChicken = "rbxassetid://7507574099",
