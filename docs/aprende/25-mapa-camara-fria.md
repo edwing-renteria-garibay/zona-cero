@@ -15,9 +15,10 @@ Mide 280 de largo (de base a base) por 140 de ancho.
   rampas angostas que salen de las plataformas de los lados. Abajo del poste está el lanzallamas.
 - **Cada base:** una cubierta alta al fondo, con la bandera y un muro bajo para cubrirse.
   Debajo corre el **túnel**, que tiene ventanas que miran al centro y la escopeta adentro.
-- **Para subir:** no hay rampas desde el piso. Si te caes, subes por la **escalera** que hay
-  en medio de cada lado. Es un `TrussPart`, la pieza de Roblox por la que se trepa sola al
-  caminar contra ella.
+- **Para subir:** en cada esquina de las bases hay un spawn abajo y una **rampa** que sube a la
+  plataforma del lado. Si te caes en medio del mapa, también hay una **escalera** en medio de
+  cada lado. Es un `TrussPart`, la pieza de Roblox por la que se trepa sola al caminar contra
+  ella.
 
 ## Cada equipo
 
@@ -27,7 +28,7 @@ vuelta (`Builder.half`). Lo que va a los dos lados de una base se hace en un `fo
 
 | Qué | Dónde |
 | --- | --- |
-| Spawns | 2 en la cubierta y 2 en el túnel |
+| Spawns | 2 en la cubierta y 2 abajo, en las esquinas, junto a las rampas |
 | Bandera | Al fondo de la cubierta |
 | Francotirador | En la cubierta, en una esquina |
 | Escopeta | En el túnel |

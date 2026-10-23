@@ -9,7 +9,7 @@
 --   * Cada base: una cubierta alta al fondo con la bandera. Debajo corre el túnel, con
 --     ventanas que miran al centro.
 --   * Abajo: el piso con cajas para cubrirse. Si te caes, subes por la escalera que hay en
---     medio de cada lado.
+--     medio de cada lado o por la rampa de una esquina de base, junto a su spawn.
 --
 -- Vista desde arriba (el Rojo está en +X, a la derecha; el Azul es igual, girado 180°):
 --
@@ -46,7 +46,9 @@ local HEIGHT = 56 -- del piso al techo
 local UPPER = 20 -- altura del piso de arriba
 local SLAB = 1 -- grosor de los pisos de arriba
 local ROCKET_HEIGHT = 32 -- altura de la plataforma del lanzacohetes
-local SHELF_FROM = 46 -- las repisas van de z = 46 al muro (y de -46 al otro muro)
+local SHELF_FROM = 46 -- las plataformas de los lados van de z = 46 al muro (y de -46 al otro)
+local CORNER_FROM = 96 -- desde x = 96, en la esquina de la base, hay hueco para una rampa
+local CORNER_STRIP = 10 -- lo que queda de plataforma junto al hueco
 
 -- Base de cada equipo (medidas en X, para el Rojo)
 local TUNNEL_FROM = 106 -- el túnel va de x = 106 a x = 122, por debajo de la cubierta
@@ -190,10 +192,32 @@ local function buildHalf(map: Folder, team)
 		local shelfDepth = HALF_WIDTH - SHELF_FROM
 		half.add(
 			"Shelf",
-			Vector3.new(HALF_LENGTH, SLAB, shelfDepth),
-			Vector3.new(HALF_LENGTH / 2, UPPER - SLAB / 2, side * (SHELF_FROM + shelfDepth / 2)),
+			Vector3.new(CORNER_FROM, SLAB, shelfDepth),
+			Vector3.new(CORNER_FROM / 2, UPPER - SLAB / 2, side * (SHELF_FROM + shelfDepth / 2)),
 			DECK
 		)
+		-- En la esquina de la base la plataforma se angosta, para dejar el hueco de la rampa
+		local cornerLength = HALF_LENGTH - CORNER_FROM
+		half.add(
+			"Shelf",
+			Vector3.new(cornerLength, SLAB, CORNER_STRIP),
+			Vector3.new(
+				CORNER_FROM + cornerLength / 2,
+				UPPER - SLAB / 2,
+				side * (SHELF_FROM + CORNER_STRIP / 2)
+			),
+			DECK
+		)
+		-- Rampa de la esquina: sube del piso (junto al spawn) a la plataforma del lado
+		local laneZ = side * (SHELF_FROM + CORNER_STRIP + 6)
+		half.slope(
+			"Ramp",
+			Vector3.new(CORNER_FROM + 32, 0, laneZ),
+			Vector3.new(CORNER_FROM, UPPER, laneZ),
+			12,
+			DECK
+		)
+		half.spawn(Vector3.new(CORNER_FROM + 38, 0.5, laneZ))
 		for _, x in { 20, 60, 90 } do
 			half.add(
 				"Pillar",
@@ -280,11 +304,9 @@ local function buildHalf(map: Folder, team)
 	)
 	half.add("TeamStripe", Vector3.new(0.4, 1, 30), Vector3.new(TUNNEL_TO - 0.2, 4, 0), half.stripe)
 
-	-- Puntos de aparición: dos en la cubierta y dos en el túnel
+	-- Puntos de aparición: dos en la cubierta (los otros dos están abajo, en las esquinas)
 	half.spawn(Vector3.new(126, UPPER + 0.5, 18))
 	half.spawn(Vector3.new(126, UPPER + 0.5, -18))
-	half.spawn(Vector3.new(114, 0.5, 22))
-	half.spawn(Vector3.new(114, 0.5, -22))
 
 	-- Cajas en el piso de abajo
 	for _, spot in
