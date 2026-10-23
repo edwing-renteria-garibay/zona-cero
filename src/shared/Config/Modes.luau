@@ -93,7 +93,7 @@ local Modes = {
 		roundTime = 150, -- segundos por ronda; si nadie detona, se cambian los papeles
 		roundBreak = 4, -- segundos de pausa entre rondas
 		pickupRadius = 5, -- studs para tomar la bomba
-		plantRadius = 6, -- studs de la base enemiga para armarla
+		plantRadius = 8, -- radio de la zona naranja (en la base enemiga) donde se arma
 		armTime = 3, -- segundos que hay que quedarse ahí para que explote
 	},
 	KingOfTheHill = {

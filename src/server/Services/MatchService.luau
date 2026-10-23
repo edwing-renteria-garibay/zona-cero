@@ -274,19 +274,34 @@ local function winner(rules, timeUp: boolean): Winner?
 		end
 		return nil
 	end
+	-- Al acabarse el tiempo gana quien vaya adelante (si hay empate, nadie)
+	local goal = if timeUp then 1 else rules.scoreToWin
 	if not rules.teams then
+		local best, bestKills, tied = nil, -1, false
 		for _, player in Players:GetPlayers() do
-			local kills = getStat(player, "Bajas")
-			if kills and kills.Value >= rules.scoreToWin then
-				return { name = player.Name, color = GOLD }
+			local stat = getStat(player, "Bajas")
+			local kills = if stat then stat.Value else 0
+			if kills > bestKills then
+				best, bestKills, tied = player, kills, false
+			elseif kills == bestKills then
+				tied = true
 			end
+		end
+		if best and not tied and bestKills >= goal then
+			return { name = best.Name, color = GOLD }
 		end
 		return nil
 	end
+	local best, bestScore, tied = nil, -1, false
 	for team, score in scores do
-		if score >= rules.scoreToWin then
-			return { name = team.Name, color = team.TeamColor.Color }
+		if score > bestScore then
+			best, bestScore, tied = team, score, false
+		elseif score == bestScore then
+			tied = true
 		end
+	end
+	if best and not tied and bestScore >= goal then
+		return { name = best.Name, color = best.TeamColor.Color }
 	end
 	return nil
 end
