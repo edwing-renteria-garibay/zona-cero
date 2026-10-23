@@ -1,5 +1,5 @@
 -- La tienda: armadura por partes y skins de armas. Todo es solo visual, nadie gana ventaja
--- por comprar. Se paga con créditos (¢), que se ganan jugando o se compran con Robux.
+-- por comprar. Se paga con créditos, que se ganan jugando o se compran con Robux.
 --
 -- Cada estilo de armadura se vende por partes: casco, torso, brazos y piernas. Así un
 -- jugador puede combinar, por ejemplo, casco Élite con torso Desierto.
