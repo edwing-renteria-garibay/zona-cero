@@ -1,6 +1,7 @@
 -- Controles del jeep en el cliente. Conducir no necesita código aquí: el asiento
 -- de conductor (VehicleSeat) ya envía W/A/S/D al servidor. Este archivo se encarga
--- de la torreta: mientras mantienes el clic, pide al servidor que dispare.
+-- de la torreta: mientras mantienes el clic, pide al servidor que dispare. La torreta
+-- es una ametralladora o un lanzacohetes, según el jeep (Config/Vehicles).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,7 +16,6 @@ local Sfx = require(script.Parent.Sfx)
 local fireTurret = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("FireTurret") :: RemoteEvent
 
 local player = Players.LocalPlayer
-local turret = Vehicles.TurretJeep.turret
 
 local VehicleController = {}
 
@@ -38,9 +38,15 @@ function VehicleController.IsInTurret(): boolean
 	return getTurretSeat() ~= nil
 end
 
--- Balas que le quedan a la torreta de un jeep (el servidor guarda el valor real)
+-- El arma de la torreta de un jeep: (sus datos, y si es de cohetes)
+function VehicleController.GetTurretWeapon(vehicle: Model): ({ [string]: any }, boolean)
+	local stats = Vehicles[vehicle:GetAttribute("Vehicle")] or Vehicles.TurretJeep
+	return stats.rockets or stats.turret, stats.rockets ~= nil
+end
+
+-- Balas (o cohetes) que le quedan a la torreta de un jeep (el servidor guarda el valor real)
 function VehicleController.GetTurretAmmo(vehicle: Model): number
-	return vehicle:GetAttribute("TurretAmmo") or turret.magazine
+	return vehicle:GetAttribute("TurretAmmo") or VehicleController.GetTurretWeapon(vehicle).magazine
 end
 
 -- El asiento actual del jugador (para el HUD)
@@ -82,11 +88,12 @@ function VehicleController.Start()
 		local humanoid = (player.Character :: Model):FindFirstChildOfClass("Humanoid") :: Humanoid
 		humanoid:UnequipTools()
 
+		local vehicle = seat.Parent :: Model
+		local turret = VehicleController.GetTurretWeapon(vehicle)
 		local now = os.clock()
 		if not triggerHeld or now - lastShot < 1 / turret.fireRate then
 			return
 		end
-		local vehicle = seat.Parent :: Model
 		if vehicle:GetAttribute("TurretReloading") then
 			return
 		end

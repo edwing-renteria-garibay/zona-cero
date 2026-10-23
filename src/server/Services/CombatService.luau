@@ -7,7 +7,6 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Melee = require(ReplicatedStorage.Shared.Config.Melee)
-local Vehicles = require(ReplicatedStorage.Shared.Config.Vehicles)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local ExplosionService = require(script.Parent.ExplosionService)
@@ -443,9 +442,9 @@ local function onFire(player: Player, origin: any, direction: any)
 	)
 end
 
--- Recarga la torreta de un jeep (5 s). Mientras tanto no puede disparar.
+-- Recarga la torreta de un jeep (ametralladora o lanzacohetes). Mientras tanto no puede disparar.
 local function reloadTurret(vehicle: Model)
-	local turret = Vehicles.TurretJeep.turret
+	local turret = VehicleService.GetWeapon(vehicle)
 	if
 		vehicle:GetAttribute("TurretReloading")
 		or (vehicle:GetAttribute("TurretAmmo") or turret.magazine) >= turret.magazine
@@ -458,7 +457,8 @@ local function reloadTurret(vehicle: Model)
 	vehicle:SetAttribute("TurretReloading", nil)
 end
 
--- Disparo de la ametralladora del jeep: sale del cañón, no de la cabeza
+-- Disparo de la torreta del jeep: sale del cañón, no de la cabeza. La ametralladora es un
+-- raycast como el rifle; el lanzacohetes lanza un cohete como el de mano
 local function onFireTurret(player: Player, direction: any)
 	if typeof(direction) ~= "Vector3" or direction ~= direction or direction.Magnitude < 0.01 then
 		return
@@ -475,7 +475,7 @@ local function onFireTurret(player: Player, direction: any)
 		return
 	end
 
-	local turret = Vehicles.TurretJeep.turret
+	local turret, rockets = VehicleService.GetWeapon(vehicle)
 	local now = os.clock()
 	if now - (lastTurretShot[player] or 0) < FIRE_RATE_TOLERANCE / turret.fireRate then
 		return
@@ -494,6 +494,12 @@ local function onFireTurret(player: Player, direction: any)
 	VehicleService.AimTurret(vehicle, direction)
 	local barrel = vehicle:FindFirstChild("TurretBarrel") :: BasePart
 	local origin = (barrel.CFrame * CFrame.new(0, 0, -2)).Position -- punta del cañón
+
+	if rockets then
+		ExplosionService.PlaySoundAt(Sounds.fire.RocketLauncher, origin)
+		ProjectileService.FireRocket(player, origin, direction, turret, { vehicle, character :: Model })
+		return
+	end
 
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude

@@ -1,6 +1,6 @@
 # Aprende: cómo funciona el jeep con torreta
 
-Esta guía explica el código del jeep. Antes conviene haber leído [01-rifle.md](01-rifle.md), porque el jeep reutiliza las mismas ideas: el cliente pide y el servidor decide.
+Esta guía explica el código de los jeeps (con ametralladora y con lanzacohetes). Antes conviene haber leído [01-rifle.md](01-rifle.md), porque el jeep reutiliza las mismas ideas: el cliente pide y el servidor decide.
 
 | Archivo | Dónde corre | Qué hace |
 | --- | --- | --- |
@@ -93,7 +93,18 @@ Como el servidor los toca, todos los oyen desde el jeep.
 
 A la misma persona no se le puede volver a atropellar hasta pasado `runOver.cooldown` (1 segundo). A los compañeros del conductor no les pasa nada.
 
-## 8. Prueba a cambiar cosas
+## 8. El jeep lanzacohetes
+
+Hay dos jeeps: `TurretJeep` (ametralladora) y `RocketJeep` (lanzacohetes). En `Config/Vehicles.luau` los dos copian la misma tabla `base` (vida, velocidad, llantas, atropellar), con la función `jeep`, y cada uno le agrega su arma: `turret` o `rockets`. Así manejan y aguantan igual.
+
+- **Cómo se ve:** en lugar del cañón, arriba lleva una caja con 6 tubos y una franja amarilla a cada lado (`buildWeapon` en `VehicleService`). La caja también se llama `TurretBarrel`, así que gira y apunta igual que el cañón.
+- **Cómo dispara:** el artillero mantiene el clic, como en la torreta. El servidor (`onFireTurret` en `CombatService`) ve que el jeep tiene `rockets` y, en vez de un raycast, lanza un cohete con `ProjectileService.FireRocket`, la misma función del lanzacohetes de mano.
+- **Munición:** 6 cohetes, 1.5 por segundo, y 6 segundos para recargar (sola al vaciarse, o con R). El HUD dice `Cohetes 6 / 6`.
+- **Daño:** 220 a un jugador en el centro de la explosión (mata de un golpe directo) y 300 a un jeep: dos cohetes destruyen otro jeep.
+
+**Qué jeep sale dónde.** En el mapa, `half.jeep(posición, "RocketJeep")` pone el atributo `Vehicle` en la marca, y `VehicleService` lo lee para saber cuál construir. Sin tipo sale el de ametralladora. En La Barranca cada equipo tiene 6: 3 con ametralladora adelante y 3 con lanzacohetes atrás.
+
+## 9. Prueba a cambiar cosas
 
 En `src/shared/Config/Vehicles.luau`:
 
@@ -102,5 +113,6 @@ En `src/shared/Config/Vehicles.luau`:
 - Baja `health` a 100 para probar la explosión sin disparar tanto.
 - Baja `tireHealth` a 20 para poncharlas con 3 disparos.
 - Sube `runOver.damage` a 150 para que atropellar duela más (sigue sin matar).
+- Sube `rockets.magazine` del `RocketJeep` a 10 para que dispare más cohetes antes de recargar.
 
 Para que los jeeps aparezcan en otro lugar, crea en Workspace una carpeta `VehicleSpawns` con una pieza por jeep, orientada hacia donde debe mirar el jeep.
