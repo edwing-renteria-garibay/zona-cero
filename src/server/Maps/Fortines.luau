@@ -1,5 +1,5 @@
 -- Mapa "Fortines": dos fuertes amurallados, uno frente al otro, con una plaza en medio.
--- Diseño de edwing (SketchUp). Mide 200 × 200 studs. Mapa de infantería: aquí no hay jeeps.
+-- Diseño de edwing (SketchUp). Mide 250 × 200 studs. Mapa de infantería: aquí no hay jeeps.
 --
 -- Vista desde arriba del fuerte Rojo (+X). El Azul es el mismo, girado 180°.
 -- "d" es la distancia desde la entrada del fuerte hacia el fondo:
@@ -26,14 +26,16 @@ local STONE, PAVEMENT = Builder.STONE, Builder.PAVEMENT -- muros de afuera y pis
 
 local Fortines = {}
 
--- Medidas principales, en studs. Todo el mapa mide (PLAZA + DEPTH + THICK) * 2 = 200
+-- Medidas principales, en studs. Todo el mapa mide (PLAZA + DEPTH + THICK) * 2 = 250
 -- de largo y (INNER + THICK) * 2 = 200 de ancho.
-local PLAZA = 16 -- del centro del mapa a la entrada de cada fuerte (eje X)
+local PLAZA = 41 -- del centro del mapa a la entrada de cada fuerte (eje X)
 local DEPTH = 80 -- de la entrada al muro del fondo, por dentro
 local INNER = 96 -- del centro a cada muro de los lados, por dentro (eje Z)
 local THICK = 4 -- grosor de los muros de afuera
-local OUTER_HEIGHT = 20 -- muros de afuera y brazos
+local PERIMETER_HEIGHT = 32 -- muros que rodean todo el mapa
+local OUTER_HEIGHT = 20 -- brazos (los muros altos de dentro)
 local INNER_HEIGHT = 12 -- muros de dentro
+local SIDE_ACCESS = 26 -- ancho de los accesos de los lados de cada fuerte
 local LOW_HEIGHT = 10 -- muro bajo frente a la plataforma: desde arriba se ve por encima
 local PLATFORM_HEIGHT = 8
 
@@ -74,8 +76,8 @@ local function buildPlaza(map: Folder)
 		Builder.block(
 			folder,
 			"PlazaWall",
-			Vector3.new(PLAZA * 2, OUTER_HEIGHT, THICK),
-			CFrame.new(0, OUTER_HEIGHT / 2, side * (INNER + THICK / 2)),
+			Vector3.new(PLAZA * 2, PERIMETER_HEIGHT, THICK),
+			CFrame.new(0, PERIMETER_HEIGHT / 2, side * (INNER + THICK / 2)),
 			STONE
 		)
 	end
@@ -83,10 +85,11 @@ local function buildPlaza(map: Folder)
 	Builder.pickupPad(map, "RocketLauncherPad", Vector3.new(0, 0.2, 0), "Weapon", "RocketLauncher")
 	-- Armas especiales (ver Config/Weapons): francotirador y escopeta, una de cada lado;
 	-- las demás a la misma distancia de las dos bases
-	Builder.pickupPad(map, "SniperPad", Vector3.new(64, 0.2, 37), "Weapon", "Sniper")
-	Builder.pickupPad(map, "SniperPad", Vector3.new(-64, 0.2, -37), "Weapon", "Sniper")
-	Builder.pickupPad(map, "ShotgunPad", Vector3.new(37, 0.2, -53), "Weapon", "Shotgun")
-	Builder.pickupPad(map, "ShotgunPad", Vector3.new(-37, 0.2, 53), "Weapon", "Shotgun")
+	-- (el francotirador y la escopeta quedan dentro de los fuertes: se miden desde PLAZA)
+	Builder.pickupPad(map, "SniperPad", Vector3.new(PLAZA + 48, 0.2, 37), "Weapon", "Sniper")
+	Builder.pickupPad(map, "SniperPad", Vector3.new(-PLAZA - 48, 0.2, -37), "Weapon", "Sniper")
+	Builder.pickupPad(map, "ShotgunPad", Vector3.new(PLAZA + 21, 0.2, -53), "Weapon", "Shotgun")
+	Builder.pickupPad(map, "ShotgunPad", Vector3.new(-PLAZA - 21, 0.2, 53), "Weapon", "Shotgun")
 	Builder.pickupPad(map, "LaserRiflePad", Vector3.new(4, 0.2, 91), "Weapon", "LaserRifle")
 	Builder.pickupPad(map, "IonCannonPad", Vector3.new(4, 0.2, -92), "Weapon", "IonCannon")
 	Builder.pickupPad(map, "FlamethrowerPad", Vector3.new(1, 0.2, -14), "Weapon", "Flamethrower")
@@ -97,13 +100,13 @@ local function buildFort(map: Folder, team)
 	local half = Builder.half(map, team)
 
 	-- Muros de afuera: el del fondo y los dos de los lados (abiertos hacia la plaza)
-	wallBox(half, "BackWall", DEPTH, DEPTH + THICK, -INNER - THICK, INNER + THICK, OUTER_HEIGHT, STONE)
+	wallBox(half, "BackWall", DEPTH, DEPTH + THICK, -INNER - THICK, INNER + THICK, PERIMETER_HEIGHT, STONE)
 	for _, side in { 1, -1 } do
 		local z0, z1 = INNER, INNER + THICK
 		if side == -1 then
 			z0, z1 = -z1, -z0
 		end
-		wallBox(half, "SideWall", 0, DEPTH, z0, z1, OUTER_HEIGHT, STONE)
+		wallBox(half, "SideWall", 0, DEPTH, z0, z1, PERIMETER_HEIGHT, STONE)
 	end
 	-- Franja del color del equipo en el muro del fondo
 	half.add("TeamStripe", Vector3.new(0.4, 2, INNER * 2), pos(DEPTH - 0.2, OUTER_HEIGHT - 4, 0), half.stripe)
@@ -127,8 +130,8 @@ local function buildFort(map: Folder, team)
 		box("Arm", 42, 50, 50, INNER, OUTER_HEIGHT, STONE)
 		half.add("TeamStripe", Vector3.new(8.4, 2, 0.4), pos(46, OUTER_HEIGHT - 4, 49.8 * side), half.stripe)
 		-- Muro de enfrente: entre él y el de en medio pasa un pasillo de 10 studs.
-		-- Acceso central de 20 studs (z de -10 a 10) y laterales de 18 (z de 78 a 96)
-		box("FrontWall", 0, 16, 10, 78, INNER_HEIGHT, DARK)
+		-- Acceso central de 20 studs (z de -10 a 10) y laterales de SIDE_ACCESS (hasta z = 96)
+		box("FrontWall", 0, 16, 10, INNER - SIDE_ACCESS, INNER_HEIGHT, DARK)
 		-- Muro de en medio
 		box("MiddleWall", 26, 34, 10, 76, INNER_HEIGHT, DARK)
 
@@ -154,6 +157,10 @@ local function buildFort(map: Folder, team)
 	-- Cobertura en la plaza, del lado de este fuerte
 	half.add("Sandbags", Vector3.new(2, 3, 12), pos(-8, 1.5, 30), SANDBAG)
 	half.add("Barrier", Vector3.new(2, 3.5, 8), pos(-11, 1.75, -55), CONCRETE, 20)
+	-- La plaza ahora es más larga: más cobertura a medio camino
+	half.add("Barrier", Vector3.new(2, 3.5, 10), pos(-26, 1.75, 62), CONCRETE, 15)
+	half.add("Sandbags", Vector3.new(2, 3, 10), pos(-24, 1.5, -28), SANDBAG)
+	half.add("Crate", Vector3.new(4, 4, 4), pos(-30, 2, 40), WOOD, 10)
 
 	-- Granadas en el cruce del pasillo central, entre los muros de enfrente y los de en medio
 	half.pickup("GrenadePad", pos(21, 0.2, 0), "Pickup", "Grenades")
