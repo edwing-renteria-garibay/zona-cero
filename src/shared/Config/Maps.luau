@@ -11,6 +11,7 @@ return {
 		CanonRojo = "Cañón Rojo", -- el mapa estándar
 		Fortines = "Fortines",
 		Cruce = "El Cruce",
+		Estacion = "La Estación",
 	},
 
 	-- La luz de cada mapa (la aplica MapService al construirlo). Los colores son RGB de 0 a 255.
@@ -45,6 +46,15 @@ return {
 			decay = { 128, 88, 76 },
 			density = 0.3,
 			tint = { 255, 236, 214 },
+		},
+		-- Estación cerrada con techo: noche afuera, luces frías por dentro
+		Estacion = {
+			clockTime = 20,
+			brightness = 1,
+			haze = { 96, 118, 140 },
+			decay = { 40, 52, 70 },
+			density = 0.18,
+			tint = { 226, 238, 255 },
 		},
 	},
 }
