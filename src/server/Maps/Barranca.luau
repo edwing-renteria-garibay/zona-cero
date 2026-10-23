@@ -101,6 +101,15 @@ local function buildShell(map: Folder)
 	local outerZ = HALF_WIDTH + 24
 	-- Piso: pasto de 8 de grueso, con la superficie en y = 0
 	terrain():FillBlock(CFrame.new(0, -4, 0), Vector3.new(outerX * 2, 8, outerZ * 2), GRASS)
+	-- Debajo del pasto, un piso invisible de bloques. Al crear el terreno, Roblox tarda un
+	-- momento en hacerlo sólido, y los jeeps (que aparecen enseguida) lo atravesaban y caían
+	-- al vacío. Este piso sí es sólido desde el principio. Su cara de arriba queda en y = 0,
+	-- justo con el pasto, así que no se nota al caminar ni al manejar.
+	local ground =
+		Builder.block(folder, "Ground", Vector3.new(outerX * 2, 2, outerZ * 2), CFrame.new(0, -1, 0), STONE)
+	ground.Transparency = 1
+	ground.CastShadow = false
+	ground.Material = Enum.Material.Grass -- pasos e impactos de bala suenan a pasto
 	-- Paredes de roca alrededor
 	local wallY = WALL_HEIGHT / 2 - 8
 	for _, side in { 1, -1 } do
