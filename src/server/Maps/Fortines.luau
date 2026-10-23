@@ -7,7 +7,7 @@
 --   d=80  ============================ muro del fondo ============================
 --         [spawn]        [spawn]  rampa /plataforma\ rampa  [spawn]        [spawn]
 --                                       (bandera, 8)
---   d=52  ==========brazo==   ====== muro bajo (10) ======   ==brazo==========
+--   d=52  ==========brazo==     ==== muro bajo (10) ====     ==brazo==========
 --   d=30      [  muro de en medio  ]                       [  muro de en medio  ]
 --                                         [granadas]
 --   d=0   |   [   muro de enfrente   ]                 [   muro de enfrente   ]   |
@@ -148,8 +148,9 @@ local function buildFort(map: Folder, team)
 		half.add("Crate", Vector3.new(4, 4, 4), pos(21, 2, 88 * side), WOOD, 20)
 	end
 
-	-- Muro bajo frente a la plataforma
-	wallBox(half, "LowWall", 52, 56, -48, 48, LOW_HEIGHT, DARK)
+	-- Muro bajo frente a la plataforma. Entre sus puntas y los brazos queda un paso de
+	-- 12 studs (z de 38 a 50) para ir de la plataforma al frente del fuerte
+	wallBox(half, "LowWall", 52, 56, -38, 38, LOW_HEIGHT, DARK)
 	-- Puente de la plataforma: por abajo queda un paso de 10 studs de ancho y 7 de alto
 	half.add("PlatformBridge", Vector3.new(8, 1, 10), pos(66, PLATFORM_HEIGHT - 0.5, 0), DARK)
 	-- Base de la bandera, en la esquina del fondo, detrás del brazo

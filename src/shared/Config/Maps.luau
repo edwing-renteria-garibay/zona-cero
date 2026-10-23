@@ -16,11 +16,18 @@ return {
 		Barranca = "La Barranca",
 	},
 
+	-- Mapas con jeeps en todos los modos (aunque el modo diga vehicles = false)
+	alwaysVehicles = {
+		Barranca = true,
+	},
+
 	-- La luz de cada mapa (la aplica MapService al construirlo). Los colores son RGB de 0 a 255.
 	--   clockTime: hora del día (14 = 2 de la tarde, 17.5 = atardecer)
 	--   brightness: qué tan fuerte es el sol
 	--   haze: color de la niebla de cerca · decay: color de la niebla a lo lejos
 	--   density: qué tanta niebla (0 = nada, 0.5 = mucha) · tint: tono de toda la pantalla
+	--   ambient (opcional): luz que llega a donde no da el sol, como bajo techo (RGB)
+	--   exposure (opcional): sube (+) o baja (-) la luz de toda la pantalla; 0 = normal
 	lighting = {
 		-- Cañón desértico: sol de la tarde, polvo cálido
 		CanonRojo = {
@@ -33,12 +40,14 @@ return {
 		},
 		-- Fuertes de concreto: día nublado, gris azulado
 		Fortines = {
-			clockTime = 10.5,
-			brightness = 2,
-			haze = { 186, 194, 204 },
-			decay = { 92, 102, 116 },
-			density = 0.4,
-			tint = { 236, 242, 255 },
+			clockTime = 12,
+			brightness = 3,
+			haze = { 200, 208, 216 },
+			decay = { 130, 140, 152 },
+			density = 0.25,
+			tint = { 246, 248, 255 },
+			ambient = { 120, 120, 128 },
+			exposure = 0.3,
 		},
 		-- Zona industrial: atardecer dorado, sombras largas
 		Cruce = {
@@ -55,17 +64,21 @@ return {
 			brightness = 1,
 			haze = { 96, 118, 140 },
 			decay = { 40, 52, 70 },
-			density = 0.18,
-			tint = { 226, 238, 255 },
+			density = 0.12,
+			tint = { 236, 244, 255 },
+			ambient = { 140, 145, 160 },
+			exposure = 0.5,
 		},
 		-- Cuarto cerrado de concreto: luz fría y pareja, un poco de bruma
 		CamaraFria = {
-			clockTime = 9,
-			brightness = 1.4,
-			haze = { 150, 176, 190 },
-			decay = { 70, 90, 104 },
-			density = 0.15,
-			tint = { 232, 244, 255 },
+			clockTime = 12,
+			brightness = 2.5,
+			haze = { 170, 192, 204 },
+			decay = { 100, 120, 134 },
+			density = 0.1,
+			tint = { 240, 248, 255 },
+			ambient = { 140, 148, 158 },
+			exposure = 0.4,
 		},
 		-- Cañón de pasto al aire libre: día claro, un poco de bruma a lo lejos
 		Barranca = {

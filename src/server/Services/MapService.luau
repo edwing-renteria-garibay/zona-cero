@@ -39,6 +39,7 @@ end
 
 -- La luz del mapa: hora del día, sol, niebla y tono (Config/Maps, lighting).
 -- Lo fijo (sombras, efectos) está en default.project.json, dentro de Lighting.
+local DEFAULT_AMBIENT = { 69, 69, 77 } -- igual que Ambient en default.project.json
 local function applyLighting(mapName: string)
 	local settings = Maps.lighting[mapName]
 	if not settings then
@@ -46,6 +47,9 @@ local function applyLighting(mapName: string)
 	end
 	Lighting.ClockTime = settings.clockTime
 	Lighting.Brightness = settings.brightness
+	-- Los mapas que no traen ambient ni exposure usan los valores de default.project.json
+	Lighting.Ambient = rgb(settings.ambient or DEFAULT_AMBIENT)
+	Lighting.ExposureCompensation = settings.exposure or 0
 	local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
 	if atmosphere then
 		atmosphere.Density = settings.density
@@ -72,6 +76,7 @@ function MapService.Build(): Folder
 		map = Instance.new("Folder")
 		map.Name = "Map"
 		map:SetAttribute("MapName", Maps.list[mapName])
+		map:SetAttribute("MapKey", mapName) -- nombre del archivo, para buscarlo en Config/Maps
 		map:SetAttribute("Generated", true) -- hecho por código: se puede cambiar por otro
 		-- Carpetas que llenan los mapas: dónde aparecen los jeeps y las plataformas de objetos
 		local vehicleSpawns = Instance.new("Folder")

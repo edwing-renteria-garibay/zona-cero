@@ -92,7 +92,7 @@ function Crosshair.Start()
 		UserInputService.MouseIconEnabled = player:GetAttribute("MenuOpen") == true
 			or not (rifle.Visible or turret.Visible)
 
-		local mouse = UserInputService:GetMouseLocation()
+		local mouse = Aim.GetScreenPoint() -- con control, el centro de la pantalla
 		rifle.Position = UDim2.fromOffset(mouse.X, mouse.Y)
 		turret.Position = UDim2.fromOffset(mouse.X, mouse.Y)
 

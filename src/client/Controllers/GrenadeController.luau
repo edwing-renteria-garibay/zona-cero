@@ -1,4 +1,4 @@
--- Lanzar granada: mantén G (L1 en mando, botón "Granada" en móvil) para apuntar
+-- Lanzar granada: mantén G (B / Círculo en control, botón "Granada" en móvil) para apuntar
 -- y suelta para lanzarla. Mientras apuntas se dibuja el arco y un círculo donde caerá.
 --
 -- La granada cae donde señala tu mouse: el cliente calcula la velocidad inicial
@@ -157,6 +157,9 @@ local function throw()
 end
 
 local function onAction(_name: string, state: Enum.UserInputState)
+	if player:GetAttribute("MenuOpen") then
+		return Enum.ContextActionResult.Pass -- con la tienda abierta, B es para el menú
+	end
 	if state == Enum.UserInputState.Begin then
 		if GrenadeController.GetCount() <= 0 then
 			Sfx.PlayLocal(Sounds.empty)
@@ -176,7 +179,8 @@ end
 
 function GrenadeController.Start()
 	-- El "true" crea un botón táctil en móvil
-	ContextActionService:BindAction("Grenade", onAction, true, Enum.KeyCode.G, Enum.KeyCode.ButtonL1)
+	-- En control usamos B: L1 y R1 ya los usa Roblox para cambiar de arma
+	ContextActionService:BindAction("Grenade", onAction, true, Enum.KeyCode.G, Enum.KeyCode.ButtonB)
 	ContextActionService:SetTitle("Grenade", "Granada")
 
 	RunService.RenderStepped:Connect(function()

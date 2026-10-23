@@ -7,6 +7,7 @@
 -- el perfil actualizado, y con eso se vuelven a dibujar las tarjetas.
 
 local ContextActionService = game:GetService("ContextActionService")
+local GuiService = game:GetService("GuiService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -294,6 +295,15 @@ local function setOpen(open: boolean)
 	if open then
 		refreshPreview()
 		task.spawn(request, "get")
+		-- Con control no hay mouse: seleccionamos un botón para moverse con el stick
+		for _, item in backdrop:GetDescendants() do
+			if item:IsA("GuiButton") and item.Visible then
+				GuiService.SelectedObject = item
+				break
+			end
+		end
+	elseif GuiService.SelectedObject and GuiService.SelectedObject:IsDescendantOf(backdrop) then
+		GuiService.SelectedObject = nil
 	end
 end
 
@@ -437,7 +447,8 @@ function ShopUI.Start()
 			redraw() -- puede que ya te alcance para algo
 		end
 	end)
-	ContextActionService:BindAction("Shop", onToggle, true, Enum.KeyCode.B)
+	-- En control: flecha abajo del D-pad
+	ContextActionService:BindAction("Shop", onToggle, true, Enum.KeyCode.B, Enum.KeyCode.DPadDown)
 	ContextActionService:SetTitle("Shop", "Tienda")
 
 	-- La vista previa gira despacio

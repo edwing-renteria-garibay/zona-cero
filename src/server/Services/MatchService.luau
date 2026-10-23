@@ -18,6 +18,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Teams = game:GetService("Teams")
 
+local Maps = require(ReplicatedStorage.Shared.Config.Maps)
 local Modes = require(ReplicatedStorage.Shared.Config.Modes)
 local AssaultService = require(script.Parent.AssaultService)
 local FlagService = require(script.Parent.FlagService)
@@ -390,7 +391,12 @@ function MatchService.Run(changeMap: () -> ())
 		currentRules = rules
 		Rules.current = rules
 		applyTeams(rules)
-		VehicleService.SetEnabled(rules.vehicles ~= false)
+		-- Algunos mapas (La Barranca) tienen jeeps en cualquier modo: Config/Maps, alwaysVehicles
+		local currentMap = workspace:FindFirstChild("Map")
+		local mapKey = currentMap and currentMap:GetAttribute("MapKey")
+		VehicleService.SetEnabled(
+			rules.vehicles ~= false or (mapKey ~= nil and Maps.alwaysVehicles[mapKey] == true)
+		)
 		resetScores()
 		running = true
 		ReplicatedStorage:SetAttribute("MatchMode", modeName)

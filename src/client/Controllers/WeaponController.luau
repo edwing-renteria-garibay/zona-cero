@@ -280,7 +280,8 @@ function WeaponController.Start()
 	end
 
 	UserInputService.InputBegan:Connect(function(input, typing)
-		if not typing and input.KeyCode == Enum.KeyCode.R then
+		-- R en teclado, X (Cuadrado en PlayStation) en control
+		if not typing and (input.KeyCode == Enum.KeyCode.R or input.KeyCode == Enum.KeyCode.ButtonX) then
 			reloadWeapon:FireServer()
 		end
 	end)
