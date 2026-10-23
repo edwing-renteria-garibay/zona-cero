@@ -12,6 +12,7 @@ return {
 		Fortines = "Fortines",
 		Cruce = "El Cruce",
 		Estacion = "La Estación",
+		Barranca = "La Barranca",
 	},
 
 	-- La luz de cada mapa (la aplica MapService al construirlo). Los colores son RGB de 0 a 255.
@@ -55,6 +56,15 @@ return {
 			decay = { 40, 52, 70 },
 			density = 0.18,
 			tint = { 226, 238, 255 },
+		},
+		-- Cañón de pasto al aire libre: día claro, un poco de bruma a lo lejos
+		Barranca = {
+			clockTime = 13.5,
+			brightness = 2.6,
+			haze = { 196, 212, 226 },
+			decay = { 110, 130, 150 },
+			density = 0.28,
+			tint = { 250, 250, 244 },
 		},
 	},
 }

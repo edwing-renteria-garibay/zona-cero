@@ -110,6 +110,8 @@ function MapService.Next(): Folder?
 		return nil -- se eligió un solo mapa: no hace falta reconstruirlo
 	end
 	old:Destroy()
+	-- Algunos mapas usan Terrain (pasto, roca), que no queda dentro de la carpeta del mapa
+	workspace.Terrain:Clear()
 	local spawns = workspace:FindFirstChild("VehicleSpawns")
 	if spawns then
 		spawns:Destroy()
