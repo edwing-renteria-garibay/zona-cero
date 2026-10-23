@@ -595,8 +595,11 @@ local function updateJeep(model: Model)
 	local steering = chassis:FindFirstChild("Steering") :: AngularVelocity
 	local stats = statsOf(model)
 
-	local throttle = seat.ThrottleFloat -- W = 1, S = -1
-	local steer = seat.SteerFloat -- D = 1, A = -1
+	-- Sin conductor no se acelera ni se gira. El asiento puede quedarse con lo último que
+	-- pulsó quien se bajó, y el jeep seguía avanzando solo.
+	local hasDriver = seat.Occupant ~= nil
+	local throttle = if hasDriver then seat.ThrottleFloat else 0 -- W = 1, S = -1
+	local steer = if hasDriver then seat.SteerFloat else 0 -- D = 1, A = -1
 	-- Las llantas ponchadas restan velocidad y giro (nunca por debajo de 0)
 	local flats = model:GetAttribute("FlatTires") :: number
 	local flatFronts = model:GetAttribute("FlatFrontTires") :: number
