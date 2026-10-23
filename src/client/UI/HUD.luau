@@ -45,11 +45,16 @@ function HUD.Start()
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		if humanoid then
 			local shield = math.floor(character:GetAttribute("Shield") or 0)
+			local grenadeName = character:GetAttribute("GrenadeName") or "Granadas"
+			local grenades = if character:GetAttribute("InfiniteGrenades")
+				then "∞"
+				else tostring(GrenadeController.GetCount())
 			healthLabel.Text = string.format(
-				"Escudo %d  ·  Vida %d  ·  Granadas %d",
+				"Escudo %d  ·  Vida %d  ·  %s %s",
 				shield,
 				math.ceil(humanoid.Health),
-				GrenadeController.GetCount()
+				grenadeName,
+				grenades
 			)
 		else
 			healthLabel.Text = ""

@@ -24,6 +24,7 @@ local shotFired = remotes.ShotFired :: RemoteEvent
 local hitConfirmed = remotes.HitConfirmed :: RemoteEvent
 local meleeRemote = remotes.Melee :: RemoteEvent
 local frozenRemote = remotes.Frozen :: RemoteEvent
+local knockbackRemote = remotes.Knockback :: RemoteEvent
 
 local MAX_ORIGIN_DISTANCE = 10 -- studs permitidos entre la cabeza y el origen del disparo
 local FIRE_RATE_TOLERANCE = 0.8 -- acepta disparos un poco más seguidos por la latencia de la red
@@ -548,6 +549,13 @@ local function onReload(player: Player)
 	reloading[player] = nil
 end
 
+-- Los valores del golpe: los del arma de golpe que lleva en la mano (Config/Melee.weapons)
+-- o, si no lleva ninguna, los del golpe normal
+local function meleeStats(character: Model)
+	local tool = character:FindFirstChildOfClass("Tool")
+	return tool and Melee.weapons[tool.Name] or Melee
+end
+
 -- Golpe cuerpo a cuerpo: busca al enemigo más cercano justo delante del jugador.
 -- Si lo golpeas por la espalda (él mira hacia el mismo lado que tú), muere de un golpe.
 local function onMelee(player: Player)
@@ -557,8 +565,9 @@ local function onMelee(player: Player)
 	if not humanoid or not root or humanoid.Health <= 0 or humanoid.SeatPart then
 		return
 	end
+	local stats = meleeStats(character :: Model)
 	local now = os.clock()
-	if now - (lastMelee[player] or 0) < Melee.cooldown * FIRE_RATE_TOLERANCE then
+	if now - (lastMelee[player] or 0) < stats.cooldown * FIRE_RATE_TOLERANCE then
 		return
 	end
 	lastMelee[player] = now
@@ -576,8 +585,8 @@ local function onMelee(player: Player)
 	local params = OverlapParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { character :: Model }
-	local center = root.Position + root.CFrame.LookVector * (Melee.range / 2)
-	local parts = workspace:GetPartBoundsInRadius(center, Melee.range / 2, params)
+	local center = root.Position + root.CFrame.LookVector * (stats.range / 2)
+	local parts = workspace:GetPartBoundsInRadius(center, stats.range / 2, params)
 
 	local target: Humanoid? = nil
 	local targetRoot: BasePart? = nil
@@ -603,8 +612,11 @@ local function onMelee(player: Player)
 
 	local toTarget = (targetRoot.Position - root.Position).Unit
 	local backstab = targetRoot.CFrame.LookVector:Dot(toTarget) > 0.5
-	local damage = if backstab then Melee.backstabDamage else Melee.damage
-	local cause = if backstab then "Backstab" else "Melee"
+	local damage = if backstab then stats.backstabDamage else stats.damage
+	local cause = if backstab
+		then "Backstab"
+		elseif tool and Melee.weapons[tool.Name] then tool.Name
+		else "Melee"
 	if player:GetAttribute("Side") == "Zombie" then
 		damage = Rules.current.zombieMeleeDamage or damage -- el machete de un zombi mata
 		cause = "Machete"
@@ -619,6 +631,13 @@ local function onMelee(player: Player)
 			targetRoot.Position,
 			surface
 		)
+		ExplosionService.PlaySoundAt(stats.sound and Sounds.melee[stats.sound], targetRoot.Position)
+		-- El personaje lo mueve su propio jugador, así que el empujón lo aplica su cliente
+		local victim = Players:GetPlayerFromCharacter(target.Parent)
+		if stats.knockback and stats.knockback > 0 and victim and target.Health > 0 then
+			local push = Vector3.new(toTarget.X, 0, toTarget.Z).Unit * stats.knockback
+			knockbackRemote:FireClient(victim, push + Vector3.yAxis * stats.knockback * 0.5)
+		end
 	end
 end
 

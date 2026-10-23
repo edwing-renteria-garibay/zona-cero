@@ -57,8 +57,13 @@ return {
 		grenade = "rbxassetid://87630300241395",
 		jeep = "rbxassetid://134201956270955",
 		ion = "rbxassetid://134201956270955", -- el rayo del cañón de iones
+		simi = "rbxassetid://87630300241395", -- el Doctor SimiO (por ahora, el de la granada)
 	},
 	grenadeThrow = "rbxassetid://118254779238351",
+	-- Armas de golpe (Config/Melee): suena al pegarle a alguien, lo oyen todos
+	melee = {
+		RubberChicken = "rbxassetid://7507574099",
+	},
 	-- Clic al intentar disparar sin balas (todas las armas y la torreta)
 	empty = "rbxassetid://136205387185309",
 }

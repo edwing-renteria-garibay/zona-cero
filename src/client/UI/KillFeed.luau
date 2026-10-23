@@ -32,6 +32,8 @@ local CAUSES = {
 	Machete = "Machete",
 	rocket = "Cohete",
 	grenade = "Granada",
+	simi = "Doctor SimiO",
+	RubberChicken = "Pollo de hule",
 	bomb = "Bomba",
 	jeep = "Explosión del jeep",
 }

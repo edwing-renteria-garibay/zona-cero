@@ -10,6 +10,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 
 local HealthService = require(script.Parent.HealthService)
 
@@ -20,37 +21,10 @@ local ZOMBIE_TEXT = Color3.fromRGB(120, 220, 90)
 
 local InfectionService = {}
 
--- El machete de los zombis: una hoja de metal con mango. Solo se ve; el golpe lo hace
--- CombatService igual que el golpe con F (por eso no está en Config/Weapons).
+-- El machete de los zombis es el mismo de Config/Melee (su forma está en Shared/WeaponModels).
+-- Su golpe lo hace CombatService; a un zombi le sube el daño a rules.zombieMeleeDamage.
 local function makeMachete(): Tool
-	local tool = Instance.new("Tool")
-	tool.Name = "Machete"
-	tool.ToolTip = "Machete"
-	tool.CanBeDropped = false
-	-- La mano queda en un extremo; la hoja sale hacia el frente
-	tool.Grip = CFrame.new(0, 0, 1.4)
-	local blade = Instance.new("Part")
-	blade.Name = "Handle"
-	blade.Size = Vector3.new(0.1, 0.5, 3.6)
-	blade.Color = Color3.fromRGB(150, 150, 155)
-	blade.Material = Enum.Material.Metal
-	blade.CanCollide = false
-	blade.Massless = true
-	blade.Parent = tool
-	local grip = Instance.new("Part")
-	grip.Name = "Grip"
-	grip.Size = Vector3.new(0.2, 0.3, 1)
-	grip.CFrame = CFrame.new(0, 0, 1.4)
-	grip.Color = Color3.fromRGB(60, 40, 25)
-	grip.Material = Enum.Material.Wood
-	grip.CanCollide = false
-	grip.Massless = true
-	local weld = Instance.new("WeldConstraint")
-	weld.Part0 = blade
-	weld.Part1 = grip
-	weld.Parent = grip
-	grip.Parent = tool
-	return tool
+	return ServerStorage.Weapons.Machete:Clone()
 end
 
 local active = false

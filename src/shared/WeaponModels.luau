@@ -28,6 +28,12 @@ local GLOW_GREEN = { Color3.fromRGB(80, 255, 90), Enum.Material.Neon }
 local GLOW_ICE = { Color3.fromRGB(120, 210, 255), Enum.Material.Neon }
 local GLOW_RED = { Color3.fromRGB(255, 50, 50), Enum.Material.Neon }
 local GLOW_FIRE = { Color3.fromRGB(255, 140, 40), Enum.Material.Neon }
+-- Armas de golpe
+local BLADE = { Color3.fromRGB(165, 168, 172), Enum.Material.Metal }
+local DARK_WOOD = { Color3.fromRGB(60, 38, 24), Enum.Material.Wood }
+local RUBBER_YELLOW = { Color3.fromRGB(250, 210, 40), Enum.Material.SmoothPlastic }
+local RUBBER_ORANGE = { Color3.fromRGB(240, 120, 30), Enum.Material.SmoothPlastic }
+local RUBBER_RED = { Color3.fromRGB(215, 40, 35), Enum.Material.SmoothPlastic }
 
 -- Un cilindro de Roblox es largo en X; girado 90° queda a lo largo de Z (como un cañón)
 local ALONG_Z = CFrame.Angles(0, rad(90), 0)
@@ -248,6 +254,41 @@ WeaponModels.Specs = {
 		view = C(0.75, -0.95, -1.5) * CFrame.Angles(0, rad(4), 0),
 		kick = 0.5,
 		kickAngle = 10,
+	},
+	-- Machete (armas de golpe, ver Config/Melee): la hoja apunta al frente. Muzzle no se usa
+	-- para disparar; marca la punta. La mano izquierda queda libre, en guardia.
+	Machete = {
+		pieces = {
+			box("Grip", V(0.18, 0.26, 0.9), C(0, 0, 0.1), DARK_WOOD),
+			box("Guard", V(0.24, 0.36, 0.08), C(0, 0.02, -0.38), BLACK),
+			box("Blade", V(0.05, 0.42, 2.5), C(0, 0.06, -1.65), BLADE),
+			box("Spine", V(0.07, 0.06, 2.5), C(0, 0.27, -1.65), STEEL),
+			box("Tip", V(0.05, 0.3, 0.42), C(0, 0.02, -2.95) * CFrame.Angles(rad(-35), 0, 0), BLADE),
+		},
+		muzzle = C(0, 0.06, -3.1),
+		leftHand = C(-0.85, -0.45, -0.1),
+		view = C(0.75, -0.95, -1.5) * CFrame.Angles(rad(25), rad(12), rad(-10)),
+		kick = 0,
+		kickAngle = 0,
+	},
+	-- Pollo de hule: se agarra de las patas y se usa como garrote
+	RubberChicken = {
+		pieces = {
+			box("Legs", V(0.12, 0.12, 0.6), C(0, 0, 0), RUBBER_ORANGE),
+			box("Feet", V(0.3, 0.06, 0.25), C(0, -0.02, 0.32), RUBBER_ORANGE),
+			box("Body", V(0.5, 0.45, 1.2), C(0, 0.05, -0.9), RUBBER_YELLOW),
+			box("LeftWing", V(0.08, 0.3, 0.7), C(-0.29, 0.06, -0.85), RUBBER_YELLOW),
+			box("RightWing", V(0.08, 0.3, 0.7), C(0.29, 0.06, -0.85), RUBBER_YELLOW),
+			box("Neck", V(0.24, 0.24, 0.6), C(0, 0.3, -1.6) * CFrame.Angles(rad(30), 0, 0), RUBBER_YELLOW),
+			box("Head", V(0.3, 0.32, 0.36), C(0, 0.5, -1.95), RUBBER_YELLOW),
+			box("Beak", V(0.1, 0.1, 0.3), C(0, 0.45, -2.25), RUBBER_ORANGE),
+			box("Comb", V(0.06, 0.18, 0.3), C(0, 0.72, -1.95), RUBBER_RED),
+		},
+		muzzle = C(0, 0.45, -2.4),
+		leftHand = C(-0.85, -0.45, -0.1),
+		view = C(0.75, -0.95, -1.5) * CFrame.Angles(rad(20), rad(12), rad(-10)),
+		kick = 0,
+		kickAngle = 0,
 	},
 } :: { [string]: Spec }
 
