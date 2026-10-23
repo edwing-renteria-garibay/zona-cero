@@ -37,19 +37,20 @@ local PILLAR = { Color = Color3.fromRGB(96, 110, 120), Material = Enum.Material.
 local CRATE = { Color = Color3.fromRGB(130, 148, 156), Material = Enum.Material.Concrete }
 local GLOW = { Color = Color3.fromRGB(170, 225, 255), Material = Enum.Material.Neon }
 
-local HALF_LENGTH = 110 -- del centro a los muros de las bases, por dentro
+local HALF_LENGTH = 140 -- del centro a los muros de las bases, por dentro
 local HALF_WIDTH = 70 -- del centro a los muros de los lados, por dentro
 local WALL_THICK = 4
 local HEIGHT = 56 -- del piso al techo
 local UPPER = 20 -- altura del piso de arriba
 local SLAB = 1 -- grosor de los pisos de arriba
 local ROCKET_HEIGHT = 32 -- altura de la plataforma del lanzacohetes
+local SHELF_FROM = 46 -- las repisas van de z = 46 al muro (y de -46 al otro muro)
 
 -- Base de cada equipo (medidas en X, para el Rojo)
-local TUNNEL_FROM = 76 -- el túnel va de x = 76 a x = 92, por debajo de la cubierta
-local TUNNEL_TO = 92
+local TUNNEL_FROM = 106 -- el túnel va de x = 106 a x = 122, por debajo de la cubierta
+local TUNNEL_TO = 122
 local TUNNEL_CLEARANCE = 12 -- altura del túnel por dentro
-local DECK_FROM = 74 -- la cubierta va de x = 74 hasta el muro
+local DECK_FROM = 104 -- la cubierta va de x = 104 hasta el muro
 local DECK_HALF = 30 -- y de z = -30 a z = 30
 
 -- Lo que no es de ningún equipo: piso, muros, techo, luces y el poste del centro
@@ -120,7 +121,7 @@ local function buildShell(map: Folder)
 	)
 
 	-- Lámparas del techo
-	for _, x in { -70, 0, 70 } do
+	for _, x in { -105, -35, 35, 105 } do
 		for _, z in { -35, 35 } do
 			local lamp = Builder.block(
 				folder,
@@ -165,25 +166,38 @@ local function buildHalf(map: Folder, team)
 		Vector3.new(DECK_FROM / 2 + 2, UPPER + 0.05, 0),
 		GLOW
 	)
-	half.add("Pillar", Vector3.new(3, UPPER - SLAB, 3), Vector3.new(50, (UPPER - SLAB) / 2, 0), PILLAR)
+	for _, x in { 50, 80 } do
+		half.add("Pillar", Vector3.new(3, UPPER - SLAB, 3), Vector3.new(x, (UPPER - SLAB) / 2, 0), PILLAR)
+	end
 
 	for _, side in { 1, -1 } do
-		-- Repisa alta del centro (40 × 40) con su columna
-		half.add("Shelf", Vector3.new(40, SLAB, 40), Vector3.new(20, UPPER - SLAB / 2, side * 50), DECK)
+		-- Repisa alta del centro, pegada al muro del lado, con su columna
+		local shelfDepth = HALF_WIDTH - SHELF_FROM
+		half.add(
+			"Shelf",
+			Vector3.new(40, SLAB, shelfDepth),
+			Vector3.new(20, UPPER - SLAB / 2, side * (SHELF_FROM + shelfDepth / 2)),
+			DECK
+		)
 		half.add(
 			"Pillar",
 			Vector3.new(4, UPPER - SLAB, 4),
-			Vector3.new(20, (UPPER - SLAB) / 2, side * 36),
+			Vector3.new(20, (UPPER - SLAB) / 2, side * (SHELF_FROM + 6)),
 			PILLAR
 		)
 		-- Pasarela de la repisa al puente
-		half.add("Walkway", Vector3.new(10, SLAB, 25), Vector3.new(35, UPPER - SLAB / 2, side * 17.5), BEAM)
+		half.add(
+			"Walkway",
+			Vector3.new(10, SLAB, SHELF_FROM - 5),
+			Vector3.new(35, UPPER - SLAB / 2, side * (SHELF_FROM + 5) / 2),
+			BEAM
+		)
 		-- Rampa del piso a la repisa, pegada al muro del lado
 		half.slope("Ramp", Vector3.new(78, 0, side * 60), Vector3.new(40, UPPER, side * 60), 12, DECK)
 		-- Rampa angosta de la repisa a la plataforma del lanzacohetes
 		half.slope(
 			"RocketRamp",
-			Vector3.new(10, UPPER, side * 30),
+			Vector3.new(10, UPPER, side * SHELF_FROM),
 			Vector3.new(4, ROCKET_HEIGHT, side * 6),
 			4,
 			BEAM
@@ -192,8 +206,8 @@ local function buildHalf(map: Folder, team)
 		-- Rampa del piso a la cubierta de la base, pegada al muro del lado
 		half.slope(
 			"Ramp",
-			Vector3.new(100, 0, side * 66),
-			Vector3.new(100, UPPER, side * DECK_HALF),
+			Vector3.new(130, 0, side * 66),
+			Vector3.new(130, UPPER, side * DECK_HALF),
 			12,
 			DECK
 		)
@@ -251,7 +265,7 @@ local function buildHalf(map: Folder, team)
 
 	-- Cobertura en la cubierta: un muro bajo al frente y la bandera al fondo
 	half.add("Barrier", Vector3.new(2, 4, 16), Vector3.new(DECK_FROM + 8, UPPER + 2, 0), DARK)
-	half.flagStand(Vector3.new(102, UPPER, 0))
+	half.flagStand(Vector3.new(132, UPPER, 0))
 	half.add(
 		"TeamStripe",
 		Vector3.new(0.4, 2, 40),
@@ -261,25 +275,33 @@ local function buildHalf(map: Folder, team)
 	half.add("TeamStripe", Vector3.new(0.4, 1, 30), Vector3.new(TUNNEL_TO - 0.2, 4, 0), half.stripe)
 
 	-- Puntos de aparición: dos en la cubierta y dos en el túnel
-	half.spawn(Vector3.new(96, UPPER + 0.5, 18))
-	half.spawn(Vector3.new(96, UPPER + 0.5, -18))
-	half.spawn(Vector3.new(84, 0.5, 22))
-	half.spawn(Vector3.new(84, 0.5, -22))
+	half.spawn(Vector3.new(126, UPPER + 0.5, 18))
+	half.spawn(Vector3.new(126, UPPER + 0.5, -18))
+	half.spawn(Vector3.new(114, 0.5, 22))
+	half.spawn(Vector3.new(114, 0.5, -22))
 
 	-- Cajas en el piso de abajo
 	for _, spot in
-		{ Vector3.new(30, 0, 12), Vector3.new(14, 0, -22), Vector3.new(58, 0, 24), Vector3.new(58, 0, -40) }
+		{
+			Vector3.new(30, 0, 12),
+			Vector3.new(14, 0, -22),
+			Vector3.new(58, 0, 24),
+			Vector3.new(58, 0, -40),
+			Vector3.new(88, 0, -16),
+			Vector3.new(92, 0, 34),
+		}
 	do
 		half.add("Crate", Vector3.new(5, 4, 5), spot + Vector3.new(0, 2, 0), CRATE, 15)
 	end
 	half.add("Crate", Vector3.new(4, 3, 4), Vector3.new(66, 1.5, -10), CRATE, -20)
-	half.add("Crate", Vector3.new(4, 3, 4), Vector3.new(84, 1.5, 48), CRATE)
+	half.add("Crate", Vector3.new(4, 3, 4), Vector3.new(114, 1.5, 48), CRATE)
+	half.add("Crate", Vector3.new(4, 3, 4), Vector3.new(76, 1.5, 12), CRATE, 30)
 
 	-- Armas de este lado
-	half.pickup("SniperPad", Vector3.new(104, UPPER + 0.2, -20), "Weapon", "Sniper")
-	half.pickup("ShotgunPad", Vector3.new(84, 0.2, 0), "Weapon", "Shotgun")
+	half.pickup("SniperPad", Vector3.new(134, UPPER + 0.2, -20), "Weapon", "Sniper")
+	half.pickup("ShotgunPad", Vector3.new(114, 0.2, 0), "Weapon", "Shotgun")
 	half.pickup("GrenadePad", Vector3.new(50, 0.2, 8), "Pickup", "Grenades")
-	half.pickup("LaserRiflePad", Vector3.new(20, UPPER + 0.2, 56), "Weapon", "LaserRifle")
+	half.pickup("LaserRiflePad", Vector3.new(20, UPPER + 0.2, 60), "Weapon", "LaserRifle")
 	half.pickup("IceGunPad", Vector3.new(28, 0.2, -10), "Weapon", "IceGun")
 end
 

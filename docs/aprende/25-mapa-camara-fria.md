@@ -4,11 +4,11 @@ Un cuarto rectangular cerrado, con techo y dos pisos, inspirado en Chill Out de 
 cada base era distinta. Aquí las dos son iguales, para que ningún equipo tenga ventaja: cada
 base tiene su túnel con ventanas.
 
-Mide 220 de largo (de base a base) por 140 de ancho.
+Mide 280 de largo (de base a base) por 140 de ancho.
 
 ## Cómo está armado
 
-- **Centro, arriba (a 20 de altura):** dos repisas grandes, una en cada lado, unidas por
+- **Centro, arriba (a 20 de altura):** dos repisas pegadas a los muros de los lados, unidas por
   pasarelas con el puente oscuro que cruza todo el mapa de base a base.
 - **Lanzacohetes:** está en una plataforma sobre un poste, a 32 de altura. Se sube por cuatro
   rampas angostas que salen de las repisas. Abajo del poste está el lanzallamas.
@@ -40,5 +40,5 @@ En `src/shared/Config/Maps.luau` pon `selected = "CamaraFria"`. Cuando termines,
 ## Cambiarlo
 
 Todo está en `src/server/Maps/CamaraFria.luau`. Las medidas están arriba del archivo
-(`HALF_LENGTH`, `HALF_WIDTH`, `HEIGHT`, `UPPER`, `ROCKET_HEIGHT`, y dónde empiezan el túnel
+(`HALF_LENGTH`, `HALF_WIDTH`, `HEIGHT`, `UPPER`, `ROCKET_HEIGHT`, `SHELF_FROM`, y dónde empiezan el túnel
 y la cubierta). La luz está en `Maps.lighting.CamaraFria`.
