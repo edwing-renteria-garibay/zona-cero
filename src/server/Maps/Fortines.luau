@@ -8,7 +8,7 @@
 --         [spawn]        [spawn]  rampa /plataforma\ rampa  [spawn]        [spawn]
 --                                       (bandera, 8)
 --   d=52  ==========brazo==   ====== muro bajo (10) ======   ==brazo==========
---   d=26      [  muro de en medio  ]                       [  muro de en medio  ]
+--   d=30      [  muro de en medio  ]                       [  muro de en medio  ]
 --                                         [granadas]
 --   d=0   |   [   muro de enfrente   ]                 [   muro de enfrente   ]   |
 --         ^ acceso lateral                ^ acceso central                acceso lateral ^
@@ -127,13 +127,14 @@ local function buildFort(map: Folder, team)
 			wallBox(half, name, d0, d1, math.min(z0, z1), math.max(z0, z1), height, style)
 		end
 		-- Brazos que salen de los muros de los lados (la "T" del dibujo)
-		box("Arm", 42, 50, 50, INNER, OUTER_HEIGHT, STONE)
-		half.add("TeamStripe", Vector3.new(8.4, 2, 0.4), pos(46, OUTER_HEIGHT - 4, 49.8 * side), half.stripe)
-		-- Muro de enfrente: entre él y el de en medio pasa un pasillo de 10 studs.
+		-- Entre el brazo y el muro de en medio queda un paso de 12 studs (de d = 36 a 48)
+		box("Arm", 48, 54, 50, INNER, OUTER_HEIGHT, STONE)
+		half.add("TeamStripe", Vector3.new(6.4, 2, 0.4), pos(51, OUTER_HEIGHT - 4, 49.8 * side), half.stripe)
+		-- Muro de enfrente: entre él y el de en medio pasa un pasillo de 14 studs.
 		-- Acceso central de 20 studs (z de -10 a 10) y laterales de SIDE_ACCESS (hasta z = 96)
 		box("FrontWall", 0, 16, 10, INNER - SIDE_ACCESS, INNER_HEIGHT, DARK)
 		-- Muro de en medio
-		box("MiddleWall", 26, 34, 10, 76, INNER_HEIGHT, DARK)
+		box("MiddleWall", 30, 36, 10, 76, INNER_HEIGHT, DARK)
 
 		-- Plataforma del fondo: rampa (de z=44 a z=18), bloque (de 18 a 5) y el puente en medio
 		half.slope("PlatformRamp", pos(66, 0, 44 * side), pos(66, PLATFORM_HEIGHT, 18 * side), 8, PLATE)
