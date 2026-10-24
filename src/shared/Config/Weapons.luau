@@ -101,7 +101,7 @@ local Weapons = {
 	-- Rayo de energía (estilo SE Ray): instantáneo y preciso; 2 tiros matan
 	LaserRifle = {
 		beam = "laser",
-		damage = 100,
+		damage = 75, -- antes 100
 		headshotMultiplier = 1.5,
 		fireRate = 1.2,
 		magazine = 6,

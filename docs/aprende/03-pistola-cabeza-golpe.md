@@ -69,7 +69,7 @@ La torreta del jeep tiene 100 balas. Al vaciarse se recarga sola en 5 s, o puede
 
 Los sonidos se eligen en `src/shared/Config/Sounds.luau`. En Studio abre la Caja de herramientas, ve a **Audio**, busca un sonido (por ejemplo "gunshot"), haz clic derecho y copia su ID. Pégalo como `"rbxassetid://NÚMERO"`.
 
-El escudo se empieza a recargar tras 3.5 s sin recibir daño y se llena en 1.5 s (`REGEN_DELAY` y `REGEN_TIME` en `HealthService`).
+El escudo se empieza a recargar tras 33.5 s sin recibir daño (antes 3.5) y se llena en 1.5 s (`REGEN_DELAY` y `REGEN_TIME` en `HealthService`).
 
 `HealthService.Damage` ahora devuelve dos números: cuánto se llevó el escudo y cuánto la vida. `CombatService` los usa para elegir el color del destello y del número.
 
