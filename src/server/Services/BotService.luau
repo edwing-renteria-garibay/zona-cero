@@ -19,6 +19,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local Teams = game:GetService("Teams")
 
 local Bots = require(ReplicatedStorage.Shared.Config.Bots)
+local Grenades = require(ReplicatedStorage.Shared.Config.Grenades)
 local Melee = require(ReplicatedStorage.Shared.Config.Melee)
 local Modes = require(ReplicatedStorage.Shared.Config.Modes)
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
@@ -28,6 +29,7 @@ local ExplosionService = require(script.Parent.ExplosionService)
 local HealthService = require(script.Parent.HealthService)
 local InfectionService = require(script.Parent.InfectionService)
 local MatchSettings = require(script.Parent.MatchSettings)
+local ProjectileService = require(script.Parent.ProjectileService)
 local VehicleService = require(script.Parent.VehicleService)
 
 local remotes = ReplicatedStorage.Remotes
@@ -258,6 +260,7 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 	local strafeSide, strafeUntil = 1, 0
 	local lastPosition, stuckSince = root.Position, os.clock()
 	local wanderGoal: Vector3? = nil
+	local nextGrenade = os.clock() + 2 + math.random() * 3
 
 	-- ¿Lo ve? Un raycast de su cabeza a la del otro que no choque con nada antes
 	local function canSee(otherCharacter: Model, otherRoot: BasePart): boolean
@@ -416,6 +419,17 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 		end
 	end
 
+	-- Lanza una granada (o un SimiO) en arco hacia el enemigo: calcula la velocidad para que
+	-- llegue en t segundos con la gravedad de Roblox, con un poco de error al azar
+	local function throwAt(targetRoot: BasePart)
+		local origin = head.Position + Vector3.yAxis * Grenades.throwHeight
+		local miss = Vector3.new(math.random() - 0.5, 0, math.random() - 0.5) * level().spread * 2
+		local goal = targetRoot.Position + miss
+		local t = math.clamp((goal - origin).Magnitude / 45, 0.5, 1.4)
+		local velocity = (goal - origin) / t + Vector3.yAxis * (0.5 * workspace.Gravity * t)
+		ProjectileService.ThrowGrenade(card, velocity)
+	end
+
 	local function alive(): boolean
 		return active
 			and card.Parent == Combatants.Cards
@@ -461,6 +475,16 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 			local meleeStats = if melee then stats else Melee
 			if visible then
 				face(targetRoot.Position)
+				-- Granadas: solo a media distancia (de cerca se lastimaría él mismo). Con
+				-- SimiOs infinitos las lanza más seguido
+				local grenadesLeft = (character:GetAttribute("Grenades") or 0) > 0
+				if grenadesLeft and now >= nextGrenade and distance > 16 and distance < Grenades.maxRange then
+					throwAt(targetRoot)
+					local wait = if rules.infiniteGrenades
+						then 1.5 + math.random() * 2
+						else 5 + math.random() * 6
+					nextGrenade = now + wait
+				end
 				-- Muy cerca, cualquiera saca el machete
 				if distance <= meleeStats.range and now - lastMelee >= meleeStats.cooldown then
 					lastMelee = now
@@ -543,6 +567,7 @@ function spawnBot(card: Instance)
 	pcall(root.SetNetworkOwner, root, nil) -- lo mueve el servidor, no un jugador
 	Combatants.SetBotCharacter(card, character)
 	HealthService.SetupCharacter(card, character)
+	ProjectileService.SetupCharacter(character) -- sus granadas (o SimiOs)
 	animate(character, humanoid)
 
 	local weaponName = chooseWeapon(card)
