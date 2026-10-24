@@ -3,25 +3,30 @@
 -- con Terrain (el terreno de Roblox: pasto, tierra y roca que se ven naturales) en lugar de
 -- solo bloques.
 --
---   * El cañón: 600 de largo (de base a base) por 260 de ancho, cerrado por paredes de roca
+--   * El cañón: 800 de largo (de base a base) por 480 de ancho, cerrado por paredes de roca
 --     de 100 de alto, con peñascos para que no se vean rectas.
---   * 5 montañas de distinta altura: una en cada esquina y una en el centro. Los jeeps no
---     las pueden subir (hay que rodearlas), pero a pie sí. En la cima de la del centro están
---     el lanzacohetes y el cañón de iones.
---   * Un camino de tierra va de cada base a la montaña del centro y le da la vuelta.
+--   * 4 montañas iguales en cruz alrededor del centro, con forma de triángulo y la punta
+--     hacia el centro (el dibujo de edwing): una frente a cada base y una a cada lado. Entre
+--     ellas quedan pasos en diagonal y el centro abierto, así que los jeeps cruzan por en
+--     medio en cualquier dirección, o rodean las 4 por el camino de afuera. Los jeeps no las
+--     pueden subir, pero a pie sí. En la cima de las de los lados están el lanzacohetes y
+--     el cañón de iones; en las de frente a cada base, el láser.
+--   * Caminos de tierra: un anillo alrededor de las 4 montañas, una X por los pasos del
+--     centro y uno de cada base al anillo.
 --   * Cada base es un búnker de metal con puertas por los 4 lados y azotea, a la que se sube
 --     por una rampa por detrás. Frente a cada base aparecen 6 jeeps: 3 con ametralladora
 --     y 3 con lanzacohetes.
 --
 -- Vista desde arriba (el Rojo está en +X, a la derecha; el Azul es igual, girado 180°):
 --
---   +------------------------------------------------------------------+
---   | /\ montaña                                           montaña /\ |
---   |                           .-----.                              |
---   | [BASE]  jeeps  ~~camino~~ ( /\ ) ~~camino~~  jeeps [BASE]       |
---   |                           '-----'                              |
---   | /\ montaña           montaña del centro             montaña /\ |
---   +------------------------------------------------------------------+
+--   +--------------------------------------------------------------+
+--   |           .---------- anillo de tierra -----------.          |
+--   |          /                    \/                   \         |
+--   | [BASE] ---        |>        centro        <|       --- [BASE]|
+--   |          \                    /\                   /         |
+--   |           '---------------------------------------'          |
+--   +--------------------------------------------------------------+
+--   (las 4 montañas son triángulos con la punta hacia el centro; entre ellas, pasos en X)
 --
 -- Medidas desde el centro del mapa: X va de base a base, Z de lado a lado. El terreno
 -- (Terrain) no está dentro de la carpeta del mapa: MapService lo borra al cambiar de mapa.
@@ -30,13 +35,16 @@ local Builder = require(script.Parent.Builder)
 
 local Barranca = {}
 
-local HALF_LENGTH = 300 -- del centro a las paredes del fondo
-local HALF_WIDTH = 130 -- del centro a las paredes de los lados
+local HALF_LENGTH = 400 -- del centro a las paredes del fondo
+local HALF_WIDTH = 240 -- del centro a las paredes de los lados
 local WALL_HEIGHT = 100 -- alto de las paredes de roca
 local ROAD_WIDTH = 20
-local CENTER_RADIUS = 45 -- la montaña del centro
-local CENTER_HEIGHT = 40
-local RING = 60 -- el camino rodea la montaña del centro a esta distancia
+-- Las 4 montañas: el centro de cada triángulo está a MOUNTAIN_DISTANCE del centro del mapa;
+-- TRIANGLE_SIDE es lo que mide cada lado del triángulo y MOUNTAIN_HEIGHT su altura
+local MOUNTAIN_DISTANCE = 110
+local TRIANGLE_SIDE = 120
+local MOUNTAIN_HEIGHT = 35
+local RING = 195 -- el camino de afuera rodea las 4 montañas a esta distancia del centro
 
 local GRASS = Enum.Material.Grass
 local DIRT = Enum.Material.Ground
@@ -48,7 +56,7 @@ local WALL = { Color = Color3.fromRGB(96, 106, 118), Material = Enum.Material.Me
 local STONE = { Color = Color3.fromRGB(110, 104, 96), Material = Enum.Material.Slate }
 
 -- La base Roja está en x = BASE_X; el búnker mide BASE_SIZE por lado y BASE_HEIGHT de alto
-local BASE_X = 250
+local BASE_X = 330
 local BASE_SIZE = 28
 local BASE_HEIGHT = 10
 
@@ -91,7 +99,27 @@ local function summit(map: Folder, name: string, position: Vector3)
 	Builder.block(map, name, Vector3.new(10, 2, 10), CFrame.new(position - Vector3.new(0, 1, 0)), STONE)
 end
 
--- El cañón: piso de pasto, paredes de roca, peñascos y la montaña del centro
+-- Una montaña en forma de triángulo, con su centro en center y la punta hacia toward (el
+-- centro del mapa). Se arma con una montaña redonda en medio y una loma en cada esquina
+-- del triángulo, así de lejos se ve triangular y por los lados queda una pendiente
+local function triangleMountain(center: Vector3, toward: Vector3)
+	local forward = Vector3.new(toward.X - center.X, 0, toward.Z - center.Z).Unit
+	local right = Vector3.new(-forward.Z, 0, forward.X)
+	local fromCenter = TRIANGLE_SIDE / math.sqrt(3) -- del centro del triángulo a cada esquina
+	local corners = {
+		center + forward * fromCenter, -- la punta, hacia el centro del mapa
+		center - forward * fromCenter / 2 + right * TRIANGLE_SIDE / 2,
+		center - forward * fromCenter / 2 - right * TRIANGLE_SIDE / 2,
+	}
+	for _, corner in corners do
+		-- Un poco hacia adentro, para que las esquinas no se coman los pasos entre montañas
+		local spot = center:Lerp(corner, 0.7)
+		mound(spot.X, spot.Z, 28, 14, GRASS)
+	end
+	mountain(center.X, center.Z, 55, MOUNTAIN_HEIGHT)
+end
+
+-- El cañón: piso de pasto, paredes de roca, peñascos y las montañas de los lados
 local function buildShell(map: Folder)
 	local folder = Instance.new("Folder")
 	folder.Name = "Barranca"
@@ -126,7 +154,7 @@ local function buildShell(map: Folder)
 	end
 	-- Peñascos pegados a las paredes de los lados, para que no se vean rectas. Los tamaños
 	-- salen de una cuenta fija, así el mapa es siempre igual
-	for i = 0, 11 do
+	for i = 0, 15 do
 		local x = -HALF_LENGTH + 25 + i * 50
 		for _, side in { 1, -1 } do
 			local radius = 14 + 6 * math.abs(math.sin(i * 1.7 + side))
@@ -134,18 +162,27 @@ local function buildShell(map: Folder)
 		end
 	end
 
-	-- La montaña del centro, la más alta: el camino le da la vuelta (ver buildHalf). En la
-	-- cima están el lanzacohetes y el cañón de iones: hay que subir a pie por ellos
-	mountain(0, 0, CENTER_RADIUS, CENTER_HEIGHT)
-	summit(folder, "Summit", Vector3.new(0, CENTER_HEIGHT, 0))
+	-- Las montañas de los dos lados (las de frente a cada base van en buildHalf). En sus
+	-- cimas, el lanzacohetes de un lado y el cañón de iones del otro: hay que subir a pie
+	local top = MOUNTAIN_HEIGHT
+	for _, side in { 1, -1 } do
+		triangleMountain(Vector3.new(0, 0, side * MOUNTAIN_DISTANCE), Vector3.zero)
+		summit(folder, "Summit", Vector3.new(0, top, side * MOUNTAIN_DISTANCE))
+	end
 	Builder.pickupPad(
 		map,
 		"RocketLauncherPad",
-		Vector3.new(-2.5, CENTER_HEIGHT + 0.2, 0),
+		Vector3.new(0, top + 0.2, MOUNTAIN_DISTANCE),
 		"Weapon",
 		"RocketLauncher"
 	)
-	Builder.pickupPad(map, "IonCannonPad", Vector3.new(2.5, CENTER_HEIGHT + 0.2, 0), "Weapon", "IonCannon")
+	Builder.pickupPad(
+		map,
+		"IonCannonPad",
+		Vector3.new(0, top + 0.2, -MOUNTAIN_DISTANCE),
+		"Weapon",
+		"IonCannon"
+	)
 
 	-- Marcas invisibles en las esquinas: así el Rey de la colina sabe qué tan grande es el
 	-- mapa (el terreno no cuenta, porque no está en la carpeta del mapa)
@@ -220,55 +257,53 @@ end
 local function buildHalf(map: Folder, team)
 	local half = Builder.half(map, team)
 
-	-- Camino de tierra: de la base a la montaña del centro, y luego media vuelta alrededor
-	-- de ella. La otra mitad hace lo mismo (girada), así que las dos medias vueltas forman
-	-- un anillo completo
+	-- Caminos de tierra (antes que las montañas: si se tocan, gana la montaña):
+	-- de la base al anillo de afuera
+	road(half.at(Vector3.new(BASE_X - 15, 0, 0)), half.at(Vector3.new(RING, 0, 0)))
+	-- media vuelta del anillo, de un lado al otro por este lado. La otra mitad hace lo mismo
+	-- (girada), así que las dos medias vueltas forman el anillo completo
+	local previous = nil
+	for angle = -90, 90, 15 do
+		local point = half.at(Vector3.new(math.cos(math.rad(angle)), 0, math.sin(math.rad(angle))) * RING)
+		if previous then
+			road(previous, point)
+		end
+		previous = point
+	end
+	-- y dos diagonales del anillo al centro, por los pasos entre montañas (con las de la otra
+	-- mitad forman una X)
 	local diagonal = RING * math.cos(math.rad(45))
-	local path = {
-		Vector3.new(BASE_X - 15, 0, 0),
-		Vector3.new(200, 0, -30),
-		Vector3.new(150, 0, -45),
-		Vector3.new(100, 0, -25),
-		Vector3.new(RING, 0, 0),
-		Vector3.new(diagonal, 0, -diagonal),
-		Vector3.new(0, 0, -RING),
-		Vector3.new(-diagonal, 0, -diagonal),
-		Vector3.new(-RING, 0, 0),
-	}
-	for i = 1, #path - 1 do
-		road(half.at(path[i]), half.at(path[i + 1]))
+	for _, side in { 1, -1 } do
+		road(half.at(Vector3.new(diagonal, 0, side * diagonal)), half.at(Vector3.zero))
 	end
 
-	-- Las montañas de las dos esquinas de este lado, de distinta altura (después del
-	-- camino: si se tocan, gana la montaña)
-	local cornerX = HALF_LENGTH - 25
-	local cornerZ = HALF_WIDTH - 25
-	for _, corner in { { cornerZ, 30 }, { -cornerZ, 22 } } do
-		local spot = half.at(Vector3.new(cornerX, 0, corner[1]))
-		mountain(spot.X, spot.Z, 55, corner[2])
+	-- La montaña de frente a esta base, con la punta hacia el centro. El láser, en la cima
+	local peak = Vector3.new(MOUNTAIN_DISTANCE, 0, 0)
+	triangleMountain(half.at(peak), Vector3.zero)
+	summit(map, "Summit", half.at(peak + Vector3.yAxis * MOUNTAIN_HEIGHT))
+	half.pickup("LaserRiflePad", peak + Vector3.yAxis * (MOUNTAIN_HEIGHT + 0.2), "Weapon", "LaserRifle")
+
+	-- Lomas bajas en el campo, para saltar con el jeep
+	for _, z in { 120, -150 } do
+		local bump = half.at(Vector3.new(270, 0, z))
+		mound(bump.X, bump.Z, 30, 5, GRASS)
 	end
-	-- Una loma baja en el campo, para saltar con el jeep
-	local bump = half.at(Vector3.new(150, 0, 40))
-	mound(bump.X, bump.Z, 30, 5, GRASS)
 	-- Rocas sueltas para cubrirse a pie
 	for _, rock in
 		{
-			{ 165, -15, 4 },
-			{ 95, 15, 5 },
-			{ 215, 20, 3 },
-			{ 135, -80, 5 },
-			{ 70, 40, 4 },
+			{ 240, -100, 5 },
+			{ 225, 95, 4 },
+			{ 150, -215, 5 },
+			{ 140, 215, 4 },
+			{ 300, 190, 5 },
 		}
 	do
 		terrain():FillBall(half.at(Vector3.new(rock[1], 1, rock[2])), rock[3], ROCK)
 	end
 
-	-- Láser en la cima de la montaña más alta de las esquinas de este lado
-	summit(map, "Summit", half.at(Vector3.new(cornerX, 30, cornerZ)))
-	half.pickup("LaserRiflePad", Vector3.new(cornerX, 30.2, cornerZ), "Weapon", "LaserRifle")
-	half.pickup("GrenadePad", Vector3.new(150, 0.2, -20), "Pickup", "Grenades")
-	half.pickup("IceGunPad", Vector3.new(90, 0.2, 30), "Weapon", "IceGun")
-	half.pickup("FlamethrowerPad", Vector3.new(200, 0.2, -60), "Weapon", "Flamethrower")
+	half.pickup("GrenadePad", Vector3.new(240, 0.2, -45), "Pickup", "Grenades")
+	half.pickup("IceGunPad", Vector3.new(240, 0.2, 45), "Weapon", "IceGun")
+	half.pickup("FlamethrowerPad", Vector3.new(120, 0.2, -150), "Weapon", "Flamethrower")
 
 	buildBase(half)
 
