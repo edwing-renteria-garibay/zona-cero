@@ -8,13 +8,15 @@ base.
 
 - **El cañón:** piso de pasto, paredes de roca de 100 de alto y peñascos pegados a las
   paredes, para que no se vean rectas.
-- **Las montañas:** 4 iguales (35 de alto), en cruz alrededor del centro, con forma de
-  triángulo y la punta hacia el centro: una frente a cada base y una a cada lado (el dibujo
-  de edwing). Entre ellas quedan pasos en diagonal y el centro abierto, así que los jeeps
-  cruzan por en medio en cualquier dirección o rodean las 4 por afuera. Los jeeps no las
-  pueden subir; a pie sí. Cada una es una montaña redonda con una loma en cada esquina del
-  triángulo (función `triangleMountain`). En la cima de las de los lados están el
-  **lanzacohetes** y el **cañón de iones**; en la de frente a cada base, el rifle láser.
+- **Las montañas:** 4 cerros iguales (85 de alto, casi como las paredes), en cruz
+  alrededor del centro, con forma de triángulo y la punta hacia el centro: uno frente a
+  cada base y uno a cada lado (el dibujo de edwing). Son de pasto con paredes de roca y
+  punta de roca, y tan empinados que no se suben: entre ellos se siente como cruzar un
+  valle. Quedan pasos en diagonal y el centro abierto, así que los jeeps cruzan por en
+  medio en cualquier dirección o los rodean por afuera. Cada cerro es una torre de discos
+  que se angosta hacia arriba (función `rockTower`), una grande en medio y una más baja en
+  cada esquina del triángulo (`triangleMountain`). En el cruce del centro están el
+  **lanzacohetes** y el **cañón de iones**; entre cada base y su cerro, el rifle láser.
 - **Los caminos:** un anillo de tierra alrededor de las 4 montañas, una X por los pasos
   del centro y uno de cada base al anillo.
 - **Las bases:** un búnker de metal con una puerta al centro de cada lado y azotea. A la
@@ -22,7 +24,8 @@ base.
   bandera (en una esquina del fondo) y la escopeta.
 
 Para cambiar el tamaño o la forma, mueve los números de arriba de `Barranca.luau`:
-`HALF_LENGTH`, `HALF_WIDTH`, `MOUNTAIN_DISTANCE`, `TRIANGLE_SIDE`, `MOUNTAIN_HEIGHT` y `RING`.
+`HALF_LENGTH`, `HALF_WIDTH`, `MOUNTAIN_DISTANCE`, `TRIANGLE_SIDE`, `MOUNTAIN_HEIGHT`,
+`ROCK_RADIUS` y `RING`.
 
 ## Terrain: el terreno de Roblox
 
