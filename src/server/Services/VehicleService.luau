@@ -585,9 +585,14 @@ local function runOver(model: Model, driver: Player, speed: number)
 		then
 			hit[humanoid] = true
 			lastRunOver[humanoid] = now
-			-- Nunca lo mata: le deja al menos 1 de vida
+			-- Con la vida y el escudo llenos, el primer atropello no lo mata (le deja al menos 1);
+			-- si ya venía lastimado, sí puede morir
 			local shield = (character :: Model):GetAttribute("Shield") or 0
-			local amount = math.min(stats.runOver.damage, shield + humanoid.Health - 1)
+			local maxShield = (character :: Model):GetAttribute("MaxShield") or 0
+			local full = shield >= maxShield and humanoid.Health >= humanoid.MaxHealth
+			local amount = if full
+				then math.min(stats.runOver.damage, shield + humanoid.Health - 1)
+				else stats.runOver.damage
 			if amount > 0 then
 				HealthService.Damage(humanoid, amount, driver, "jeep")
 			end

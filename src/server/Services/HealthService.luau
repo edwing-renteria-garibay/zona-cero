@@ -8,6 +8,7 @@
 local RunService = game:GetService("RunService")
 
 local Combatants = require(script.Parent.Combatants)
+local DeathAnimation = require(script.Parent.DeathAnimation)
 local Rules = require(script.Parent.Rules)
 
 local MAX_SHIELD = 100
@@ -47,9 +48,21 @@ function HealthService.SetupCharacter(player: Combatants.Combatant, character: M
 	character:SetAttribute("MaxShield", maxShield)
 	character:SetAttribute("Shield", maxShield)
 	lastHit[humanoid] = 0
+	DeathAnimation.Prepare(humanoid)
 
 	humanoid.Died:Connect(function()
 		local killer = lastAttacker[humanoid]
+		-- Cómo cae el cuerpo depende de con qué lo mataron (ver DeathAnimation). Con pcall: si
+		-- algo falla ahí, la baja se cuenta igual
+		local killerBody = killer and Combatants.Character(killer)
+		local killerRoot = killerBody and killerBody:FindFirstChild("HumanoidRootPart") :: BasePart?
+		pcall(
+			DeathAnimation.Play,
+			character,
+			lastCause[humanoid],
+			lastHeadshot[humanoid] == true,
+			killerRoot and killerRoot.Position
+		)
 		local assisters = {}
 		local now = os.clock()
 		for who, at in damagedBy[humanoid] or {} do
