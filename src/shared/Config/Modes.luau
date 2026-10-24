@@ -51,7 +51,7 @@ local Modes = {
 		pickups = false,
 		testingKeepsLoadout = true, -- también en el modo de prueba: solo lanzacohetes
 	},
-	-- A puño limpio: sin armas ni granadas; solo golpes (clic o F). Por la espalda, mata de uno
+	-- A puño limpio: sin armas de fuego ni granadas; solo el machete (clic o F). Por la espalda, mata de uno
 	Brawl = {
 		name = "A puño limpio",
 		scoreToWin = 30, -- con muchos jugadores (ver scaleScore en Common)
@@ -61,7 +61,7 @@ local Modes = {
 		vehicles = false,
 		scoreBy = "kills",
 		bots = true, -- con pocos jugadores se rellena con bots (Config/Bots)
-		loadout = {},
+		loadout = { "Machete" }, -- el machete en la mano, para que se vea el golpe
 		testingKeepsLoadout = true, -- el modo de prueba no le da las 9 armas
 		shields = false,
 		grenades = 0,
