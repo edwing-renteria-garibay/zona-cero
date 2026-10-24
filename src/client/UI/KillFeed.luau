@@ -7,6 +7,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
+local Sfx = require(script.Parent.Parent.Controllers.Sfx)
+
 local killFeed = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("KillFeed") :: RemoteEvent
 
 local player = Players.LocalPlayer
@@ -126,8 +128,11 @@ function KillFeed.Start()
 	end
 
 	killFeed.OnClientEvent:Connect(function(entry)
+		if entry.sound then
+			Sfx.PlayLocal(entry.sound) -- muerte doble, triple... (solo te llega a ti)
+		end
 		if entry.message then
-			-- Aviso de la partida (banderas), del color del equipo
+			-- Aviso de la partida (banderas, bajas seguidas), del color del equipo
 			addLine(string.format('<font color="%s">%s</font>', hex(entry.color), escape(entry.message)))
 		else
 			addLine(describeKill(entry))

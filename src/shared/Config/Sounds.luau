@@ -70,6 +70,13 @@ return {
 	melee = {
 		RubberChicken = "rbxassetid://7507574099",
 	},
+	-- Medallas por bajas seguidas: solo las oye quien las hace. Cuentan las bajas con menos de
+	-- MatchService.MULTIKILL_WINDOW segundos (4) entre una y otra, como en Halo
+	multikill = {
+		[2] = "rbxassetid://131995992572692", -- muerte doble
+		[3] = "rbxassetid://6410923021", -- muerte triple
+		[4] = "rbxassetid://125621554040822", -- 4 o más (suena en cada baja de la racha)
+	},
 	-- Clic al intentar disparar sin balas (todas las armas y la torreta)
 	empty = "rbxassetid://136205387185309",
 }

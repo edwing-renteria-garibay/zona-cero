@@ -21,6 +21,7 @@ local Teams = game:GetService("Teams")
 
 local Maps = require(ReplicatedStorage.Shared.Config.Maps)
 local Modes = require(ReplicatedStorage.Shared.Config.Modes)
+local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local AssaultService = require(script.Parent.AssaultService)
 local BotService = require(script.Parent.BotService)
 local Combatants = require(script.Parent.Combatants)
@@ -44,6 +45,12 @@ MatchService.Ended = endedEvent.Event
 
 -- En solitario se reaparece en un punto al azar sin enemigos a menos de esta distancia
 local SAFE_SPAWN_DISTANCE = 40
+
+-- Bajas seguidas (muerte doble, triple...): cuentan si entre una y otra pasan menos de esto
+local MULTIKILL_WINDOW = 4
+local MULTIKILL_NAMES = { [2] = "¡Muerte doble!", [3] = "¡Muerte triple!", [4] = "¡Masacre!" }
+local MULTIKILL_COLOR = Color3.fromRGB(255, 200, 60)
+local streaks: { [Instance]: { count: number, last: number } } = {}
 
 local scores: { [Team]: number } = {}
 local running = false
@@ -199,6 +206,26 @@ HealthService.Killed:Connect(function(victim: Instance, killer: Instance?, cause
 	local kills = getStat(killer, "Bajas")
 	if kills then
 		kills.Value += 1
+	end
+	-- Muerte doble, triple o más: el sonido y el aviso solo le llegan a quien las hizo
+	local now = os.clock()
+	local streak = streaks[killer]
+	if streak and now - streak.last <= MULTIKILL_WINDOW then
+		streak.count += 1
+		streak.last = now
+	else
+		streak = { count = 1, last = now }
+		streaks[killer] = streak
+	end
+	if streak.count >= 2 and killer:IsA("Player") then
+		local level = math.min(streak.count, 4)
+		killFeed:FireClient(killer, {
+			message = if streak.count > 4
+				then `{MULTIKILL_NAMES[4]} ×{streak.count}`
+				else MULTIKILL_NAMES[level],
+			color = MULTIKILL_COLOR,
+			sound = Sounds.multikill[level],
+		})
 	end
 	if team and currentRules.teams and currentRules.scoreBy == "kills" then
 		setScore(team, scores[team] + 1)
@@ -482,6 +509,7 @@ function MatchService.Run(changeMap: () -> ())
 			rules.vehicles ~= false or (mapKey ~= nil and Maps.alwaysVehicles[mapKey] == true)
 		)
 		resetScores()
+		table.clear(streaks)
 		running = true
 		ReplicatedStorage:SetAttribute("MatchMode", modeName)
 		ReplicatedStorage:SetAttribute("MatchScoreToWin", rules.scoreToWin)
