@@ -8,11 +8,11 @@ base.
 
 - **El cañón:** piso de pasto, paredes de roca de 100 de alto y peñascos pegados a las
   paredes, para que no se vean rectas.
-- **Las montañas:** 4 cerros iguales (85 de alto, casi como las paredes), en cruz
+- **Las montañas:** 4 cerros iguales (80 de alto, casi como las paredes), en cruz
   alrededor del centro, con forma de triángulo y la punta hacia el centro: uno frente a
   cada base y uno a cada lado (el dibujo de edwing). Son de pasto con paredes de roca y
-  punta de roca, y tan empinados que no se suben: entre ellos se siente como cruzar un
-  valle. Quedan pasos en diagonal y el centro abierto, así que los jeeps cruzan por en
+  punta de roca. A pie se escalan, pero son demasiado empinados para el jeep: entre ellos
+  se siente como cruzar un valle. Quedan pasos en diagonal y el centro abierto, así que los jeeps cruzan por en
   medio en cualquier dirección o los rodean por afuera. Cada cerro es una torre de discos
   que se angosta hacia arriba (función `rockTower`), una grande en medio y una más baja en
   cada esquina del triángulo (`triangleMountain`). En el cruce del centro están el

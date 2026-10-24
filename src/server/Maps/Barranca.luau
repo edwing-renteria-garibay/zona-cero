@@ -7,8 +7,8 @@
 --     de 100 de alto, con peñascos para que no se vean rectas.
 --   * 4 cerros iguales en cruz alrededor del centro, con forma de triángulo y la punta
 --     hacia el centro (el dibujo de edwing): uno frente a cada base y uno a cada lado. Son
---     muy altos (85, casi como las paredes), de pasto con paredes de roca: entre ellos se
---     siente como cruzar un valle. No se suben ni a pie ni en jeep. Entre ellos quedan
+--     muy altos (80, casi como las paredes), de pasto con paredes de roca: entre ellos se
+--     siente como cruzar un valle. A pie se escalan; el jeep no puede. Entre ellos quedan
 --     pasos en diagonal y el centro abierto, así que los jeeps cruzan por en medio en
 --     cualquier dirección, o los rodean por el camino de afuera. En el cruce del centro
 --     están el lanzacohetes y el cañón de iones; el láser, entre cada base y su cerro.
@@ -44,8 +44,8 @@ local ROAD_WIDTH = 20
 -- TRIANGLE_SIDE es lo que mide cada lado del triángulo y MOUNTAIN_HEIGHT su altura
 local MOUNTAIN_DISTANCE = 110
 local TRIANGLE_SIDE = 120
-local MOUNTAIN_HEIGHT = 85 -- casi tan altas como las paredes: cruzar se siente como un valle
-local ROCK_RADIUS = 45 -- qué tan ancha es la roca de cada montaña en el piso
+local MOUNTAIN_HEIGHT = 80 -- casi tan altas como las paredes: cruzar se siente como un valle
+local ROCK_RADIUS = 55 -- qué tan ancho es cada cerro en el piso (más ancho = pendiente más suave)
 local RING = 195 -- el camino de afuera rodea las 4 montañas a esta distancia del centro
 
 local GRASS = Enum.Material.Grass
@@ -91,25 +91,26 @@ end
 -- Un cerro alto y empinado, como los de un valle: una torre que se va angostando hacia
 -- arriba, hecha de discos (cilindros chatos, uno encima de otro) cada vez más chicos y un poco
 -- chuecos, para que se vea natural. Abajo va cubierto de pasto con paredes de roca que
--- se asoman de lado; la punta es de roca. Sus lados son casi verticales: no se suben ni a
--- pie ni en jeep
+-- se asoman de lado; la punta es de roca. Se angosta parejo (como un cono), con discos
+-- bajitos para que no queden escalones: a pie se escala, pero es muy empinado para el jeep
 local function rockTower(x: number, z: number, radius: number, height: number)
-	for y = 0, height, 6 do
+	for y = 0, height, 3 do
 		local t = y / height
-		local r = math.max(radius * (1 - t) ^ 0.7, 4)
-		-- Cada disco se mueve un poco a un lado (cuenta fija: el mapa es siempre igual)
+		local r = math.max(radius * (1 - t), 3)
+		-- El cerro se tuerce poquito y despacio al subir (cuenta fija: el mapa es siempre igual).
+		-- Despacio, para que no queden salientes que no se puedan escalar
 		local wobble = r * 0.12
-		local cx = x + math.sin(y * 0.37 + x * 0.1) * wobble
-		local cz = z + math.cos(y * 0.29 + z * 0.1) * wobble
-		local disc = CFrame.new(cx, y + 3, cz)
+		local cx = x + math.sin(y * 0.06 + x * 0.1) * wobble
+		local cz = z + math.cos(y * 0.05 + z * 0.1) * wobble
+		local disc = CFrame.new(cx, y + 2, cz)
 		if t < 0.65 then
-			terrain():FillCylinder(disc, 7, r, GRASS)
+			terrain():FillCylinder(disc, 4, r, GRASS)
 			-- Una pared de roca que se asoma por un lado, girando un poco en cada disco
-			local angle = y * 0.15 + x * 0.05
+			local angle = y * 0.04 + x * 0.05
 			local out = Vector3.new(math.cos(angle), 0, math.sin(angle)) * r * 0.45
-			terrain():FillCylinder(disc + out, 7, r * 0.6, ROCK)
+			terrain():FillCylinder(disc + out, 4, r * 0.6, ROCK)
 		else
-			terrain():FillCylinder(disc, 7, r, ROCK)
+			terrain():FillCylinder(disc, 4, r, ROCK)
 		end
 	end
 end
@@ -130,7 +131,7 @@ local function triangleMountain(center: Vector3, toward: Vector3)
 		-- Un poco hacia adentro, para que las esquinas no se coman los pasos entre montañas
 		local spot = center:Lerp(corner, 0.7)
 		mound(spot.X, spot.Z, 30, 8, GRASS)
-		rockTower(spot.X, spot.Z, 22, MOUNTAIN_HEIGHT * 0.55)
+		rockTower(spot.X, spot.Z, 28, MOUNTAIN_HEIGHT * 0.55)
 	end
 	mound(center.X, center.Z, ROCK_RADIUS + 15, 10, GRASS)
 	rockTower(center.X, center.Z, ROCK_RADIUS, MOUNTAIN_HEIGHT)
@@ -183,8 +184,8 @@ local function buildShell(map: Folder)
 	for _, side in { 1, -1 } do
 		triangleMountain(Vector3.new(0, 0, side * MOUNTAIN_DISTANCE), Vector3.zero)
 	end
-	-- Las montañas ya no se suben: el lanzacohetes y el cañón de iones van en el cruce del
-	-- centro, el lugar más peleado del mapa
+	-- El lanzacohetes y el cañón de iones van en el cruce del centro, el lugar más peleado
+	-- del mapa
 	Builder.pickupPad(map, "RocketLauncherPad", Vector3.new(0, 0.2, 5), "Weapon", "RocketLauncher")
 	Builder.pickupPad(map, "IonCannonPad", Vector3.new(0, 0.2, -5), "Weapon", "IonCannon")
 
