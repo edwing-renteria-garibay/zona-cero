@@ -1,18 +1,72 @@
 -- Pantalla de resultados al terminar la partida: quién ganó, el marcador final, el podio con
 -- los 3 mejores (MVP) y la tabla de jugadores con sus bajas, asistencias y muertes. Suena victoria o
 -- derrota según tu lado. Se quita al empezar la siguiente.
+-- También los sonidos del principio y del final: la cuenta 3, 2, 1 y la canción de inicio
+-- (3 s, o hasta el primer disparo), y la cuenta final cuando faltan 5 s.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
 
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local Sfx = require(script.Parent.Parent.Controllers.Sfx)
 
 local matchState = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("MatchState") :: RemoteEvent
+local shotFired = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ShotFired") :: RemoteEvent
 
 local player = Players.LocalPlayer
 
 local Results = {}
+
+local START_SONG_TIME = 3 -- segundos que suena la canción de inicio (si nadie dispara antes)
+local FINAL_COUNTDOWN = 5 -- cuando faltan estos segundos suena la cuenta final
+
+-- Un sonido que se puede detener (los de Sfx.PlayLocal no se pueden parar)
+local function stoppable(soundId: string): Sound
+	local sound = Instance.new("Sound")
+	sound.SoundId = soundId
+	sound.Volume = 0.6
+	sound.Parent = SoundService
+	return sound
+end
+
+local startSong = stoppable(Sounds.countdown.start)
+local finalCountdown = stoppable(Sounds.matchEnd.finished)
+local matchNumber = 0 -- cambia en cada partida, para que lo de una no afecte a la siguiente
+
+-- Canción de inicio: suena START_SONG_TIME segundos, o hasta que alguien dispare
+local function playStartSong()
+	local thisMatch = matchNumber
+	startSong.TimePosition = 0
+	startSong:Play()
+	local connection
+	connection = shotFired.OnClientEvent:Connect(function()
+		startSong:Stop()
+		connection:Disconnect()
+	end)
+	task.delay(START_SONG_TIME, function()
+		connection:Disconnect()
+		if matchNumber == thisMatch then
+			startSong:Stop()
+		end
+	end)
+end
+
+-- Cuenta final: cuando faltan FINAL_COUNTDOWN segundos para que se acabe el tiempo
+local function scheduleFinalCountdown()
+	local thisMatch = matchNumber
+	task.spawn(function()
+		while matchNumber == thisMatch and ReplicatedStorage:GetAttribute("MatchPhase") == "Playing" do
+			local endsAt = ReplicatedStorage:GetAttribute("MatchEndsAt") or 0
+			if endsAt - workspace:GetServerTimeNow() <= FINAL_COUNTDOWN then
+				finalCountdown.TimePosition = 0
+				finalCountdown:Play()
+				return
+			end
+			task.wait(0.1)
+		end
+	end)
+end
 
 local MEDALS = {
 	Color3.fromRGB(255, 200, 60), -- oro
@@ -74,7 +128,9 @@ function Results.Start()
 		if state == "Countdown" then
 			Sfx.PlayLocal(Sounds.countdown[data])
 		elseif state == "Started" then
-			Sfx.PlayLocal(Sounds.countdown.start)
+			matchNumber += 1
+			playStartSong()
+			scheduleFinalCountdown()
 		end
 		if state ~= "Ended" then
 			gui.Enabled = false
@@ -178,11 +234,17 @@ function Results.Start()
 		end
 		gui.Enabled = true
 
-		-- Primero "se acabó" y, un momento después, victoria o derrota (en empate, nada más)
-		Sfx.PlayLocal(Sounds.matchEnd.finished)
+		-- Si se acabó antes de tiempo (alguien llegó a la meta), la cuenta final no aplica
+		matchNumber += 1
+		local endsAt = ReplicatedStorage:GetAttribute("MatchEndsAt") or 0
+		if endsAt - workspace:GetServerTimeNow() > 1 then
+			finalCountdown:Stop()
+		end
+		startSong:Stop()
+		-- En seguida, la canción de victoria o de derrota (en un empate, ninguna)
 		if data.winner then
 			local won = table.find(data.winners or {}, player.Name) ~= nil
-			task.delay(1.5, Sfx.PlayLocal, if won then Sounds.matchEnd.win else Sounds.matchEnd.lose)
+			Sfx.PlayLocal(if won then Sounds.matchEnd.win else Sounds.matchEnd.lose)
 		end
 	end)
 end
