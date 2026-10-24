@@ -5,7 +5,9 @@
 --   X = hacia la derecha · Y = hacia arriba · Z negativo = hacia el frente (hacia donde dispara)
 -- La primera pieza de cada arma es el cuerpo: se vuelve la Handle de la herramienta.
 -- muzzle: la boca del cañón (de ahí salen el fogonazo y la trazadora)
--- leftHand: dónde va la mano izquierda en primera persona
+-- leftHand: dónde va la mano izquierda (en primera persona y, en las armas de dos manos,
+--   también en el cuerpo que ven todos: ver TwoHands en el servidor)
+-- oneHand: se agarra con una sola mano (pistola, arma de hielo y armas de golpe)
 -- view: dónde queda el arma en primera persona, medido desde la cámara
 
 local WeaponModels = {}
@@ -51,6 +53,7 @@ export type Spec = {
 	pieces: { Piece },
 	muzzle: CFrame,
 	leftHand: CFrame,
+	oneHand: boolean?,
 	view: CFrame,
 	kick: number, -- cuánto se va hacia atrás al disparar (studs)
 	kickAngle: number, -- cuánto sube al disparar (grados)
@@ -111,6 +114,7 @@ WeaponModels.Specs = {
 			box("Trigger", V(0.04, 0.12, 0.04), C(0, 0.04, -0.2), STEEL),
 		},
 		muzzle = C(0, 0.33, -0.95),
+		oneHand = true,
 		leftHand = C(-0.12, -0.12, 0.02),
 		view = C(0.45, -0.62, -1.6) * CFrame.Angles(0, rad(4), 0),
 		kick = 0.25,
@@ -230,6 +234,7 @@ WeaponModels.Specs = {
 			box("Grip", V(0.2, 0.45, 0.24), C(0, -0.05, 0.05) * CFrame.Angles(rad(-15), 0, 0), POLYMER),
 		},
 		muzzle = C(0, 0.36, -2.1),
+		oneHand = true,
 		leftHand = C(0, 0.05, -1.3),
 		view = C(0.55, -0.75, -1.35) * CFrame.Angles(0, rad(5), 0),
 		kick = 0.12,
@@ -266,6 +271,7 @@ WeaponModels.Specs = {
 			box("Tip", V(0.05, 0.3, 0.42), C(0, 0.02, -2.95) * CFrame.Angles(rad(-35), 0, 0), BLADE),
 		},
 		muzzle = C(0, 0.06, -3.1),
+		oneHand = true,
 		leftHand = C(-0.85, -0.45, -0.1),
 		view = C(0.75, -0.95, -1.5) * CFrame.Angles(rad(25), rad(12), rad(-10)),
 		kick = 0,
@@ -285,6 +291,7 @@ WeaponModels.Specs = {
 			box("Comb", V(0.06, 0.18, 0.3), C(0, 0.72, -1.95), RUBBER_RED),
 		},
 		muzzle = C(0, 0.45, -2.4),
+		oneHand = true,
 		leftHand = C(-0.85, -0.45, -0.1),
 		view = C(0.75, -0.95, -1.5) * CFrame.Angles(rad(20), rad(12), rad(-10)),
 		kick = 0,
@@ -343,6 +350,14 @@ function WeaponModels.Dress(tool: Tool)
 	muzzle.Name = "Muzzle"
 	muzzle.CFrame = body.cframe:Inverse() * spec.muzzle
 	muzzle.Parent = handle
+
+	-- Dónde agarra la mano izquierda en las armas de dos manos (la busca TwoHands)
+	if not spec.oneHand then
+		local leftGrip = Instance.new("Attachment")
+		leftGrip.Name = "LeftHandGrip"
+		leftGrip.Position = (body.cframe:Inverse() * spec.leftHand).Position
+		leftGrip.Parent = handle
+	end
 end
 
 -- Cliente: las piezas sueltas (sin soldar) para moverlas cada fotograma en primera persona.

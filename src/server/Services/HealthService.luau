@@ -9,6 +9,7 @@ local RunService = game:GetService("RunService")
 
 local Combatants = require(script.Parent.Combatants)
 local DeathAnimation = require(script.Parent.DeathAnimation)
+local TwoHands = require(script.Parent.TwoHands)
 local Rules = require(script.Parent.Rules)
 
 local MAX_SHIELD = 100
@@ -49,6 +50,7 @@ function HealthService.SetupCharacter(player: Combatants.Combatant, character: M
 	character:SetAttribute("Shield", maxShield)
 	lastHit[humanoid] = 0
 	DeathAnimation.Prepare(humanoid)
+	TwoHands.SetupCharacter(character)
 
 	humanoid.Died:Connect(function()
 		local killer = lastAttacker[humanoid]
