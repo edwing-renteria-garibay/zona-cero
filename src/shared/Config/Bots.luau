@@ -2,6 +2,7 @@
 -- Si hay menos jugadores que Modes.Common.minPlayers, la partida empieza igual con bots y
 -- solo se eligen modos que los bots saben jugar (los que tienen bots = true en Config/Modes).
 -- Cuando entra alguien a mitad de partida, un bot de su equipo se va para dejarle el lugar.
+-- En las partidas "Contra la IA" del menú (ver MatchSettings) se usa vsAI en vez de fillTo.
 
 return {
 	enabled = true, -- false = sin bots: hay que esperar a minPlayers jugadores de verdad
@@ -27,6 +28,11 @@ return {
 	damageMultiplier = 0.7, -- sus balas hacen el 70 % del daño normal
 	sightRange = 160, -- studs: más lejos de eso no te ve
 	preferredDistance = 35, -- studs: con un arma de fuego intenta quedarse a esta distancia
+
+	-- Contra la IA (botón del menú): todos los jugadores en un equipo y los bots en el otro.
+	-- Bots = jugadores × perPlayer, pero nunca menos de minBots ni más de maxBots.
+	-- En Infección, esos bots son los zombis.
+	vsAI = { minBots = 3, perPlayer = 2, maxBots = 10 },
 
 	-- Créditos de la tienda por eliminar a un bot (false = no dan créditos)
 	creditsForKills = true,

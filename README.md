@@ -31,6 +31,7 @@ Documento de diseño: https://claude.ai/artifact/Db9y3BWdNtESCJbiRrMR1z
 - Brazaletes del color del equipo (rojo o azul) en ambos brazos, sin cambiar el avatar
 - Luz por mapa (hora del día, niebla, sombras) y acabados: ladrillo, piedra, metal, remates de muros y luces de equipo
 - **Bots**: si no hay suficientes jugadores, la partida empieza con uno solo y se rellena con bots hasta 6 (3 contra 3). Los bots caminan por el mapa, te buscan y te disparan (o te golpean en los modos sin armas de fuego). Solo entran en los modos que saben jugar: Asesino por equipos, Asesino en solitario, SWAT, A puño limpio, Pollos y machetes y Lluvia de SimiOs. Cuando entra alguien, un bot le deja su lugar. Se ajustan en `src/shared/Config/Bots.luau` (`enabled = false` los apaga)
+- **Menú de partidas** al entrar (o con **M**): **Partida rápida** (juegas ya, modo al azar), **Contra la IA** (eliges el modo; tú y tus amigos en un equipo contra bots; en Infección los bots son los zombis) y **Partida privada** (eliges modo y mapa e invitas a tus amigos con **Invitar amigos**). Las dos últimas crean un servidor reservado (`MatchSettings.luau`), que solo funciona en el juego publicado, no en Studio
 - Configuración de armas, vehículos y modos en `src/shared/Config/`
 
 Para entender el código paso a paso, lee las guías de [`docs/aprende/`](docs/aprende/).

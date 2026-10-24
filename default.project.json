@@ -43,6 +43,9 @@
         },
         "Shop": {
           "$className": "RemoteFunction"
+        },
+        "RequestMatch": {
+          "$className": "RemoteEvent"
         }
       }
     },

@@ -12,14 +12,21 @@ local mapModules = script.Parent.Parent.Maps
 local MapService = {}
 
 local currentName: string? = nil -- el mapa que está puesto ahora
+local forcedName: string? = nil -- el mapa que eligió quien creó una partida privada
+
+-- El mapa elegido: el de la partida privada o, si no hay, el de Config/Maps
+local function selectedMap(): string
+	return forcedName or Maps.selected
+end
 
 -- El nombre del mapa a construir: el elegido, o uno al azar de la lista (distinto al actual)
 local function chooseMap(): string
-	if Maps.selected ~= "Aleatorio" and Maps.list[Maps.selected] then
-		return Maps.selected
+	local selected = selectedMap()
+	if selected ~= "Aleatorio" and Maps.list[selected] then
+		return selected
 	end
-	if Maps.selected ~= "Aleatorio" then
-		warn("[Map] No existe el mapa", Maps.selected, "- elijo uno al azar")
+	if selected ~= "Aleatorio" then
+		warn("[Map] No existe el mapa", selected, "- elijo uno al azar")
 	end
 	local names = {}
 	for name in Maps.list do
@@ -111,7 +118,7 @@ function MapService.Next(): Folder?
 	if not old or not old:GetAttribute("Generated") then
 		return nil
 	end
-	if Maps.selected ~= "Aleatorio" and Maps.selected == currentName then
+	if selectedMap() ~= "Aleatorio" and selectedMap() == currentName then
 		return nil -- se eligió un solo mapa: no hace falta reconstruirlo
 	end
 	old:Destroy()
@@ -121,7 +128,19 @@ function MapService.Next(): Folder?
 	if spawns then
 		spawns:Destroy()
 	end
+	-- Una partida privada juega siempre en el mapa que se eligió (ver MatchSettings). Se aplica
+	-- en el siguiente MapService.Next()
+	function MapService.SetForced(mapName: string?)
+		forcedName = mapName
+	end
+
 	return MapService.Build()
+end
+
+-- Una partida privada juega siempre en el mapa que se eligió (ver MatchSettings). Se aplica
+-- en el siguiente MapService.Next()
+function MapService.SetForced(mapName: string?)
+	forcedName = mapName
 end
 
 return MapService

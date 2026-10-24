@@ -28,6 +28,7 @@ local FlagService = require(script.Parent.FlagService)
 local HealthService = require(script.Parent.HealthService)
 local HillService = require(script.Parent.HillService)
 local InfectionService = require(script.Parent.InfectionService)
+local MatchSettings = require(script.Parent.MatchSettings)
 local Rules = require(script.Parent.Rules)
 local VehicleService = require(script.Parent.VehicleService)
 
@@ -113,6 +114,10 @@ local function assignTeam(player: Player, rules)
 	if not rules.teams then
 		player.Team = nil :: any -- sin equipo
 		player.Neutral = true
+	elseif MatchSettings.VsAI() then
+		-- Contra la IA todos los jugadores van juntos; los bots, en el otro equipo
+		player.Team = MatchSettings.HumanTeam() :: any
+		player.Neutral = false
 	elseif player.Neutral or not player.Team then
 		player.Team = smallestTeam() :: any
 		player.Neutral = false
@@ -204,7 +209,8 @@ end)
 -- withBots: no hay jugadores suficientes, así que solo sirve un modo que los bots sepan jugar
 local nextTestMode = 0 -- modo de prueba: cuál de randomPool sigue
 local function chooseMode(withBots: boolean): string
-	local name = Modes.selected
+	-- Partida privada o contra la IA: siempre el modo que se eligió
+	local name = MatchSettings.mode or Modes.selected
 	if name == "Aleatorio" then
 		local testing = Modes.Testing
 		if testing.enabled and testing.inOrder then
@@ -226,7 +232,7 @@ local function chooseMode(withBots: boolean): string
 		warn("[Match] El mapa no tiene bases de bandera - juego TeamSlayer")
 		name = "TeamSlayer"
 	end
-	if withBots and not Modes[name].bots then
+	if withBots and not Modes[name].bots and not MatchSettings.mode then
 		local pool = {}
 		for _, candidate in Modes.randomPool do
 			if Modes[candidate] and Modes[candidate].bots then
@@ -383,13 +389,26 @@ function MatchService.Run(changeMap: () -> ())
 		task.defer(BotService.Fill) -- cuando ya se fue de la lista
 	end)
 
-	-- Con bots basta un jugador para empezar
-	local playersNeeded = if BotService.Enabled() then 1 else common.minPlayers
-	ReplicatedStorage:SetAttribute("MatchPlayersNeeded", playersNeeded)
+	-- Cuántos jugadores hacen falta para empezar: con bots basta uno. En una partida privada de
+	-- un modo sin bots (Captura la bandera...) hacen falta minPlayers
+	local function playersNeeded(): number
+		if MatchSettings.VsAI() then
+			return 1
+		end
+		local fixed = MatchSettings.mode and Modes[MatchSettings.mode]
+		if not BotService.Enabled() or (fixed and not fixed.bots) then
+			return common.minPlayers
+		end
+		return 1
+	end
+
 	while true do
 		setPhase("Waiting")
 		broadcast("Waiting")
-		while #Players:GetPlayers() < playersNeeded do
+		ReplicatedStorage:SetAttribute("MatchPlayersNeeded", playersNeeded())
+		while #Players:GetPlayers() < playersNeeded() do
+			-- Lo que hace falta puede cambiar cuando llega el primero a una partida privada
+			ReplicatedStorage:SetAttribute("MatchPlayersNeeded", playersNeeded())
 			task.wait(1)
 		end
 
@@ -400,7 +419,9 @@ function MatchService.Run(changeMap: () -> ())
 			task.wait(1)
 		end
 
-		if not firstMatch then
+		-- La primera partida usa el mapa con el que arrancó el servidor, salvo en una partida
+		-- privada con otro mapa elegido (MapService.Next no hace nada si ya es ese)
+		if not firstMatch or MatchSettings.map then
 			changeMap()
 		end
 		firstMatch = false
@@ -421,7 +442,6 @@ function MatchService.Run(changeMap: () -> ())
 			rules.vehicles ~= false or (mapKey ~= nil and Maps.alwaysVehicles[mapKey] == true)
 		)
 		resetScores()
-		BotService.Begin(rules) -- rellena con bots si faltan jugadores (y el modo los admite)
 		running = true
 		ReplicatedStorage:SetAttribute("MatchMode", modeName)
 		ReplicatedStorage:SetAttribute("MatchScoreToWin", rules.scoreToWin)
@@ -435,8 +455,11 @@ function MatchService.Run(changeMap: () -> ())
 			color = Color3.new(1, 1, 1),
 		})
 		if rules.scoreBy == "infection" then
-			InfectionService.Begin(rules) -- los zombis se eligen antes de aparecer
+			-- Los zombis se eligen antes de aparecer; contra la IA, los zombis son los bots
+			InfectionService.Begin(rules, MatchSettings.VsAI())
 		end
+		-- Bots si faltan jugadores (y el modo los admite), o los rivales en una partida contra la IA
+		BotService.Begin(rules)
 		for _, player in Players:GetPlayers() do
 			player:LoadCharacter()
 		end

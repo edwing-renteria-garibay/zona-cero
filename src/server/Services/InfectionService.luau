@@ -4,7 +4,10 @@
 -- zombi. Ganan los zombis si infectan a todos; ganan los sobrevivientes si queda al menos
 -- uno cuando se acaba el tiempo.
 --
--- Cada jugador tiene el atributo "Side": "Zombie" o "Survivor" (solo durante la partida).
+-- Contra la IA (MatchSettings) todos los jugadores empiezan como sobrevivientes y los zombis
+-- son bots (BotService); un jugador que muere se vuelve zombi igual que siempre.
+--
+-- Cada jugador (y cada bot) tiene el atributo "Side": "Zombie" o "Survivor" (solo durante la partida).
 -- Los del mismo lado no se pueden hacer daño (ver CombatService y ExplosionService).
 -- En ReplicatedStorage, "Survivors" y "Zombies" dicen cuántos hay de cada lado.
 
@@ -13,6 +16,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
 local ArmorService = require(script.Parent.ArmorService)
+local Combatants = require(script.Parent.Combatants)
 local HealthService = require(script.Parent.HealthService)
 
 local killFeed = ReplicatedStorage.Remotes.KillFeed :: RemoteEvent
@@ -38,7 +42,7 @@ end
 -- Cuenta a cada lado y lo publica para el marcador
 local function updateCounts(): (number, number)
 	local survivors, zombies = 0, 0
-	for _, player in Players:GetPlayers() do
+	for _, player in Combatants.All() do -- los bots zombis también cuentan
 		if InfectionService.IsZombie(player) then
 			zombies += 1
 		elseif player:GetAttribute("Side") == "Survivor" then
@@ -51,7 +55,7 @@ local function updateCounts(): (number, number)
 end
 
 -- Convierte un personaje en zombi: sin armas (solo el machete), granadas ni escudo, piel
--- verde, más vida y más rápido
+-- verde, más vida y más rápido. BotService también lo usa para los bots zombis.
 local function applyZombie(character: Model)
 	local player = Players:GetPlayerFromCharacter(character)
 	local backpack = player and player:FindFirstChildOfClass("Backpack")
@@ -123,12 +127,21 @@ local function ensureZombie()
 end
 
 -- Elige a los primeros zombis. Se llama antes de que aparezcan los personajes.
-function InfectionService.Begin(modeRules)
+-- botZombies: contra la IA; ningún jugador empieza como zombi (los zombis son bots)
+function InfectionService.Begin(modeRules, botZombies: boolean?)
 	rules = modeRules
 	active = true
 	local players = Players:GetPlayers()
 	for _, player in players do
 		player:SetAttribute("Side", "Survivor")
+	end
+	if botZombies then
+		updateCounts()
+		killFeed:FireAllClients({
+			message = "¡Empieza la infección! Sobrevive a los zombis",
+			color = ZOMBIE_TEXT,
+		})
+		return
 	end
 	local count = math.clamp(#players // rules.playersPerZombie, 1, rules.maxZombies)
 	-- Revolver la lista y tomar los primeros
@@ -154,6 +167,13 @@ function InfectionService.Stop()
 	active = false
 	for _, player in Players:GetPlayers() do
 		player:SetAttribute("Side", nil)
+	end
+end
+
+function InfectionService.ApplyZombie(character: Model)
+	if rules then
+		applyZombie(character)
+		updateCounts()
 	end
 end
 

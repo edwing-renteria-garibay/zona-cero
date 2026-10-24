@@ -26,6 +26,8 @@ local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Combatants = require(script.Parent.Combatants)
 local ExplosionService = require(script.Parent.ExplosionService)
 local HealthService = require(script.Parent.HealthService)
+local InfectionService = require(script.Parent.InfectionService)
+local MatchSettings = require(script.Parent.MatchSettings)
 local VehicleService = require(script.Parent.VehicleService)
 
 local remotes = ReplicatedStorage.Remotes
@@ -105,9 +107,17 @@ local function pickSpawn(card: Instance): SpawnLocation?
 	return if #safe > 0 then safe[math.random(#safe)] else farthest
 end
 
+local function isZombie(card: Instance): boolean
+	return card:GetAttribute("Side") == "Zombie"
+end
+
 -- Con qué pelea el bot en este modo: el primer arma de fuego normal de su loadout
 -- (rifle, pistola...). Si no hay ninguna, va a golpes, con el arma de golpe que haya.
-local function chooseWeapon(): (string?, any, boolean)
+-- Un bot zombi (Infección contra la IA) solo lleva el machete.
+local function chooseWeapon(card: Instance): (string?, any, boolean)
+	if isZombie(card) then
+		return "Machete", Melee.weapons.Machete, true
+	end
 	local loadout = rules.loadout or Modes.Common.loadout
 	for _, name in loadout do
 		local stats = Weapons[name]
@@ -205,7 +215,7 @@ local spawnBot: (card: Instance) -> ()
 -- El cerebro: lo que hace un bot mientras está vivo (ver arriba)
 local function think(card: Instance, character: Model, humanoid: Humanoid, root: BasePart)
 	local head = character:FindFirstChild("Head") :: BasePart
-	local weaponName, stats, melee = chooseWeapon()
+	local weaponName, stats, melee = chooseWeapon(card)
 	local tool = character:FindFirstChildOfClass("Tool")
 
 	-- Mira a donde apunta sin depender de hacia dónde camina
@@ -380,6 +390,10 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 			then meleeStats.backstabDamage
 			else meleeStats.damage * Bots.damageMultiplier
 		local cause = if backstab then "Backstab" elseif melee and weaponName then weaponName else "Machete"
+		if isZombie(card) then
+			damage = rules.zombieMeleeDamage or damage -- el machete de un zombi mata
+			cause = "Machete"
+		end
 		local toShield, toHealth = HealthService.Damage(targetHumanoid, damage, card, cause)
 		if toShield + toHealth <= 0 then
 			return
@@ -525,9 +539,11 @@ function spawnBot(card: Instance)
 	HealthService.SetupCharacter(card, character)
 	animate(character, humanoid)
 
-	local weaponName = chooseWeapon()
+	local weaponName = chooseWeapon(card)
 	local template = weaponName and ServerStorage.Weapons:FindFirstChild(weaponName)
-	if template then
+	if isZombie(card) then
+		InfectionService.ApplyZombie(character) -- piel verde, machete, más vida y más rápido
+	elseif template then
 		humanoid:EquipTool(template:Clone()) -- el arma en la mano
 	end
 
@@ -578,7 +594,19 @@ local function addBot()
 	card:SetAttribute("Bot", true)
 	if rules.teams then
 		local team = smallestTeam()
+		if MatchSettings.VsAI() then
+			-- Contra la IA, los bots van todos en el equipo contrario a los jugadores
+			local humans = MatchSettings.HumanTeam()
+			for _, other in Teams:GetTeams() do
+				if other ~= humans then
+					team = other
+				end
+			end
+		end
 		card:SetAttribute("Team", team and team.Name)
+	end
+	if MatchSettings.VsAI() and rules.botZombies then
+		card:SetAttribute("Side", "Zombie") -- Infección contra la IA: los bots son los zombis
 	end
 	local leaderstats = Instance.new("Folder")
 	leaderstats.Name = "leaderstats"
@@ -617,13 +645,31 @@ local function removeOneBot()
 	end
 end
 
--- Cuántos bots hacen falta ahora: los que falten para llegar a Bots.fillTo
-local function wanted(): number
-	local humans = #Players:GetPlayers()
-	if not active or not Bots.enabled or not rules.bots or humans == 0 then
+-- Cuántos bots habría con estas reglas: contra la IA, según cuántos jugadores hay
+-- (Bots.vsAI); si no, los que falten para llegar a Bots.fillTo
+local function countFor(modeRules, humans: number): number
+	if not Bots.enabled or humans == 0 then
+		return 0
+	end
+	if MatchSettings.VsAI() then
+		if not modeRules.bots and not modeRules.botZombies then
+			return 0
+		end
+		local vsAI = Bots.vsAI
+		return math.clamp(humans * vsAI.perPlayer, vsAI.minBots, vsAI.maxBots)
+	end
+	if not modeRules.bots then
 		return 0
 	end
 	return math.max(0, Bots.fillTo - humans)
+end
+
+-- Cuántos bots hacen falta ahora
+local function wanted(): number
+	if not active then
+		return 0
+	end
+	return countFor(rules, #Players:GetPlayers())
 end
 
 -- Pone o quita bots hasta tener los que hacen falta. MatchService la llama al empezar y
@@ -645,10 +691,7 @@ end
 
 -- Cuántos bots habría en una partida de un modo con bots
 function BotService.CountFor(modeRules): number
-	if not Bots.enabled or not modeRules.bots then
-		return 0
-	end
-	return math.max(0, Bots.fillTo - #Players:GetPlayers())
+	return countFor(modeRules, #Players:GetPlayers())
 end
 
 function BotService.Begin(matchRules)

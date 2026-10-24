@@ -13,6 +13,7 @@ local InfectionService = require(Services.InfectionService)
 local LoadoutService = require(Services.LoadoutService)
 local MapService = require(Services.MapService)
 local MatchService = require(Services.MatchService)
+local MatchSettings = require(Services.MatchSettings)
 local PickupService = require(Services.PickupService)
 local ProjectileService = require(Services.ProjectileService)
 local ShopService = require(Services.ShopService)
@@ -42,6 +43,7 @@ CombatService.Start()
 VehicleService.Start()
 ProjectileService.Start()
 ShopService.Start() -- créditos, compras y lo que cada quien lleva puesto
+MatchSettings.Start() -- partida rápida, contra la IA o privada (el menú del cliente)
 
 Players.PlayerAdded:Connect(function(player)
 	-- "leaderstats" es una carpeta especial: Roblox muestra sus valores en la lista de jugadores
