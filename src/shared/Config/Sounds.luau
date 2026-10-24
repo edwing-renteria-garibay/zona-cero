@@ -74,7 +74,7 @@ return {
 	},
 	-- Al terminar la partida, en la pantalla de resultados: cada quien oye si ganó o perdió
 	matchEnd = {
-		finished = "rbxassetid://1741693936", -- se acabó la partida (lo oyen todos, antes del resultado)
+		finished = "rbxassetid://1741693936", -- cuenta final "five, four... one": cuando faltan 5 s
 		win = "rbxassetid://1836265515",
 		lose = "rbxassetid://135261658507155",
 	},
@@ -83,7 +83,7 @@ return {
 		[3] = "rbxassetid://109216107056862",
 		[2] = "rbxassetid://138376757313661",
 		[1] = "rbxassetid://70764325927009",
-		start = "rbxassetid://119464536321600",
+		start = "rbxassetid://119464536321600", -- canción de inicio: 3 s o hasta el primer disparo
 	},
 	-- Medallas por bajas seguidas: solo las oye quien las hace. Cuentan las bajas con menos de
 	-- MatchService.MULTIKILL_WINDOW segundos (4) entre una y otra, como en Halo
