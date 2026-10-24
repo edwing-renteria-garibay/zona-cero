@@ -2,13 +2,16 @@
 --   Partida rápida   cierra el menú y juegas aquí (modo al azar; si falta gente, hay bots)
 --   Contra la IA     eliges un modo y vas a un servidor solo para ti (y tus amigos) contra bots
 --   Partida privada  eliges modo y mapa, y vas a un servidor para jugar con tus amigos
--- Se vuelve a abrir con el botón "Menú (M)" o la tecla M.
+-- Se vuelve a abrir con el botón "Menú (M)", la tecla M o la cruceta → del control.
 --
 -- En una partida contra la IA o privada, en vez del menú hay dos botones: "Invitar amigos"
--- (la ventana de invitaciones de Roblox) y "Salir a partida rápida".
+-- (la ventana de invitaciones de Roblox) y "Salir a partida rápida". Con control, la cruceta →
+-- entra a esos botones; al apretar uno se sueltan solos para volver a moverte y disparar.
 -- El menú solo pide cosas al servidor (RemoteEvent "RequestMatch"); el que crea la partida y
 -- teletransporta es el servidor (ver MatchSettings).
 
+local ContextActionService = game:GetService("ContextActionService")
+local GuiService = game:GetService("GuiService")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -76,8 +79,36 @@ local function newButton(parent: Instance, text: string, size: UDim2, color: Col
 	return button
 end
 
+-- Con control (PS/Xbox) moverse por los botones "selecciona" uno, y mientras haya uno
+-- seleccionado el stick y los gatillos mueven la selección, no al personaje. Por eso, al
+-- terminar con un botón, hay que soltar la selección
+local function usingGamepad(): boolean
+	return UserInputService:GetLastInputType().Name:sub(1, 7) == "Gamepad"
+end
+
+local function releaseSelection(root: Instance)
+	local selected = GuiService.SelectedObject
+	if selected and (selected == root or selected:IsDescendantOf(root)) then
+		GuiService.SelectedObject = nil
+	end
+end
+
+local function selectFirst(root: Instance)
+	for _, item in root:GetDescendants() do
+		if item:IsA("GuiButton") and item.Visible and item.Selectable then
+			GuiService.SelectedObject = item
+			return
+		end
+	end
+end
+
 local function setOpen(open: boolean)
 	backdrop.Visible = open
+	if open and usingGamepad() then
+		task.defer(selectFirst, backdrop) -- después de que se dibujen los botones nuevos
+	elseif not open then
+		releaseSelection(backdrop)
+	end
 end
 
 local function clearContent()
@@ -104,6 +135,9 @@ local function showGrid(options: { { text: string, color: Color3?, onClick: () -
 				option.onClick()
 			end
 		end)
+	end
+	if backdrop.Visible and usingGamepad() then
+		task.defer(selectFirst, backdrop)
 	end
 end
 
@@ -270,10 +304,19 @@ local function buildSideButtons(gui: ScreenGui, kind: string)
 		local menuButton = newButton(holder, "Menú (M)", size, BACKGROUND)
 		menuButton.BackgroundTransparency = 0.2
 		menuButton.TextSize = 14
-		menuButton.Activated:Connect(function()
+		local function toggleMenu()
 			showHome()
 			setOpen(not backdrop.Visible)
-		end)
+			releaseSelection(holder)
+		end
+		menuButton.Activated:Connect(toggleMenu)
+		-- Con control: cruceta → abre y cierra el menú
+		ContextActionService:BindAction("MainMenu", function(_name, state)
+			if state == Enum.UserInputState.Begin then
+				toggleMenu()
+			end
+			return Enum.ContextActionResult.Sink
+		end, false, Enum.KeyCode.DPadRight)
 		UserInputService.InputBegan:Connect(function(input, processed)
 			if not processed and input.KeyCode == Enum.KeyCode.M then
 				showHome()
@@ -326,6 +369,28 @@ local function buildSideButtons(gui: ScreenGui, kind: string)
 		leave.Text = "Saliendo..."
 		requestMatch:FireServer("leave")
 	end)
+
+	-- Con control: cruceta → entra a estos botones y otra vez → los suelta. Al apretar uno
+	-- (o al cerrar la ventana de invitaciones) se suelta solo, para volver a moverte y disparar
+	for _, button in { start, invite, leave } do
+		button.Activated:Connect(function()
+			releaseSelection(holder)
+		end)
+	end
+	SocialService.GameInvitePromptClosed:Connect(function()
+		releaseSelection(holder)
+	end)
+	ContextActionService:BindAction("SideButtons", function(_name, state)
+		if state == Enum.UserInputState.Begin then
+			local selected = GuiService.SelectedObject
+			if selected and selected:IsDescendantOf(holder) then
+				GuiService.SelectedObject = nil
+			else
+				selectFirst(holder)
+			end
+		end
+		return Enum.ContextActionResult.Sink
+	end, false, Enum.KeyCode.DPadRight)
 end
 
 local function build(kind: string)
@@ -344,6 +409,7 @@ local function build(kind: string)
 	backdrop.Text = ""
 	backdrop.AutoButtonColor = false
 	backdrop.Modal = true
+	backdrop.Selectable = false -- con control, que se seleccionen los botones de adentro
 	backdrop.Visible = false
 	backdrop.Parent = gui
 

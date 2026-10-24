@@ -47,6 +47,7 @@ local GAMEPAD = {
 	{ "LB RB / L1 R1", "Elegir arma" },
 	{ "Cruceta ↑", "Cambiar arma del piso" },
 	{ "Cruceta ↓", "Tienda" },
+	{ "Cruceta →", "Menú / botones de la sala" },
 	{ "Cruceta ←", "Mostrar / ocultar" },
 }
 

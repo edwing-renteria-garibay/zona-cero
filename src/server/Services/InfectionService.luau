@@ -79,6 +79,8 @@ local function applyZombie(character: Model)
 	local humanoid = character:FindFirstChildOfClass("Humanoid")
 	if humanoid then
 		humanoid.WalkSpeed = rules.zombieSpeed
+		humanoid.UseJumpPower = false
+		humanoid.JumpHeight = rules.zombieJumpHeight or humanoid.JumpHeight
 		humanoid.MaxHealth = rules.zombieHealth
 		humanoid.Health = rules.zombieHealth
 	end
