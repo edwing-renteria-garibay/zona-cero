@@ -1,6 +1,6 @@
 -- Escudo + vida, al estilo Halo.
--- El escudo (100) absorbe el daño primero. Tras 3.5 s sin recibir daño se recarga,
--- y tarda 1.5 s en llenarse por completo.
+-- El escudo (100) absorbe el daño primero. Tras 5 s sin recibir daño se recarga,
+-- y tarda 2 s en llenarse por completo.
 -- La vida es la del Humanoid (100) y no se recarga sola.
 -- En los modos con shields = false (SWAT) no hay escudo: solo la vida.
 -- Solo el servidor llama a Damage(): así el cliente no puede hacer trampa con la vida.
@@ -10,8 +10,8 @@ local RunService = game:GetService("RunService")
 local Rules = require(script.Parent.Rules)
 
 local MAX_SHIELD = 100
-local REGEN_DELAY = 3.5 -- segundos sin daño antes de recargar
-local REGEN_TIME = 1.5 -- segundos para llenar el escudo de 0 a 100
+local REGEN_DELAY = 5 -- segundos sin daño antes de recargar (antes 3.5)
+local REGEN_TIME = 2 -- segundos para llenar el escudo de 0 a 100 (antes 1.5)
 local REGEN_RATE = MAX_SHIELD / REGEN_TIME -- puntos de escudo por segundo
 
 local HealthService = {}
