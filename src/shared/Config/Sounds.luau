@@ -69,6 +69,7 @@ return {
 	-- Armas de golpe (Config/Melee): suena en cada golpe, le pegue a alguien o no; lo oyen todos
 	melee = {
 		RubberChicken = "rbxassetid://7507574099",
+		Machete = "rbxassetid://140462043853173",
 	},
 	-- Al terminar la partida, en la pantalla de resultados: cada quien oye si ganó o perdió
 	matchEnd = {
