@@ -13,6 +13,7 @@ local UserInputService = game:GetService("UserInputService")
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Aim = require(script.Parent.Aim)
+local CameraController = require(script.Parent.CameraController)
 local Sfx = require(script.Parent.Sfx)
 local ViewModel = require(script.Parent.ViewModel)
 
@@ -25,6 +26,7 @@ local NORMAL_FOV = 70
 local SpecialWeapons = {}
 
 local scoped = false
+local selfHidden = false -- con zoom en tercera persona tu personaje se esconde (solo para ti)
 local gui: ScreenGui
 local scopeFrame: Frame
 local frost: Frame
@@ -155,6 +157,27 @@ local function update()
 		-- centro de la pantalla por la barra de arriba: centrarla con escala 0.5 la movía.
 		local point = Aim.GetScreenPoint()
 		scopeFrame.Position = UDim2.fromOffset(point.X, point.Y)
+	end
+	-- En tercera persona la cámara va detrás de ti: con zoom, tu cuerpo y tu arma taparían
+	-- la mira, así que se vuelven invisibles solo en tu pantalla mientras apuntas
+	local hide = scoped and not CameraController.IsFirstPerson()
+	if hide or selfHidden then
+		selfHidden = hide
+		local character = player.Character
+		if character then
+			-- (en primera persona el arma de la mano es de ViewModel: esa no se toca)
+			local viewModelTool = if CameraController.IsFirstPerson()
+				then character:FindFirstChildOfClass("Tool")
+				else nil
+			for _, part in character:GetDescendants() do
+				if
+					(part:IsA("BasePart") or part:IsA("Decal"))
+					and not (viewModelTool and part:IsDescendantOf(viewModelTool))
+				then
+					part.LocalTransparencyModifier = if hide then 1 else 0
+				end
+			end
+		end
 	end
 
 	-- Láser del cañón de iones
