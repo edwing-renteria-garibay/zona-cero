@@ -579,6 +579,8 @@ local function onMelee(player: Player)
 		anim.Value = "Lunge"
 		anim.Parent = tool
 	end
+	-- Con las manos vacías suena el puño; con un arma, el de esa arma (o el machete del cinto)
+	local soundId = Sounds.melee[if tool then stats.sound or "" else "Punch"]
 
 	-- Una esfera invisible alrededor del jugador, del tamaño del alcance: ¿qué piezas toca?
 	-- Solo cuenta quien esté más o menos enfrente (Melee.aimCone), así no hace falta
@@ -612,7 +614,7 @@ local function onMelee(player: Player)
 	end
 	if not target or not targetRoot then
 		-- Al aire: el arma de golpe suena igual (el pollo de hule chilla aunque no le pegue a nadie)
-		ExplosionService.PlaySoundAt(stats.sound and Sounds.melee[stats.sound], root.Position)
+		ExplosionService.PlaySoundAt(soundId, root.Position)
 		return
 	end
 
@@ -637,7 +639,7 @@ local function onMelee(player: Player)
 			targetRoot.Position,
 			surface
 		)
-		ExplosionService.PlaySoundAt(stats.sound and Sounds.melee[stats.sound], targetRoot.Position)
+		ExplosionService.PlaySoundAt(soundId, targetRoot.Position)
 		-- El personaje lo mueve su propio jugador, así que el empujón lo aplica su cliente
 		local victim = Players:GetPlayerFromCharacter(target.Parent)
 		if stats.knockback and stats.knockback > 0 and victim and target.Health > 0 then

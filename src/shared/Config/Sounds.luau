@@ -70,11 +70,20 @@ return {
 	melee = {
 		RubberChicken = "rbxassetid://7507574099",
 		Machete = "rbxassetid://140462043853173",
+		Punch = "rbxassetid://139897497838184", -- golpe con las manos vacías
 	},
 	-- Al terminar la partida, en la pantalla de resultados: cada quien oye si ganó o perdió
 	matchEnd = {
+		finished = "rbxassetid://1741693936", -- se acabó la partida (lo oyen todos, antes del resultado)
 		win = "rbxassetid://1836265515",
 		lose = "rbxassetid://135261658507155",
+	},
+	-- Cuenta regresiva antes de empezar: una voz en 3, 2 y 1, y otra cuando empieza
+	countdown = {
+		[3] = "rbxassetid://109216107056862",
+		[2] = "rbxassetid://138376757313661",
+		[1] = "rbxassetid://70764325927009",
+		start = "rbxassetid://119464536321600",
 	},
 	-- Medallas por bajas seguidas: solo las oye quien las hace. Cuentan las bajas con menos de
 	-- MatchService.MULTIKILL_WINDOW segundos (4) entre una y otra, como en Halo

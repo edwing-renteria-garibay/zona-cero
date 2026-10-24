@@ -70,6 +70,12 @@ function Results.Start()
 	end
 
 	matchState.OnClientEvent:Connect(function(state: string, data)
+		-- Cuenta regresiva: "tres", "dos", "uno"... y "¡empieza!"
+		if state == "Countdown" then
+			Sfx.PlayLocal(Sounds.countdown[data])
+		elseif state == "Started" then
+			Sfx.PlayLocal(Sounds.countdown.start)
+		end
 		if state ~= "Ended" then
 			gui.Enabled = false
 			return
@@ -172,10 +178,11 @@ function Results.Start()
 		end
 		gui.Enabled = true
 
-		-- Victoria o derrota (en un empate no suena nada)
+		-- Primero "se acabó" y, un momento después, victoria o derrota (en empate, nada más)
+		Sfx.PlayLocal(Sounds.matchEnd.finished)
 		if data.winner then
 			local won = table.find(data.winners or {}, player.Name) ~= nil
-			Sfx.PlayLocal(if won then Sounds.matchEnd.win else Sounds.matchEnd.lose)
+			task.delay(1.5, Sfx.PlayLocal, if won then Sounds.matchEnd.win else Sounds.matchEnd.lose)
 		end
 	end)
 end
