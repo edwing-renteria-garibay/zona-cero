@@ -30,6 +30,8 @@ Documento de diseño: https://claude.ai/artifact/Db9y3BWdNtESCJbiRrMR1z
 - Jeep con torreta: conductor (W/A/S/D), artillero con ametralladora y pasajero; llantas que se ponchan, barra de vida, se destruye y reaparece
 - Brazaletes del color del equipo (rojo o azul) en ambos brazos, sin cambiar el avatar
 - Luz por mapa (hora del día, niebla, sombras) y acabados: ladrillo, piedra, metal, remates de muros y luces de equipo
+- **Bots**: si no hay suficientes jugadores, la partida empieza con uno solo y se rellena con bots hasta 6 (3 contra 3). Los bots caminan por el mapa, te buscan y te disparan (o te golpean en los modos sin armas de fuego). Solo entran en los modos que saben jugar: Asesino por equipos, Asesino en solitario, SWAT, A puño limpio, Pollos y machetes y Lluvia de SimiOs. Cuando entra alguien, un bot le deja su lugar. Se ajustan en `src/shared/Config/Bots.luau` (`enabled = false` los apaga)
+- **Menú de partidas** al entrar (o con **M**): **Partida rápida** (juegas ya, modo al azar), **Contra la IA** (eliges el modo; tú y tus amigos en un equipo contra bots; en Infección los bots son los zombis) y **Partida privada** (eliges modo y mapa e invitas a tus amigos con **Invitar amigos**). Las dos últimas crean un servidor reservado (`MatchSettings.luau`), que solo funciona en el juego publicado, no en Studio
 - Configuración de armas, vehículos y modos en `src/shared/Config/`
 
 Para entender el código paso a paso, lee las guías de [`docs/aprende/`](docs/aprende/).
@@ -40,7 +42,7 @@ Para entender el código paso a paso, lee las guías de [`docs/aprende/`](docs/a
 2. En Roblox Studio instala el plugin de Rojo (Plugins > Manage Plugins, o con `rojo plugin install`).
 3. En esta carpeta ejecuta `rojo serve`.
 4. En Studio abre un lugar vacío (Baseplate), pulsa **Connect** en el plugin de Rojo y el código aparecerá en el Explorer.
-5. Abre **Ventana > Salida** y pulsa **Prueba > Iniciar sesión de prueba > Servidor y clientes** (F7). Con la sesión iniciada, usa **Prueba > Añadir clientes** para tener 2 jugadores: la partida empieza con 2.
+5. Abre **Ventana > Salida** y pulsa **Prueba > Iniciar sesión de prueba > Servidor y clientes** (F7). Con un solo jugador la partida empieza con bots (con **Reproducir**, F5, también funciona). Para jugar contra otra persona, usa **Prueba > Añadir clientes**.
 6. Para probar las armas, en cada ventana de jugador pulsa **1** (rifle) o **2** (pistola) y dispárale al otro jugador. Con **F** golpeas cuerpo a cuerpo y con **G** apuntas una granada (suelta para lanzarla). El lanzacohetes está en lo alto del montículo central; recógelo y usa **3**.
 7. Para probar el jeep, camina hacia uno de los dos jeeps (a 25 studs a cada lado del punto de aparición) y siéntate: delante a la izquierda conduces, detrás disparas la torreta. **Espacio** para bajar.
 

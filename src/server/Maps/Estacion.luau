@@ -37,7 +37,7 @@ local GLOW_GREEN = { Color = Color3.fromRGB(120, 255, 170), Material = Enum.Mate
 
 local APOTHEM = 100 -- del centro a los muros, por dentro
 local WALL_THICK = 4
-local HEIGHT = 36 -- del piso al techo
+local HEIGHT = 56 -- del piso al techo (alto, para que quepan las granadas y los SimiOs)
 local UPPER = 14 -- altura del piso de arriba
 local RING = 12 -- ancho del anillo de arriba
 local CENTER = 18 -- apotema de la plataforma del centro

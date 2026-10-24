@@ -20,11 +20,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterPlayer = game:GetService("StarterPlayer")
 
+local Bots = require(ReplicatedStorage.Shared.Config.Bots)
 local Modes = require(ReplicatedStorage.Shared.Config.Modes)
 local Shop = require(ReplicatedStorage.Shared.Config.Shop)
 local WeaponModels = require(ReplicatedStorage.Shared.WeaponModels)
 local WeaponSkins = require(ReplicatedStorage.Shared.WeaponSkins)
 local ArmorService = require(script.Parent.ArmorService)
+local Combatants = require(script.Parent.Combatants)
 local HealthService = require(script.Parent.HealthService)
 local MatchService = require(script.Parent.MatchService)
 local Rules = require(script.Parent.Rules)
@@ -242,11 +244,33 @@ local function processReceipt(receipt)
 end
 
 -- Créditos por bajas
-local function onKilled(victim: Player, killer: Player?, _cause: string?, headshot: boolean)
-	if not killer or killer == victim or ReplicatedStorage:GetAttribute("MatchPhase") ~= "Playing" then
+local function onKilled(
+	victim: Instance,
+	killer: Instance?,
+	_cause: string?,
+	headshot: boolean,
+	assisters: { Instance }?
+)
+	if ReplicatedStorage:GetAttribute("MatchPhase") ~= "Playing" then
 		return
 	end
-	if Rules.current.teams and killer.Team == victim.Team then
+	if Combatants.IsBot(victim) and not Bots.creditsForKills then
+		return
+	end
+	-- Asistencias: créditos para los jugadores que le hicieron daño (y no lo remataron)
+	for _, helper in assisters or {} do
+		if helper:IsA("Player") and Combatants.IsEnemy(helper, victim) then
+			addCredits(helper, Shop.rewards.assist)
+		end
+	end
+	if not killer or killer == victim then
+		return
+	end
+	-- Los bots no juntan créditos; eliminar a un bot da créditos si Config/Bots lo permite
+	if not killer:IsA("Player") or (Combatants.IsBot(victim) and not Bots.creditsForKills) then
+		return
+	end
+	if Rules.current.teams and Combatants.TeamOf(killer) == Combatants.TeamOf(victim) then
 		return
 	end
 	addCredits(killer, Shop.rewards.kill + (if headshot then Shop.rewards.headshot else 0))

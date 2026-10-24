@@ -3,10 +3,10 @@
 -- El daño lo calculamos nosotros para que respete escudos, equipos y bajas.
 
 local Debris = game:GetService("Debris")
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
+local Combatants = require(script.Parent.Combatants)
 local HealthService = require(script.Parent.HealthService)
 
 export type Blast = {
@@ -18,9 +18,9 @@ export type Blast = {
 	-- también es la causa de muerte en el registro de bajas
 }
 
--- Un jugador al que le llegó la explosión (para avisar al atacante)
+-- Un jugador (o bot) al que le llegó la explosión (para avisar al atacante)
 export type BlastHit = {
-	player: Player,
+	player: Combatants.Combatant,
 	toShield: number,
 	toHealth: number,
 	position: Vector3,
@@ -50,7 +50,7 @@ function ExplosionService.PlaySoundAt(soundId: string?, position: Vector3)
 	Debris:AddItem(anchor, 6)
 end
 
--- Explota en center: efecto visual, sonido y daño a los jugadores cercanos.
+-- Explota en center: efecto visual, sonido y daño a los jugadores (y bots) cercanos.
 -- No daña a los compañeros del atacante, pero sí al atacante si está demasiado cerca.
 -- Los jeeps cercanos los daña VehicleService.BlastVehicles (para no depender uno del otro).
 function ExplosionService.Blast(center: Vector3, attacker: Player?, blast: Blast): { BlastHit }
@@ -63,18 +63,12 @@ function ExplosionService.Blast(center: Vector3, attacker: Player?, blast: Blast
 	ExplosionService.PlaySoundAt(Sounds.explosion[blast.sound or "rocket"], center)
 
 	local hits: { BlastHit } = {}
-	for _, player in Players:GetPlayers() do
-		local character = player.Character
+	for _, player in Combatants.All() do -- jugadores y bots
+		local character = Combatants.Character(player)
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
-		local side = player:GetAttribute("Side") -- en Infección
-		local teammate = attacker
-			and player ~= attacker
-			and (
-				if side
-					then side == attacker:GetAttribute("Side")
-					else not player.Neutral and not attacker.Neutral and player.Team == attacker.Team
-			)
+		-- A los compañeros no les hace daño (en Infección, a los de su mismo lado)
+		local teammate = attacker and player ~= attacker and not Combatants.IsEnemy(attacker, player)
 		if humanoid and root and not teammate then
 			local distance = (root.Position - center).Magnitude
 			if distance < blast.radius then

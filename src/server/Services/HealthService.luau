@@ -7,6 +7,7 @@
 
 local RunService = game:GetService("RunService")
 
+local Combatants = require(script.Parent.Combatants)
 local Rules = require(script.Parent.Rules)
 
 local MAX_SHIELD = 100
@@ -16,18 +17,24 @@ local REGEN_RATE = MAX_SHIELD / REGEN_TIME -- puntos de escudo por segundo
 
 local HealthService = {}
 
--- Se dispara cuando alguien muere: (victima: Player, asesino: Player?, causa: string?, cabeza: boolean)
+-- Se dispara cuando alguien muere: (victima, asesino?, causa: string?, cabeza: boolean, asistencias)
+-- victima y asesino son un Player o el carnet de un bot (ver Combatants).
+-- asistencias: los demás que le hicieron daño en los últimos ASSIST_WINDOW segundos
 -- causa es con qué fue el último golpe: el nombre del arma, "Turret", "Melee", "Backstab",
 -- "rocket", "grenade" o "jeep". cabeza es true si ese golpe fue un tiro a la cabeza.
 local killedEvent = Instance.new("BindableEvent")
 HealthService.Killed = killedEvent.Event
 
 local lastHit: { [Humanoid]: number } = {}
-local lastAttacker: { [Humanoid]: Player? } = {}
+local lastAttacker: { [Humanoid]: Combatants.Combatant? } = {}
 local lastCause: { [Humanoid]: string? } = {}
 local lastHeadshot: { [Humanoid]: boolean } = {}
+-- Quién le hizo daño a cada personaje y cuándo (para las asistencias)
+local damagedBy: { [Humanoid]: { [Combatants.Combatant]: number } } = {}
 
-function HealthService.SetupCharacter(player: Player, character: Model)
+local ASSIST_WINDOW = 10 -- segundos: si le hiciste daño hace menos que esto y otro lo remata, es asistencia
+
+function HealthService.SetupCharacter(player: Combatants.Combatant, character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 	humanoid.MaxHealth = 100
 	humanoid.Health = 100
@@ -42,11 +49,36 @@ function HealthService.SetupCharacter(player: Player, character: Model)
 	lastHit[humanoid] = 0
 
 	humanoid.Died:Connect(function()
-		killedEvent:Fire(player, lastAttacker[humanoid], lastCause[humanoid], lastHeadshot[humanoid] == true)
+		local killer = lastAttacker[humanoid]
+		local assisters = {}
+		local now = os.clock()
+		for who, at in damagedBy[humanoid] or {} do
+			if who ~= killer and who ~= player and who.Parent and now - at <= ASSIST_WINDOW then
+				table.insert(assisters, who)
+			end
+		end
+		killedEvent:Fire(player, killer, lastCause[humanoid], lastHeadshot[humanoid] == true, assisters)
+		damagedBy[humanoid] = nil
 		lastHit[humanoid] = nil
 		lastAttacker[humanoid] = nil
 		lastCause[humanoid] = nil
 		lastHeadshot[humanoid] = nil
+	end)
+end
+
+-- Protección al reaparecer: durante seconds segundos nada le baja vida ni escudo (por si el
+-- otro equipo está metido en tu base). Se ve un brillo (ForceField) para que todos sepan
+-- que está protegido.
+function HealthService.Protect(character: Model, seconds: number)
+	character:SetAttribute("SpawnProtected", true)
+	local glow = Instance.new("ForceField")
+	glow.Visible = true
+	glow.Parent = character
+	task.delay(seconds, function()
+		glow:Destroy()
+		if character.Parent then
+			character:SetAttribute("SpawnProtected", nil)
+		end
 	end)
 end
 
@@ -55,7 +87,7 @@ end
 function HealthService.Damage(
 	humanoid: Humanoid,
 	amount: number,
-	attacker: Player?,
+	attacker: Combatants.Combatant?, -- un jugador o un bot
 	cause: string?,
 	headshot: boolean?
 ): (number, number)
@@ -67,6 +99,11 @@ function HealthService.Damage(
 	lastAttacker[humanoid] = attacker
 	lastCause[humanoid] = cause
 	lastHeadshot[humanoid] = headshot == true
+
+	if attacker then
+		damagedBy[humanoid] = damagedBy[humanoid] or {}
+		damagedBy[humanoid][attacker] = os.clock()
+	end
 
 	local shield = character:GetAttribute("Shield") or 0
 	local absorbed = math.min(shield, amount)

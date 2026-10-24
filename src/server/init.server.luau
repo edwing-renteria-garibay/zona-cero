@@ -1,7 +1,10 @@
 -- Punto de entrada del servidor: prepara a cada jugador y arranca la partida.
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Teams = game:GetService("Teams")
+
+local Modes = require(ReplicatedStorage.Shared.Config.Modes)
 
 local Services = script.Services
 local AssaultService = require(Services.AssaultService)
@@ -13,6 +16,7 @@ local InfectionService = require(Services.InfectionService)
 local LoadoutService = require(Services.LoadoutService)
 local MapService = require(Services.MapService)
 local MatchService = require(Services.MatchService)
+local MatchSettings = require(Services.MatchSettings)
 local PickupService = require(Services.PickupService)
 local ProjectileService = require(Services.ProjectileService)
 local ShopService = require(Services.ShopService)
@@ -42,6 +46,7 @@ CombatService.Start()
 VehicleService.Start()
 ProjectileService.Start()
 ShopService.Start() -- créditos, compras y lo que cada quien lleva puesto
+MatchSettings.Start() -- partida rápida, contra la IA o privada (el menú del cliente)
 
 Players.PlayerAdded:Connect(function(player)
 	-- "leaderstats" es una carpeta especial: Roblox muestra sus valores en la lista de jugadores
@@ -50,6 +55,9 @@ Players.PlayerAdded:Connect(function(player)
 	local kills = Instance.new("IntValue")
 	kills.Name = "Bajas"
 	kills.Parent = leaderstats
+	local assists = Instance.new("IntValue")
+	assists.Name = "Asistencias"
+	assists.Parent = leaderstats
 	local deaths = Instance.new("IntValue")
 	deaths.Name = "Muertes"
 	deaths.Parent = leaderstats
@@ -62,11 +70,8 @@ Players.PlayerAdded:Connect(function(player)
 		task.spawn(LoadoutService.SetupCharacter, player) -- armas según el modo
 		task.spawn(TeamMarkers.SetupCharacter, player, character) -- brazaletes del equipo
 		task.spawn(MatchService.SetupCharacter, player, character) -- en solitario: punto al azar
-		-- Protección breve al reaparecer
-		character:SetAttribute("SpawnProtected", true)
-		task.delay(2, function()
-			character:SetAttribute("SpawnProtected", nil)
-		end)
+		-- Protección al reaparecer (Modes.Common.spawnProtection): nadie le baja vida
+		HealthService.Protect(character, Modes.Common.spawnProtection)
 	end)
 end)
 

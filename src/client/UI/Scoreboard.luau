@@ -1,6 +1,7 @@
 -- Marcador arriba al centro: puntos de cada equipo, tiempo que queda y bajas para ganar.
--- En Asesino en solitario muestra tus bajas (izquierda) y las del que va ganando (derecha).
--- En Infección muestra cuántos sobrevivientes (izquierda) y zombis (derecha) hay.
+-- En Asesino en solitario muestra tus bajas (izquierda) y las del que va ganando (derecha),
+-- y abajo en qué lugar vas. En Infección, cuántos sobrevivientes (izquierda) y zombis (derecha).
+-- Debajo de cada caja, un letrero dice qué es ("Tus bajas", "Líder", "Tu equipo"...).
 -- Antes de empezar muestra "Esperando jugadores" o la cuenta regresiva en grande.
 -- Todo se lee de los atributos que pone MatchService en ReplicatedStorage y en cada Team.
 
@@ -44,22 +45,55 @@ local function makeTeamBox(parent: Instance, order: number): (Frame, TextLabel)
 	corner.CornerRadius = UDim.new(0, 6)
 	corner.Parent = box
 	local score = makeLabel(box, UDim2.fromScale(1, 1), 26)
+	-- Letrero debajo de la caja: qué significa el número
+	local caption = makeLabel(box, UDim2.fromOffset(120, 14), 12)
+	caption.Name = "Caption"
+	caption.AnchorPoint = Vector2.new(0.5, 0)
+	caption.Position = UDim2.new(0.5, 0, 1, 2)
+	caption.Font = Enum.Font.GothamBold
 	return box, score
 end
 
-local function killsOf(someone: Player): number
+local function setCaption(box: Frame, text: string)
+	(box:FindFirstChild("Caption") :: TextLabel).Text = text
+end
+
+local function killsOf(someone: Instance): number
 	local leaderstats = someone:FindFirstChild("leaderstats")
 	local kills = leaderstats and leaderstats:FindFirstChild("Bajas")
 	return if kills and kills:IsA("IntValue") then kills.Value else 0
 end
 
--- Las bajas del que va ganando, sin contarte a ti
+-- En qué lugar vas por bajas (1 = primero) y cuántos hay, contando bots
+local function myRank(): (number, number)
+	local mine = killsOf(player)
+	local rank, total = 1, 0
+	local everyone: { Instance } = Players:GetPlayers()
+	local bots = ReplicatedStorage:FindFirstChild("Bots")
+	for _, bot in if bots then bots:GetChildren() else {} do
+		table.insert(everyone, bot)
+	end
+	for _, other in everyone do
+		total += 1
+		if other ~= player and killsOf(other) > mine then
+			rank += 1
+		end
+	end
+	return rank, total
+end
+
+-- Las bajas del que va ganando (jugador o bot), sin contarte a ti
 local function leaderKills(): number
 	local best = 0
 	for _, other in Players:GetPlayers() do
 		if other ~= player then
 			best = math.max(best, killsOf(other))
 		end
+	end
+	-- Los bots guardan sus bajas en ReplicatedStorage.Bots (ver Combatants en el servidor)
+	local bots = ReplicatedStorage:FindFirstChild("Bots")
+	for _, bot in if bots then bots:GetChildren() else {} do
+		best = math.max(best, killsOf(bot))
 	end
 	return best
 end
@@ -96,7 +130,7 @@ function Scoreboard.Start()
 
 	local goal = makeLabel(gui, UDim2.fromOffset(520, 20), 14)
 	goal.AnchorPoint = Vector2.new(0.5, 0)
-	goal.Position = UDim2.new(0.5, 0, 0, 50)
+	goal.Position = UDim2.new(0.5, 0, 0, 66) -- debajo de los letreros de las cajas
 	goal.Font = Enum.Font.GothamBold
 
 	-- Mensaje grande en el centro (esperando / cuenta regresiva)
@@ -124,16 +158,22 @@ function Scoreboard.Start()
 			rightBox.BackgroundColor3 = ZOMBIES
 			leftScore.Text = tostring(ReplicatedStorage:GetAttribute("Survivors") or 0)
 			rightScore.Text = tostring(ReplicatedStorage:GetAttribute("Zombies") or 0)
+			setCaption(leftBox, "Sobrevivientes")
+			setCaption(rightBox, "Zombis")
 		elseif mode == "FreeForAll" then
 			leftBox.BackgroundColor3 = SOLO_YOU
 			rightBox.BackgroundColor3 = SOLO_LEADER
 			leftScore.Text = tostring(killsOf(player))
 			rightScore.Text = tostring(leaderKills())
+			setCaption(leftBox, "Tus bajas")
+			setCaption(rightBox, "Bajas del líder")
 		elseif left and right then
 			leftBox.BackgroundColor3 = left.TeamColor.Color
 			rightBox.BackgroundColor3 = right.TeamColor.Color
 			leftScore.Text = tostring(left:GetAttribute("Score") or 0)
 			rightScore.Text = tostring(right:GetAttribute("Score") or 0)
+			setCaption(leftBox, if left == player.Team then "Tu equipo" else left.Name)
+			setCaption(rightBox, if left == player.Team then "Rivales" else right.Name)
 		end
 
 		if phase == "Playing" then
@@ -166,6 +206,10 @@ function Scoreboard.Start()
 					ReplicatedStorage:GetAttribute("MatchScoreToWin") or 0,
 					unit
 				)
+				if mode == "FreeForAll" then
+					local rank, total = myRank()
+					goal.Text ..= string.format(" · Vas %d.º de %d", rank, total)
+				end
 			end
 			banner.Text = ""
 		elseif phase == "Countdown" then

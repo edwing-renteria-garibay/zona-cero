@@ -83,6 +83,28 @@ local function isTrigger(input: InputObject): boolean
 		or input.KeyCode == Enum.KeyCode.ButtonR2
 end
 
+-- Sentado en la torreta, el cañón (o la caja de cohetes) y su base tapan la vista: solo en tu
+-- pantalla se vuelven casi transparentes (LocalTransparencyModifier); los demás los ven normal
+local TURRET_FADE = 0.85
+local fadedVehicle: Model? = nil
+
+local function fadeTurret(vehicle: Model?, amount: number)
+	if not vehicle then
+		return
+	end
+	for _, name in { "TurretBarrel", "TurretMount" } do
+		local part = vehicle:FindFirstChild(name)
+		if part and part:IsA("BasePart") then
+			part.LocalTransparencyModifier = amount
+			for _, child in part:GetDescendants() do
+				if child:IsA("BasePart") then
+					child.LocalTransparencyModifier = amount
+				end
+			end
+		end
+	end
+end
+
 function VehicleController.Start()
 	UserInputService.InputBegan:Connect(function(input, processed)
 		if not processed and isTrigger(input) then
@@ -97,6 +119,12 @@ function VehicleController.Start()
 
 	RunService.Heartbeat:Connect(function()
 		local seat = getTurretSeat()
+		local seatVehicle = if seat then seat.Parent :: Model else nil
+		if seatVehicle ~= fadedVehicle then
+			fadeTurret(fadedVehicle, 0) -- te bajaste: se ve normal otra vez
+			fadeTurret(seatVehicle, TURRET_FADE)
+			fadedVehicle = seatVehicle
+		end
 		if not seat then
 			return
 		end

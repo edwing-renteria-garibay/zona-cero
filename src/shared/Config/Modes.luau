@@ -5,6 +5,7 @@
 -- (ver scaleScore en Common)
 -- scoreBy: con qué suma puntos un equipo ("kills" = bajas, "captures" = banderas capturadas,
 -- "hill" = segundos solo en la colina)
+-- bots: true = los bots saben jugar este modo (Config/Bots); sin eso, no entran bots
 local Modes = {
 	TeamSlayer = {
 		name = "Asesino por equipos",
@@ -14,6 +15,7 @@ local Modes = {
 		teams = true,
 		vehicles = true,
 		scoreBy = "kills",
+		bots = true, -- con pocos jugadores se rellena con bots (Config/Bots)
 	},
 	-- SWAT: sin escudos, sin granadas, sin objetos en el mapa ni jeeps; solo rifle y pistola,
 	-- y un tiro a la cabeza mata
@@ -25,6 +27,7 @@ local Modes = {
 		teams = true,
 		vehicles = false,
 		scoreBy = "kills",
+		bots = true, -- con pocos jugadores se rellena con bots (Config/Bots)
 		loadout = { "AssaultRifle", "Pistol" },
 		shields = false,
 		grenades = 0,
@@ -48,7 +51,7 @@ local Modes = {
 		pickups = false,
 		testingKeepsLoadout = true, -- también en el modo de prueba: solo lanzacohetes
 	},
-	-- A puño limpio: sin armas ni granadas; solo golpes (clic o F). Por la espalda, mata de uno
+	-- A puño limpio: sin armas de fuego ni granadas; solo el machete (clic o F). Por la espalda, mata de uno
 	Brawl = {
 		name = "A puño limpio",
 		scoreToWin = 30, -- con muchos jugadores (ver scaleScore en Common)
@@ -57,7 +60,8 @@ local Modes = {
 		teams = true,
 		vehicles = false,
 		scoreBy = "kills",
-		loadout = {},
+		bots = true, -- con pocos jugadores se rellena con bots (Config/Bots)
+		loadout = { "Machete" }, -- el machete en la mano, para que se vea el golpe
 		testingKeepsLoadout = true, -- el modo de prueba no le da las 9 armas
 		shields = false,
 		grenades = 0,
@@ -72,6 +76,7 @@ local Modes = {
 		teams = true,
 		vehicles = false,
 		scoreBy = "kills",
+		bots = true, -- con pocos jugadores se rellena con bots (Config/Bots)
 		loadout = { "Machete", "RubberChicken" },
 		testingKeepsLoadout = true,
 		shields = false,
@@ -87,6 +92,7 @@ local Modes = {
 		teams = true,
 		vehicles = false,
 		scoreBy = "kills",
+		bots = true, -- con pocos jugadores se rellena con bots (Config/Bots)
 		loadout = {},
 		testingKeepsLoadout = true,
 		shields = false,
@@ -104,6 +110,7 @@ local Modes = {
 		teams = false,
 		vehicles = false,
 		scoreBy = "kills",
+		bots = true, -- con pocos jugadores se rellena con bots (Config/Bots)
 	},
 	CaptureTheFlag = {
 		name = "Captura la bandera",
@@ -130,6 +137,7 @@ local Modes = {
 		zombieSpeed = 26, -- los sobrevivientes caminan a 16
 		zombieHealth = 150, -- vida de un zombi (sin escudo); un sobreviviente tiene 100 + 100 de escudo
 		zombieMeleeDamage = 1000, -- un golpe de zombi mata
+		botZombies = true, -- se puede jugar contra la IA: los zombis son bots
 	},
 	-- Asalto: una bomba; un equipo ataca y otro defiende, y cada ronda se cambian
 	Assault = {
@@ -160,8 +168,9 @@ local Modes = {
 	},
 }
 
--- Qué modo se juega: el nombre de un modo, o "Aleatorio" para elegir uno de randomPool
--- en cada partida. Captura la bandera y Asalto solo se eligen si el mapa tiene bases de bandera.
+-- Qué modo se juega: el nombre de un modo, o "Aleatorio" para ir pasando por los de
+-- randomPool: sale cada uno una vez, en desorden, antes de repetir alguno (el mapa sí es al azar).
+-- Captura la bandera y Asalto solo se eligen si el mapa tiene bases de bandera.
 Modes.selected = "Aleatorio"
 Modes.randomPool = {
 	"TeamSlayer",
@@ -217,9 +226,9 @@ Modes.Common = {
 	maxWeapons = 2,
 	respawnDelay = 5, -- segundos muerto antes de reaparecer
 	spawnProtection = 2, -- segundos de invulnerabilidad al reaparecer
-	minPlayers = 2, -- jugadores necesarios para empezar
+	minPlayers = 2, -- jugadores necesarios para empezar (con Config/Bots activado basta 1)
 	countdown = 10, -- cuenta regresiva antes de la partida
-	resultsTime = 12, -- segundos que se muestra la pantalla de resultados
+	resultsTime = 15, -- segundos que se muestra la pantalla de resultados (y el podio)
 	-- Meta según jugadores (solo modos con minScoreToWin): con lowPlayers o menos la meta es
 	-- minScoreToWin, con highPlayers o más es scoreToWin, y en medio sube poco a poco
 	-- (redondeada de 5 en 5). Ej.: 10 jugadores = 25, 20 = 40, 30 = 50

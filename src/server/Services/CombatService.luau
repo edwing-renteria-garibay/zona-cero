@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Melee = require(ReplicatedStorage.Shared.Config.Melee)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
+local Combatants = require(script.Parent.Combatants)
 local ExplosionService = require(script.Parent.ExplosionService)
 local HealthService = require(script.Parent.HealthService)
 local ProjectileService = require(script.Parent.ProjectileService)
@@ -79,23 +80,10 @@ local function materialSurface(material: Enum.Material): string
 	return "concrete"
 end
 
--- ¿Puede el tirador dañar a este objetivo? (target es nil para un muñeco de práctica)
-local function isEnemy(shooter: Player, target: Player?): boolean
-	if target == nil then
-		return true
-	end
-	if target == shooter then
-		return false
-	end
-	-- En Infección: zombis contra sobrevivientes
-	local shooterSide, targetSide = shooter:GetAttribute("Side"), target:GetAttribute("Side")
-	if shooterSide and targetSide then
-		return shooterSide ~= targetSide
-	end
-	if shooter.Neutral or target.Neutral then
-		return true
-	end
-	return shooter.Team ~= target.Team
+-- ¿Puede el tirador dañar a este objetivo? (target es un jugador, un bot o nil para un muñeco
+-- de práctica). Ver Combatants.IsEnemy
+local function isEnemy(shooter: Player, target: Combatants.Combatant?): boolean
+	return Combatants.IsEnemy(shooter, target)
 end
 
 -- ¿La pieza es la cabeza? También cuenta un sombrero o gorro (un Accessory)
@@ -135,7 +123,7 @@ local function applyHit(
 		return "metal"
 	end
 	local targetHumanoid = model:FindFirstChildOfClass("Humanoid")
-	if not targetHumanoid or not isEnemy(attacker, Players:GetPlayerFromCharacter(model)) then
+	if not targetHumanoid or not isEnemy(attacker, Combatants.FromCharacter(model)) then
 		return materialSurface(result.Material)
 	end
 	local headshot = headshotMultiplier ~= nil and isHeadPart(result.Instance :: BasePart)
@@ -307,8 +295,8 @@ local function fireFlame(player: Player, tool: Tool, stats, origin: Vector3, dir
 	local aim = direction.Unit
 	local wall = workspace:Raycast(origin, aim * stats.range, params)
 	local minDot = math.cos(math.rad(stats.cone))
-	for _, other in Players:GetPlayers() do
-		local character = other.Character
+	for _, other in Combatants.All() do -- jugadores y bots
+		local character = Combatants.Character(other)
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		local root = humanoid and humanoid.RootPart
 		if root and humanoid.Health > 0 and isEnemy(player, other) then
@@ -612,7 +600,7 @@ local function onMelee(player: Player)
 			local offset = otherRoot.Position - root.Position
 			local flat = Vector3.new(offset.X, 0, offset.Z)
 			local inFront = flat.Magnitude < 1 or flat.Unit:Dot(forward) >= Melee.aimCone
-			if inFront and isEnemy(player, Players:GetPlayerFromCharacter(model)) then
+			if inFront and isEnemy(player, Combatants.FromCharacter(model)) then
 				local distance = offset.Magnitude
 				if distance < closest then
 					closest = distance
@@ -623,6 +611,8 @@ local function onMelee(player: Player)
 		end
 	end
 	if not target or not targetRoot then
+		-- Al aire: el arma de golpe suena igual (el pollo de hule chilla aunque no le pegue a nadie)
+		ExplosionService.PlaySoundAt(stats.sound and Sounds.melee[stats.sound], root.Position)
 		return
 	end
 

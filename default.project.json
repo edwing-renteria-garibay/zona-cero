@@ -43,6 +43,9 @@
         },
         "Shop": {
           "$className": "RemoteFunction"
+        },
+        "RequestMatch": {
+          "$className": "RemoteEvent"
         }
       }
     },
@@ -94,7 +97,7 @@
     },
     "StarterPlayer": {
       "$properties": {
-        "LoadCharacterAppearance": false
+        "LoadCharacterAppearance": true
       },
       "StarterPlayerScripts": {
         "Client": {

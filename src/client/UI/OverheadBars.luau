@@ -1,4 +1,4 @@
--- Barras sobre la cabeza de los demás jugadores: escudo (azul) encima y vida (verde) debajo.
+-- Barras sobre la cabeza de los demás jugadores (y de los bots): escudo (azul) encima y vida (verde) debajo.
 -- La barra de Roblox solo muestra la vida, así que los disparos al escudo no se notaban.
 -- Además, cuando el escudo recibe un golpe el personaje brilla en azul, como en Halo,
 -- y destella en blanco cuando el escudo se rompe.
@@ -102,6 +102,16 @@ function OverheadBars.Start()
 	for _, other in Players:GetPlayers() do
 		watchPlayer(other)
 	end
+	-- Los cuerpos de los bots están en workspace.Bots (se espera aparte para no detener lo demás)
+	task.spawn(function()
+		local bots = workspace:WaitForChild("Bots", 30)
+		if bots then
+			bots.ChildAdded:Connect(setupCharacter)
+			for _, body in bots:GetChildren() do
+				task.spawn(setupCharacter, body)
+			end
+		end
+	end)
 end
 
 return OverheadBars

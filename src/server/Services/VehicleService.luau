@@ -11,6 +11,7 @@ local RunService = game:GetService("RunService")
 
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local Vehicles = require(ReplicatedStorage.Shared.Config.Vehicles)
+local Combatants = require(script.Parent.Combatants)
 local ExplosionService = require(script.Parent.ExplosionService)
 local HealthService = require(script.Parent.HealthService)
 
@@ -553,8 +554,8 @@ function VehicleService.Spawn(spawnPoint: SpawnPoint): Model
 end
 
 -- ¿Son enemigos? (en los modos sin equipos, todos lo son)
-local function areEnemies(a: Player, b: Player): boolean
-	return a ~= b and (a.Neutral or b.Neutral or a.Team ~= b.Team)
+local function areEnemies(a: Player, b: Combatants.Combatant): boolean
+	return Combatants.IsEnemy(a, b)
 end
 
 -- Atropellar: los enemigos que toca el jeep yendo rápido pierden vida (sin morir) y salen
@@ -572,7 +573,7 @@ local function runOver(model: Model, driver: Player, speed: number)
 	for _, part in workspace:GetPartBoundsInBox(area, Vector3.new(8.5, 5, 14), params) do
 		local character = part.Parent
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-		local victim = humanoid and Players:GetPlayerFromCharacter(character)
+		local victim = humanoid and Combatants.FromCharacter(character) -- jugador o bot
 		if
 			humanoid
 			and victim
@@ -599,7 +600,12 @@ local function runOver(model: Model, driver: Player, speed: number)
 				side = -side
 			end
 			local push = Vector3.new(forward.X + side.X, 0, forward.Z + side.Z).Unit * stats.runOver.knockback
-			knockbackRemote:FireClient(victim, push + Vector3.yAxis * stats.runOver.knockback * 0.5)
+			push += Vector3.yAxis * stats.runOver.knockback * 0.5
+			if victim:IsA("Player") then
+				knockbackRemote:FireClient(victim, push)
+			elseif root then
+				root.AssemblyLinearVelocity = push -- a un bot lo mueve el servidor
+			end
 		end
 	end
 end

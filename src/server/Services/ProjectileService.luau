@@ -15,6 +15,7 @@ local TweenService = game:GetService("TweenService")
 local Grenades = require(ReplicatedStorage.Shared.Config.Grenades)
 local Rules = require(script.Parent.Rules)
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
+local Combatants = require(script.Parent.Combatants)
 local ExplosionService = require(script.Parent.ExplosionService)
 local VehicleService = require(script.Parent.VehicleService)
 
@@ -24,16 +25,21 @@ local throwGrenade = remotes.ThrowGrenade :: RemoteEvent
 
 local ProjectileService = {}
 
-local lastThrow: { [Player]: number } = {}
+local lastThrow: { [Instance]: number } = {} -- jugadores y bots
 
--- Explota, daña jugadores y jeeps cercanos, y avisa al atacante de cada enemigo que dañó
-local function explodeAt(position: Vector3, attacker: Player, blast: ExplosionService.Blast)
-	local hits = ExplosionService.Blast(position, attacker, blast)
-	VehicleService.BlastVehicles(position, attacker, blast)
+-- Explota, daña jugadores y jeeps cercanos, y avisa al atacante de cada enemigo que dañó.
+-- attacker puede ser un bot (sus granadas): a los jeeps los daña sin dueño y no hay a quién avisar
+local function explodeAt(position: Vector3, attacker: Combatants.Combatant, blast: ExplosionService.Blast)
+	local hits = ExplosionService.Blast(position, attacker :: any, blast)
+	local player = if attacker:IsA("Player") then attacker else nil
+	VehicleService.BlastVehicles(position, player, blast)
+	if not player then
+		return
+	end
 	for _, hit in hits do
 		if hit.player ~= attacker then
 			local surface = if hit.toHealth > 0 then "flesh" else "shield"
-			hitConfirmed:FireClient(attacker, "hit", hit.toShield + hit.toHealth, hit.position, surface)
+			hitConfirmed:FireClient(player, "hit", hit.toShield + hit.toHealth, hit.position, surface)
 		end
 	end
 end
@@ -222,8 +228,9 @@ local function makeGrenade(cframe: CFrame): BasePart
 	return grenade
 end
 
--- velocity: la velocidad inicial que calculó el cliente para que caiga donde apuntaste
-local function onThrowGrenade(player: Player, velocity: any)
+-- Lanza una granada (o un SimiO). player es un jugador o un bot (BotService).
+-- velocity: la velocidad inicial que calculó el cliente (o el bot) para que caiga donde apuntó
+function ProjectileService.ThrowGrenade(player: Combatants.Combatant, velocity: any)
 	if typeof(velocity) ~= "Vector3" or velocity ~= velocity or velocity.Magnitude < 0.01 then
 		return
 	end
@@ -231,7 +238,7 @@ local function onThrowGrenade(player: Player, velocity: any)
 	if velocity.Magnitude > Grenades.maxThrowSpeed then
 		velocity = velocity.Unit * Grenades.maxThrowSpeed
 	end
-	local character = player.Character
+	local character = Combatants.Character(player)
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local head = character and character:FindFirstChild("Head") :: BasePart?
 	-- Hay que estar vivo y a pie (desde el jeep no se lanzan granadas)
@@ -298,7 +305,7 @@ function ProjectileService.SetupCharacter(character: Model)
 end
 
 function ProjectileService.Start()
-	throwGrenade.OnServerEvent:Connect(onThrowGrenade)
+	throwGrenade.OnServerEvent:Connect(ProjectileService.ThrowGrenade)
 	Players.PlayerRemoving:Connect(function(player)
 		lastThrow[player] = nil
 	end)
