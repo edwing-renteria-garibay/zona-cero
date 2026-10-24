@@ -86,8 +86,8 @@ local function credits(): number
 end
 
 local function updateCredits()
-	creditsLabel.Text = string.format("%d ¢", credits())
-	openButton.Text = string.format("Tienda (B) · %d ¢", credits())
+	creditsLabel.Text = string.format("%d créditos", credits())
+	openButton.Text = string.format("Tienda (B) · %d créditos", credits())
 end
 
 -- La vista previa: una copia de tu personaje dentro del ViewportFrame
@@ -184,6 +184,14 @@ local function card(
 	label.Position = UDim2.fromOffset(4, 72)
 	local button = newButton(frame, buttonText, UDim2.new(1, -16, 0, 32), buttonColor)
 	button.Position = UDim2.new(0, 8, 1, -40)
+	-- Los textos largos ("Comprar: 1500 créditos") se achican para caber en la tarjeta
+	for _, item in { label, button } do
+		local maxSize = item.TextSize
+		item.TextScaled = true
+		local limit = Instance.new("UITextSizeConstraint")
+		limit.MaxTextSize = maxSize
+		limit.Parent = item
+	end
 	if onClick then
 		button.Activated:Connect(onClick)
 	else
@@ -214,11 +222,11 @@ local function drawArmorTab(slotId: string, data: Profile)
 				request("equip", itemId)
 			end)
 		elseif credits() >= style.price then
-			card(style.name, colors, string.format("Comprar %d ¢", style.price), BUY, function()
+			card(style.name, colors, string.format("Comprar: %d créditos", style.price), BUY, function()
 				request("buy", itemId)
 			end)
 		else
-			card(style.name, colors, string.format("%d ¢", style.price), LOCKED, nil)
+			card(style.name, colors, string.format("%d créditos", style.price), LOCKED, nil)
 		end
 	end
 end
@@ -245,18 +253,24 @@ local function drawSkinsTab(data: Profile)
 				request("equip", itemId)
 			end)
 		elseif credits() >= skin.price then
-			card(skin.name, { skin.color }, string.format("Comprar %d ¢", skin.price), BUY, function()
-				request("buy", itemId)
-			end)
+			card(
+				skin.name,
+				{ skin.color },
+				string.format("Comprar: %d créditos", skin.price),
+				BUY,
+				function()
+					request("buy", itemId)
+				end
+			)
 		else
-			card(skin.name, { skin.color }, string.format("%d ¢", skin.price), LOCKED, nil)
+			card(skin.name, { skin.color }, string.format("%d créditos", skin.price), LOCKED, nil)
 		end
 	end
 end
 
 local function drawCreditsTab()
 	for _, pack in Shop.creditPacks do
-		local name = string.format("%d ¢ por %d Robux", pack.credits, pack.robux)
+		local name = string.format("%d créditos por %d Robux", pack.credits, pack.robux)
 		if pack.productId == 0 then
 			card(name, { TAB_ACTIVE }, "Próximamente", EQUIPPED, nil)
 		else
@@ -322,7 +336,7 @@ local function build()
 	gui.DisplayOrder = 10
 	gui.Parent = player:WaitForChild("PlayerGui")
 
-	openButton = newButton(gui, "Tienda (B)", UDim2.fromOffset(170, 36), BACKGROUND)
+	openButton = newButton(gui, "Tienda (B)", UDim2.fromOffset(230, 36), BACKGROUND)
 	openButton.AnchorPoint = Vector2.new(0, 0.5)
 	openButton.Position = UDim2.new(0, 16, 0.4, 0)
 	openButton.BackgroundTransparency = 0.2

@@ -26,7 +26,7 @@ con dos cosas:
 Para que cada quien use su avatar otra vez, pon `Shop.uniform.enabled = false` y
 `LoadCharacterAppearance` en `true`.
 
-## Créditos (¢)
+## Créditos
 
 Se ganan jugando (valores en `Shop.rewards`):
 
@@ -37,7 +37,7 @@ Se ganan jugando (valores en `Shop.rewards`):
 | Terminar una partida | 25 |
 | Ganarla | 75 extra |
 
-Un jugador nuevo empieza con 200 ¢.
+Un jugador nuevo empieza con 200 créditos.
 
 ## Dónde está cada cosa
 
@@ -74,7 +74,7 @@ juego. Por cada jugador guarda sus créditos, lo que compró y lo que lleva pues
 funciona igual, pero no guarda nada (verás un aviso en la Salida).
 
 **En modo de prueba** (`Modes.Testing.enabled = true`) la tienda no guarda nada y todos
-empiezan con 5000 ¢, para que puedas probarla sin jugar.
+empiezan con 5000 créditos, para que puedas probarla sin jugar.
 
 ## Seguridad: el servidor decide
 

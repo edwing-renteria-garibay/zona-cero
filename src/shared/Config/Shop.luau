@@ -1,5 +1,5 @@
 -- La tienda: armadura por partes y skins de armas. Todo es solo visual, nadie gana ventaja
--- por comprar. Se paga con créditos (¢), que se ganan jugando o se compran con Robux.
+-- por comprar. Se paga con créditos, que se ganan jugando o se compran con Robux.
 --
 -- Cada estilo de armadura se vende por partes: casco, torso, brazos y piernas. Así un
 -- jugador puede combinar, por ejemplo, casco Élite con torso Desierto.
@@ -129,9 +129,9 @@ Shop.weaponSkins = {
 -- se crea en el Creator Dashboard (ver docs/aprende/23-tienda.md). Pon aquí su ID; los que
 -- tengan productId = 0 salen en la tienda como "Próximamente".
 Shop.creditPacks = {
-	{ credits = 500, robux = 49, productId = 0 },
-	{ credits = 1200, robux = 99, productId = 0 },
-	{ credits = 3000, robux = 199, productId = 0 },
+	{ credits = 500, robux = 49, productId = 3721754389 }, -- Paquete básico
+	{ credits = 1200, robux = 99, productId = 3721754556 }, -- Paquete intermedio
+	{ credits = 3000, robux = 199, productId = 3721754667 }, -- Paquete grande
 }
 
 -- Busca un objeto de la tienda por su id ("Helmet.Elite", "Skin.Oro"...).

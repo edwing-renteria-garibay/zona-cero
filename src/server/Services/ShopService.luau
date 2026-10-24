@@ -2,7 +2,7 @@
 --
 -- Cada jugador tiene un "perfil" que se guarda en un DataStore (el almacenamiento de Roblox
 -- que no se borra al salir del juego):
---   credits  = créditos (¢)
+--   credits  = créditos
 --   owned    = lo que compró: { ["Helmet.Elite"] = true, ["Skin.Oro"] = true, ... }
 --   equipped = lo que lleva puesto: { Helmet = "Elite", Torso = "Desierto", Skin = "Oro" }
 --
