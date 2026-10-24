@@ -1,5 +1,7 @@
 -- Lanzar granada: mantén G (B / Círculo en control, botón "Granada" en móvil) para apuntar
 -- y suelta para lanzarla. Mientras apuntas se dibuja el arco y un círculo donde caerá.
+-- En los modos de granadas infinitas (Lluvia de SimiOs) no hay armas: ahí también se lanzan
+-- con el disparo normal (clic o RT / R2), para que nadie tenga que adivinar la G.
 --
 -- La granada cae donde señala tu mouse: el cliente calcula la velocidad inicial
 -- con la fórmula del tiro parabólico y se la manda al servidor, que crea la granada.
@@ -10,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Grenades = require(ReplicatedStorage.Shared.Config.Grenades)
+local Modes = require(ReplicatedStorage.Shared.Config.Modes)
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local Aim = require(script.Parent.Aim)
 local Sfx = require(script.Parent.Sfx)
@@ -182,6 +185,35 @@ function GrenadeController.Start()
 	-- En control usamos B: L1 y R1 ya los usa Roblox para cambiar de arma
 	ContextActionService:BindAction("Grenade", onAction, true, Enum.KeyCode.G, Enum.KeyCode.ButtonB)
 	ContextActionService:SetTitle("Grenade", "Granada")
+
+	-- Granadas infinitas: el disparo también lanza (por encima del golpe con clic)
+	local fireThrows = false
+	local function updateFire()
+		local mode = Modes[ReplicatedStorage:GetAttribute("MatchMode") or ""]
+		local wanted = type(mode) == "table" and mode.infiniteGrenades == true
+		if wanted == fireThrows then
+			return
+		end
+		fireThrows = wanted
+		if wanted then
+			ContextActionService:BindActionAtPriority(
+				"GrenadeFire",
+				onAction,
+				false,
+				Enum.ContextActionPriority.High.Value,
+				Enum.UserInputType.MouseButton1,
+				Enum.KeyCode.ButtonR2
+			)
+		else
+			ContextActionService:UnbindAction("GrenadeFire")
+		end
+		ContextActionService:SetTitle(
+			"Grenade",
+			if wanted and mode.grenadeStyle == "Simi" then "SimiO" else "Granada"
+		)
+	end
+	ReplicatedStorage:GetAttributeChangedSignal("MatchMode"):Connect(updateFire)
+	updateFire()
 
 	RunService.RenderStepped:Connect(function()
 		if not aiming then

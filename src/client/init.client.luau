@@ -1,6 +1,6 @@
 -- Punto de entrada del cliente: arranca la cámara, el arma en primera persona, la mira y el láser de algunas armas, los controles de armas, golpe, granada, correr y jeep, el HUD, la mira
 -- los avisos de daño (números, barras sobre la cabeza), el marcador, el registro de bajas
--- la pantalla de resultados, lo que se ve en Infección, la tienda y el menú de partidas.
+-- la pantalla de resultados, lo que se ve en Infección, la tienda, el menú de partidas y el cuadro de controles.
 
 local CameraController = require(script.Controllers.CameraController)
 local GrenadeController = require(script.Controllers.GrenadeController)
@@ -10,6 +10,7 @@ local SpecialWeapons = require(script.Controllers.SpecialWeapons)
 local SprintController = require(script.Controllers.SprintController)
 local ViewModel = require(script.Controllers.ViewModel)
 local WeaponController = require(script.Controllers.WeaponController)
+local Controls = require(script.UI.Controls)
 local Crosshair = require(script.UI.Crosshair)
 local HUD = require(script.UI.HUD)
 local HitFeedback = require(script.UI.HitFeedback)
@@ -38,4 +39,5 @@ KillFeed.Start()
 Results.Start()
 InfectionView.Start()
 Shop.Start()
+Controls.Start() -- los controles a la izquierda (Tab)
 MainMenu.Start() -- partida rápida, contra la IA o privada
