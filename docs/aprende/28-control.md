@@ -59,3 +59,8 @@ Roblox lo reconoce solo.
 - **La Barranca con jeeps en todos los modos**: `Config/Maps.luau` tiene
   `alwaysVehicles = { Barranca = true }`. `MatchService` enciende los jeeps si el modo los
   permite **o** si el mapa está en esa lista.
+- **Armas con las dos manos** (`Services/TwoHands.luau`): Roblox pone la herramienta solo
+  en la mano derecha. En las armas largas, un `IKControl` lleva la mano izquierda al
+  punto `LeftHandGrip` del arma (lo pone `WeaponModels.Dress` con el `leftHand` de cada
+  arma). La pistola, el arma de hielo y las de golpe llevan `oneHand = true` y se quedan
+  con una mano.
