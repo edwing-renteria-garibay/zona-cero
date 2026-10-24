@@ -1,14 +1,24 @@
--- Pantalla de resultados al terminar la partida: quién ganó, el marcador final
--- y la tabla de jugadores con sus bajas y muertes. Se quita al empezar la siguiente.
+-- Pantalla de resultados al terminar la partida: quién ganó, el marcador final, el podio con
+-- los 3 mejores (MVP) y la tabla de jugadores con sus bajas y muertes. Suena victoria o
+-- derrota según tu lado. Se quita al empezar la siguiente.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
+local Sfx = require(script.Parent.Parent.Controllers.Sfx)
 
 local matchState = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("MatchState") :: RemoteEvent
 
 local player = Players.LocalPlayer
 
 local Results = {}
+
+local MEDALS = {
+	Color3.fromRGB(255, 200, 60), -- oro
+	Color3.fromRGB(200, 205, 215), -- plata
+	Color3.fromRGB(205, 130, 70), -- bronce
+}
 
 local function label(parent: Instance, text: string, size: UDim2, textSize: number, color: Color3?): TextLabel
 	local l = Instance.new("TextLabel")
@@ -34,7 +44,7 @@ function Results.Start()
 	local panel = Instance.new("Frame")
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	panel.Position = UDim2.fromScale(0.5, 0.5)
-	panel.Size = UDim2.fromOffset(460, 380)
+	panel.Size = UDim2.fromOffset(480, 500)
 	panel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 	panel.BackgroundTransparency = 0.15
 	panel.Parent = gui
@@ -85,6 +95,39 @@ function Results.Start()
 		scoreLine.RichText = true
 		add(scoreLine)
 
+		-- Podio: 2.º a la izquierda, 1.º en medio (más alto) y 3.º a la derecha
+		local podium = Instance.new("Frame")
+		podium.Size = UDim2.new(1, 0, 0, 110)
+		podium.BackgroundTransparency = 1
+		podium.Parent = panel
+		add(podium)
+		for column, place in { 2, 1, 3 } do
+			local entry = data.players[place]
+			if entry then
+				local height = if place == 1 then 100 elseif place == 2 then 84 else 72
+				local step = Instance.new("Frame")
+				step.AnchorPoint = Vector2.new(0, 1)
+				step.Position = UDim2.new((column - 1) / 3, 4, 1, 0)
+				step.Size = UDim2.new(1 / 3, -8, 0, height)
+				step.BackgroundColor3 = Color3.fromRGB(40, 40, 44)
+				step.Parent = podium
+				local stepCorner = Instance.new("UICorner")
+				stepCorner.CornerRadius = UDim.new(0, 8)
+				stepCorner.Parent = step
+				local stroke = Instance.new("UIStroke")
+				stroke.Color = MEDALS[place]
+				stroke.Thickness = 2
+				stroke.Parent = step
+				local placeLabel = label(step, `{place}.º`, UDim2.new(1, 0, 0, 26), 22, MEDALS[place])
+				placeLabel.Position = UDim2.fromOffset(0, 4)
+				local nameLabel = label(step, entry.name, UDim2.new(1, -8, 0, 22), 15, entry.color)
+				nameLabel.Position = UDim2.fromOffset(4, 30)
+				nameLabel.TextScaled = true
+				local killsLabel = label(step, `{entry.kills} bajas`, UDim2.new(1, 0, 0, 18), 13)
+				killsLabel.Position = UDim2.fromOffset(0, 54)
+			end
+		end
+
 		-- Encabezado y una fila por jugador
 		local function row(name: string, kills: string, deaths: string, color: Color3?, textSize: number)
 			local frame = Instance.new("Frame")
@@ -101,12 +144,18 @@ function Results.Start()
 		end
 		row("Jugador", "Bajas", "Muertes", Color3.fromRGB(180, 180, 180), 14)
 		for i, entry in data.players do
-			if i > 10 then
+			if i > 8 then
 				break
 			end
 			row(entry.name, tostring(entry.kills), tostring(entry.deaths), entry.color, 18)
 		end
 		gui.Enabled = true
+
+		-- Victoria o derrota (en un empate no suena nada)
+		if data.winner then
+			local won = table.find(data.winners or {}, player.Name) ~= nil
+			Sfx.PlayLocal(if won then Sounds.matchEnd.win else Sounds.matchEnd.lose)
+		end
 	end)
 end
 

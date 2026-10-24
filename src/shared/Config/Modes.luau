@@ -228,7 +228,7 @@ Modes.Common = {
 	spawnProtection = 2, -- segundos de invulnerabilidad al reaparecer
 	minPlayers = 2, -- jugadores necesarios para empezar (con Config/Bots activado basta 1)
 	countdown = 10, -- cuenta regresiva antes de la partida
-	resultsTime = 12, -- segundos que se muestra la pantalla de resultados
+	resultsTime = 15, -- segundos que se muestra la pantalla de resultados (y el podio)
 	-- Meta según jugadores (solo modos con minScoreToWin): con lowPlayers o menos la meta es
 	-- minScoreToWin, con highPlayers o más es scoreToWin, y en medio sube poco a poco
 	-- (redondeada de 5 en 5). Ej.: 10 jugadores = 25, 20 = 40, 30 = 50

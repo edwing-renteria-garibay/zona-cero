@@ -318,8 +318,34 @@ local GOLD = Color3.fromRGB(255, 200, 60) -- color del ganador en solitario
 local ZOMBIE_GREEN = Color3.fromRGB(120, 220, 90)
 local SURVIVOR_BLUE = Color3.fromRGB(120, 180, 255)
 
--- Tabla de resultados: jugadores ordenados por bajas (y con menos muertes en empate)
-local function buildResults(rules, winner: Winner?)
+-- Los nombres de quienes ganaron (para que cada pantalla sepa si oír victoria o derrota).
+-- Se calcula antes de InfectionService.Stop, que borra quién era zombi
+local function winnerNames(rules, winner: Winner?): { string }
+	local names = {}
+	if not winner then
+		return names
+	end
+	for _, who in Combatants.All() do
+		local won
+		if rules.scoreBy == "infection" then
+			local side = if winner.name == "Zombis" then "Zombie" else "Survivor"
+			won = who:GetAttribute("Side") == side
+		elseif rules.teams then
+			local team = Combatants.TeamOf(who)
+			won = team ~= nil and team.Name == winner.name
+		else
+			won = who.Name == winner.name
+		end
+		if won then
+			table.insert(names, who.Name)
+		end
+	end
+	return names
+end
+
+-- Tabla de resultados: jugadores ordenados por bajas (y con menos muertes en empate).
+-- Los tres primeros salen en el podio de la pantalla de resultados
+local function buildResults(rules, winner: Winner?, winners: { string })
 	local players = {}
 	for _, player in Combatants.All() do -- jugadores y bots
 		local kills = getStat(player, "Bajas")
@@ -350,6 +376,7 @@ local function buildResults(rules, winner: Winner?)
 		title = if winner then winner.title else nil,
 		teams = teamScores,
 		players = players,
+		winners = winners,
 	}
 end
 
@@ -567,12 +594,13 @@ function MatchService.Run(changeMap: () -> ())
 		end
 		running = false
 		endedEvent:Fire(rules, winningSide) -- antes de Stop: Infección aún sabe quién es zombi
+		local winners = winnerNames(rules, winningSide)
 		FlagService.Stop()
 		HillService.Stop()
 		InfectionService.Stop()
 		AssaultService.Stop()
 		setPhase("Ended")
-		broadcast("Ended", buildResults(rules, winningSide))
+		broadcast("Ended", buildResults(rules, winningSide, winners))
 		BotService.Stop() -- después de los resultados: ahí salen sus bajas
 		task.wait(common.resultsTime)
 	end
