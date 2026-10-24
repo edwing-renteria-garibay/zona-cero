@@ -97,7 +97,7 @@
     },
     "StarterPlayer": {
       "$properties": {
-        "LoadCharacterAppearance": false
+        "LoadCharacterAppearance": true
       },
       "StarterPlayerScripts": {
         "Client": {

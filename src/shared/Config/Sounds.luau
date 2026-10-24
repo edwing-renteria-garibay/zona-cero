@@ -66,7 +66,7 @@ return {
 		start = "rbxassetid://140685060", -- al encenderlo (cuando se sube el conductor)
 		runOver = "rbxassetid://127729552755617", -- al atropellar a un enemigo
 	},
-	-- Armas de golpe (Config/Melee): suena al pegarle a alguien, lo oyen todos
+	-- Armas de golpe (Config/Melee): suena en cada golpe, le pegue a alguien o no; lo oyen todos
 	melee = {
 		RubberChicken = "rbxassetid://7507574099",
 	},

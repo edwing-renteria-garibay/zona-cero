@@ -168,8 +168,9 @@ local Modes = {
 	},
 }
 
--- Qué modo se juega: el nombre de un modo, o "Aleatorio" para elegir uno de randomPool
--- en cada partida. Captura la bandera y Asalto solo se eligen si el mapa tiene bases de bandera.
+-- Qué modo se juega: el nombre de un modo, o "Aleatorio" para ir pasando por los de
+-- randomPool: sale cada uno una vez, en desorden, antes de repetir alguno (el mapa sí es al azar).
+-- Captura la bandera y Asalto solo se eligen si el mapa tiene bases de bandera.
 Modes.selected = "Aleatorio"
 Modes.randomPool = {
 	"TeamSlayer",

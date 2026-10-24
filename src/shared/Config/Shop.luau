@@ -19,12 +19,13 @@ Shop.rewards = {
 Shop.startingCredits = 200 -- con lo que empieza un jugador nuevo
 Shop.testingCredits = 5000 -- con Modes.Testing.enabled, para probar la tienda sin jugar
 
--- Uniforme base: todos aparecen con el mismo cuerpo de bloques, sin la ropa ni los accesorios
--- de su avatar de Roblox, y con estos colores. Encima va la armadura que compren.
--- (Además, en default.project.json, StarterPlayer.LoadCharacterAppearance = false hace que
--- Roblox no cargue el avatar de cada quien.) Con enabled = false cada uno usa su avatar.
+-- Uniforme base: con enabled = true todos aparecen con el mismo cuerpo de bloques, sin la ropa
+-- ni los accesorios de su avatar de Roblox, y con estos colores. Viene apagado: cada quien
+-- entra con su avatar, y la armadura de la tienda es opcional, por encima.
+-- (Para el uniforme, en default.project.json pon también StarterPlayer.LoadCharacterAppearance
+-- = false, así Roblox no carga el avatar de cada quien.)
 Shop.uniform = {
-	enabled = true,
+	enabled = false,
 	skin = Color3.fromRGB(204, 160, 120), -- cabeza
 	shirt = Color3.fromRGB(70, 76, 56), -- torso y brazos (igual que las mangas en 1ª persona)
 	pants = Color3.fromRGB(50, 52, 40), -- piernas

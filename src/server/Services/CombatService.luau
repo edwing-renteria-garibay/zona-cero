@@ -611,6 +611,8 @@ local function onMelee(player: Player)
 		end
 	end
 	if not target or not targetRoot then
+		-- Al aire: el arma de golpe suena igual (el pollo de hule chilla aunque no le pegue a nadie)
+		ExplosionService.PlaySoundAt(stats.sound and Sounds.melee[stats.sound], root.Position)
 		return
 	end
 

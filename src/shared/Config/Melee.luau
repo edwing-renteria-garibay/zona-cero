@@ -16,7 +16,7 @@ local Melee = {
 -- Armas de golpe: herramientas que no disparan (su forma está en Shared/WeaponModels).
 -- Cada una cambia los valores de arriba mientras la llevas en la mano.
 -- knockback: qué tan fuerte sale volando quien recibe el golpe (0 = nada)
--- sound: sonido de Config/Sounds.melee que se oye al pegar
+-- sound: sonido de Config/Sounds.melee que se oye en cada golpe (aunque no le pegue a nadie)
 Melee.weapons = {
 	Machete = {
 		name = "Machete",

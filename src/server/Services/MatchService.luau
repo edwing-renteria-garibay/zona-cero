@@ -205,7 +205,55 @@ HealthService.Killed:Connect(function(victim: Instance, killer: Instance?, cause
 	end
 end)
 
--- El modo de esta partida: el elegido en Config/Modes o uno al azar.
+-- ¿Se puede jugar este modo ahora? Captura la bandera y Asalto necesitan bases de bandera en
+-- el mapa, y si faltan jugadores (withBots) solo sirven los modos con bots
+local function playable(name: string, withBots: boolean): boolean
+	local mode = Modes[name]
+	if not mode then
+		return false
+	end
+	if
+		(name == "CaptureTheFlag" and not FlagService.HasFlags())
+		or (name == "Assault" and not AssaultService.HasBases())
+	then
+		return false
+	end
+	return not withBots or mode.bots == true
+end
+
+-- Los modos que faltan por jugar en esta vuelta. Con "Aleatorio" sale cada modo una vez, en
+-- desorden, antes de repetir alguno (como barajar cartas); el mapa sí es al azar
+local modeBag: { string } = {}
+local lastMode: string? = nil
+
+local function refillBag()
+	modeBag = table.clone(Modes.randomPool)
+	for i = #modeBag, 2, -1 do
+		local j = math.random(i)
+		modeBag[i], modeBag[j] = modeBag[j], modeBag[i]
+	end
+	-- Que la vuelta nueva no empiece con el modo que se acaba de jugar
+	if #modeBag > 1 and modeBag[1] == lastMode then
+		modeBag[1], modeBag[#modeBag] = modeBag[#modeBag], modeBag[1]
+	end
+end
+
+-- Saca de la baraja el siguiente modo que se pueda jugar; los que no se pueden (por el mapa o
+-- porque faltan jugadores) se quedan para después
+local function drawMode(withBots: boolean): string?
+	for _ = 1, 2 do
+		for i, name in modeBag do
+			if playable(name, withBots) then
+				table.remove(modeBag, i)
+				return name
+			end
+		end
+		refillBag() -- ninguno de los que quedan sirve: vuelta nueva
+	end
+	return nil
+end
+
+-- El modo de esta partida: el elegido en Config/Modes o el siguiente de la baraja.
 -- withBots: no hay jugadores suficientes, así que solo sirve un modo que los bots sepan jugar
 local nextTestMode = 0 -- modo de prueba: cuál de randomPool sigue
 local function chooseMode(withBots: boolean): string
@@ -218,29 +266,21 @@ local function chooseMode(withBots: boolean): string
 			nextTestMode = nextTestMode % #Modes.randomPool + 1
 			name = Modes.randomPool[nextTestMode]
 		else
-			name = Modes.randomPool[math.random(#Modes.randomPool)]
+			name = drawMode(withBots) or "TeamSlayer"
 		end
 	end
 	if not Modes[name] then
 		warn("[Match] No existe el modo", name, "- juego TeamSlayer")
 		name = "TeamSlayer"
 	end
-	if
-		(name == "CaptureTheFlag" and not FlagService.HasFlags())
-		or (name == "Assault" and not AssaultService.HasBases())
-	then
+	if not playable(name, false) then
 		warn("[Match] El mapa no tiene bases de bandera - juego TeamSlayer")
 		name = "TeamSlayer"
 	end
 	if withBots and not Modes[name].bots and not MatchSettings.mode then
-		local pool = {}
-		for _, candidate in Modes.randomPool do
-			if Modes[candidate] and Modes[candidate].bots then
-				table.insert(pool, candidate)
-			end
-		end
-		name = if #pool > 0 then pool[math.random(#pool)] else "TeamSlayer"
+		name = drawMode(true) or "TeamSlayer"
 	end
+	lastMode = name
 	return name
 end
 
