@@ -50,6 +50,7 @@ local SAFE_SPAWN_DISTANCE = 40
 local MULTIKILL_WINDOW = 4
 local MULTIKILL_NAMES = { [2] = "¡Muerte doble!", [3] = "¡Muerte triple!", [4] = "¡Masacre!" }
 local MULTIKILL_COLOR = Color3.fromRGB(255, 200, 60)
+local ASSIST_COLOR = Color3.fromRGB(170, 210, 255)
 local streaks: { [Instance]: { count: number, last: number } } = {}
 
 local scores: { [Team]: number } = {}
@@ -81,7 +82,7 @@ local function resetScores()
 		setScore(team, 0)
 	end
 	for _, player in Combatants.All() do
-		for _, name in { "Bajas", "Muertes" } do
+		for _, name in { "Bajas", "Asistencias", "Muertes" } do
 			local stat = getStat(player, name)
 			if stat then
 				stat.Value = 0
@@ -176,8 +177,14 @@ local function teamColor(player: Instance?): Color3
 	return Combatants.ColorOf(player)
 end
 
--- victim y killer: un Player o el carnet de un bot
-HealthService.Killed:Connect(function(victim: Instance, killer: Instance?, cause: string?, headshot: boolean)
+-- victim y killer: un Player o el carnet de un bot; assisters: los demás que le hicieron daño
+local function onKilled(
+	victim: Instance,
+	killer: Instance?,
+	cause: string?,
+	headshot: boolean,
+	assisters: { Instance }
+)
 	-- Registro de bajas: todos ven "quién eliminó a quién y con qué"
 	killFeed:FireAllClients({
 		killer = if killer and killer ~= victim then killer.Name else nil,
@@ -195,6 +202,18 @@ HealthService.Killed:Connect(function(victim: Instance, killer: Instance?, cause
 	local deaths = getStat(victim, "Muertes")
 	if deaths then
 		deaths.Value += 1
+	end
+	-- Asistencias: los enemigos de la víctima que le hicieron daño y no la remataron
+	for _, helper in assisters do
+		if Combatants.IsEnemy(helper, victim) then
+			local assists = getStat(helper, "Asistencias")
+			if assists then
+				assists.Value += 1
+			end
+			if helper:IsA("Player") then
+				killFeed:FireClient(helper, { message = `Asistencia: {victim.Name}`, color = ASSIST_COLOR })
+			end
+		end
 	end
 	if not killer or killer == victim then
 		return
@@ -230,7 +249,8 @@ HealthService.Killed:Connect(function(victim: Instance, killer: Instance?, cause
 	if team and currentRules.teams and currentRules.scoreBy == "kills" then
 		setScore(team, scores[team] + 1)
 	end
-end)
+end
+HealthService.Killed:Connect(onKilled)
 
 -- ¿Se puede jugar este modo ahora? Captura la bandera y Asalto necesitan bases de bandera en
 -- el mapa, y si faltan jugadores (withBots) solo sirven los modos con bots
@@ -343,23 +363,29 @@ local function winnerNames(rules, winner: Winner?): { string }
 	return names
 end
 
--- Tabla de resultados: jugadores ordenados por bajas (y con menos muertes en empate).
+-- Tabla de resultados: jugadores ordenados por bajas (en empate, más asistencias y luego
+-- menos muertes).
 -- Los tres primeros salen en el podio de la pantalla de resultados
 local function buildResults(rules, winner: Winner?, winners: { string })
 	local players = {}
 	for _, player in Combatants.All() do -- jugadores y bots
 		local kills = getStat(player, "Bajas")
+		local assists = getStat(player, "Asistencias")
 		local deaths = getStat(player, "Muertes")
 		table.insert(players, {
 			name = player.Name,
 			color = teamColor(player),
 			kills = kills and kills.Value or 0,
+			assists = assists and assists.Value or 0,
 			deaths = deaths and deaths.Value or 0,
 		})
 	end
 	table.sort(players, function(a, b)
 		if a.kills ~= b.kills then
 			return a.kills > b.kills
+		end
+		if a.assists ~= b.assists then
+			return a.assists > b.assists
 		end
 		return a.deaths < b.deaths
 	end)

@@ -55,6 +55,9 @@ Players.PlayerAdded:Connect(function(player)
 	local kills = Instance.new("IntValue")
 	kills.Name = "Bajas"
 	kills.Parent = leaderstats
+	local assists = Instance.new("IntValue")
+	assists.Name = "Asistencias"
+	assists.Parent = leaderstats
 	local deaths = Instance.new("IntValue")
 	deaths.Name = "Muertes"
 	deaths.Parent = leaderstats

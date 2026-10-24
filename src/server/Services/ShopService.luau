@@ -244,8 +244,26 @@ local function processReceipt(receipt)
 end
 
 -- Créditos por bajas
-local function onKilled(victim: Instance, killer: Instance?, _cause: string?, headshot: boolean)
-	if not killer or killer == victim or ReplicatedStorage:GetAttribute("MatchPhase") ~= "Playing" then
+local function onKilled(
+	victim: Instance,
+	killer: Instance?,
+	_cause: string?,
+	headshot: boolean,
+	assisters: { Instance }?
+)
+	if ReplicatedStorage:GetAttribute("MatchPhase") ~= "Playing" then
+		return
+	end
+	if Combatants.IsBot(victim) and not Bots.creditsForKills then
+		return
+	end
+	-- Asistencias: créditos para los jugadores que le hicieron daño (y no lo remataron)
+	for _, helper in assisters or {} do
+		if helper:IsA("Player") and Combatants.IsEnemy(helper, victim) then
+			addCredits(helper, Shop.rewards.assist)
+		end
+	end
+	if not killer or killer == victim then
 		return
 	end
 	-- Los bots no juntan créditos; eliminar a un bot da créditos si Config/Bots lo permite

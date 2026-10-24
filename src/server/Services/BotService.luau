@@ -680,7 +680,7 @@ local function addBot()
 	end
 	local leaderstats = Instance.new("Folder")
 	leaderstats.Name = "leaderstats"
-	for _, stat in { "Bajas", "Muertes" } do
+	for _, stat in { "Bajas", "Asistencias", "Muertes" } do
 		local value = Instance.new("IntValue")
 		value.Name = stat
 		value.Parent = leaderstats

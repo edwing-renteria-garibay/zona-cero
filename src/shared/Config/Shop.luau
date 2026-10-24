@@ -12,6 +12,7 @@ local Shop = {}
 Shop.rewards = {
 	kill = 10, -- por cada baja
 	headshot = 5, -- extra si la baja fue a la cabeza
+	assist = 5, -- por cada asistencia (le hiciste daño y otro lo remató)
 	match = 25, -- por terminar una partida
 	win = 75, -- extra si tu equipo (o tú, en solitario) gana
 }

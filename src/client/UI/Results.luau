@@ -1,5 +1,5 @@
 -- Pantalla de resultados al terminar la partida: quién ganó, el marcador final, el podio con
--- los 3 mejores (MVP) y la tabla de jugadores con sus bajas y muertes. Suena victoria o
+-- los 3 mejores (MVP) y la tabla de jugadores con sus bajas, asistencias y muertes. Suena victoria o
 -- derrota según tu lado. Se quita al empezar la siguiente.
 
 local Players = game:GetService("Players")
@@ -123,31 +123,52 @@ function Results.Start()
 				local nameLabel = label(step, entry.name, UDim2.new(1, -8, 0, 22), 15, entry.color)
 				nameLabel.Position = UDim2.fromOffset(4, 30)
 				nameLabel.TextScaled = true
-				local killsLabel = label(step, `{entry.kills} bajas`, UDim2.new(1, 0, 0, 18), 13)
+				local killsLabel = label(
+					step,
+					`{entry.kills} bajas · {entry.assists or 0} asist.`,
+					UDim2.new(1, 0, 0, 18),
+					13
+				)
 				killsLabel.Position = UDim2.fromOffset(0, 54)
 			end
 		end
 
 		-- Encabezado y una fila por jugador
-		local function row(name: string, kills: string, deaths: string, color: Color3?, textSize: number)
+		local function row(
+			name: string,
+			kills: string,
+			assists: string,
+			deaths: string,
+			color: Color3?,
+			textSize: number
+		)
 			local frame = Instance.new("Frame")
 			frame.Size = UDim2.new(1, 0, 0, 24)
 			frame.BackgroundTransparency = 1
 			frame.Parent = panel
-			local n = label(frame, name, UDim2.new(0.6, 0, 1, 0), textSize, color)
+			local n = label(frame, name, UDim2.new(0.46, 0, 1, 0), textSize, color)
 			n.TextXAlignment = Enum.TextXAlignment.Left
-			local k = label(frame, kills, UDim2.new(0.2, 0, 1, 0), textSize)
-			k.Position = UDim2.fromScale(0.6, 0)
-			local d = label(frame, deaths, UDim2.new(0.2, 0, 1, 0), textSize)
-			d.Position = UDim2.fromScale(0.8, 0)
+			local k = label(frame, kills, UDim2.new(0.18, 0, 1, 0), textSize)
+			k.Position = UDim2.fromScale(0.46, 0)
+			local a = label(frame, assists, UDim2.new(0.18, 0, 1, 0), textSize)
+			a.Position = UDim2.fromScale(0.64, 0)
+			local d = label(frame, deaths, UDim2.new(0.18, 0, 1, 0), textSize)
+			d.Position = UDim2.fromScale(0.82, 0)
 			add(frame)
 		end
-		row("Jugador", "Bajas", "Muertes", Color3.fromRGB(180, 180, 180), 14)
+		row("Jugador", "Bajas", "Asist.", "Muertes", Color3.fromRGB(180, 180, 180), 14)
 		for i, entry in data.players do
 			if i > 8 then
 				break
 			end
-			row(entry.name, tostring(entry.kills), tostring(entry.deaths), entry.color, 18)
+			row(
+				entry.name,
+				tostring(entry.kills),
+				tostring(entry.assists or 0),
+				tostring(entry.deaths),
+				entry.color,
+				18
+			)
 		end
 		gui.Enabled = true
 
