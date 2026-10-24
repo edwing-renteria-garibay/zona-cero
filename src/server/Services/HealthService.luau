@@ -52,6 +52,22 @@ function HealthService.SetupCharacter(player: Combatants.Combatant, character: M
 	end)
 end
 
+-- Protección al reaparecer: durante seconds segundos nada le baja vida ni escudo (por si el
+-- otro equipo está metido en tu base). Se ve un brillo (ForceField) para que todos sepan
+-- que está protegido.
+function HealthService.Protect(character: Model, seconds: number)
+	character:SetAttribute("SpawnProtected", true)
+	local glow = Instance.new("ForceField")
+	glow.Visible = true
+	glow.Parent = character
+	task.delay(seconds, function()
+		glow:Destroy()
+		if character.Parent then
+			character:SetAttribute("SpawnProtected", nil)
+		end
+	end)
+end
+
 -- Devuelve cuánto daño se llevó el escudo y cuánto la vida (0, 0 si no se pudo dañar).
 -- cause y headshot sirven para el registro de bajas (ver Killed arriba)
 function HealthService.Damage(

@@ -554,10 +554,7 @@ function spawnBot(card: Instance)
 	end
 
 	-- Protección breve al aparecer, como los jugadores
-	character:SetAttribute("SpawnProtected", true)
-	task.delay(Modes.Common.spawnProtection, function()
-		character:SetAttribute("SpawnProtected", nil)
-	end)
+	HealthService.Protect(character, Modes.Common.spawnProtection)
 
 	task.spawn(function()
 		think(card, character, humanoid, root)

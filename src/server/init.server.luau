@@ -1,7 +1,10 @@
 -- Punto de entrada del servidor: prepara a cada jugador y arranca la partida.
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Teams = game:GetService("Teams")
+
+local Modes = require(ReplicatedStorage.Shared.Config.Modes)
 
 local Services = script.Services
 local AssaultService = require(Services.AssaultService)
@@ -64,11 +67,8 @@ Players.PlayerAdded:Connect(function(player)
 		task.spawn(LoadoutService.SetupCharacter, player) -- armas según el modo
 		task.spawn(TeamMarkers.SetupCharacter, player, character) -- brazaletes del equipo
 		task.spawn(MatchService.SetupCharacter, player, character) -- en solitario: punto al azar
-		-- Protección breve al reaparecer
-		character:SetAttribute("SpawnProtected", true)
-		task.delay(2, function()
-			character:SetAttribute("SpawnProtected", nil)
-		end)
+		-- Protección al reaparecer (Modes.Common.spawnProtection): nadie le baja vida
+		HealthService.Protect(character, Modes.Common.spawnProtection)
 	end)
 end)
 
