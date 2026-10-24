@@ -7,6 +7,10 @@
 -- Contra la IA (MatchSettings) todos los jugadores empiezan como sobrevivientes y los zombis
 -- son bots (BotService); un jugador que muere se vuelve zombi igual que siempre.
 --
+-- Ventaja al empezar: los zombis del principio se quedan quietos (y no pueden golpear)
+-- rules.zombieHeadStart segundos, para que los sobrevivientes se alejen y se escondan. Además
+-- aparecen en el punto más lejano de los sobrevivientes (MatchService y BotService).
+--
 -- Cada jugador (y cada bot) tiene el atributo "Side": "Zombie" o "Survivor" (solo durante la partida).
 -- Los del mismo lado no se pueden hacer daño (ver CombatService y ExplosionService).
 -- En ReplicatedStorage, "Survivors" y "Zombies" dicen cuántos hay de cada lado.
@@ -34,6 +38,7 @@ end
 
 local active = false
 local rules: any = nil
+local releaseAt = 0 -- os.clock() en que los zombis del principio pueden moverse
 
 function InfectionService.IsZombie(player: Player): boolean
 	return player:GetAttribute("Side") == "Zombie"
@@ -91,6 +96,21 @@ local function applyZombie(character: Model)
 	bodyColors.LeftLegColor3 = ZOMBIE_SKIN
 	bodyColors.RightLegColor3 = ZOMBIE_SKIN
 	bodyColors.Parent = character
+
+	-- Si todavía no se acaba la ventaja de los sobrevivientes, se queda quieto hasta entonces.
+	-- Se ancla el cuerpo (no camina ni salta) y "Held" le impide golpear
+	local holdFor = releaseAt - os.clock()
+	local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if holdFor > 0 and root then
+		character:SetAttribute("Held", true)
+		root.Anchored = true
+		task.delay(holdFor, function()
+			if character.Parent then
+				root.Anchored = false
+				character:SetAttribute("Held", nil)
+			end
+		end)
+	end
 end
 
 local function infect(player: Player, announce: boolean)
@@ -131,6 +151,8 @@ end
 function InfectionService.Begin(modeRules, botZombies: boolean?)
 	rules = modeRules
 	active = true
+	local headStart = rules.zombieHeadStart or 0
+	releaseAt = os.clock() + headStart
 	local players = Players:GetPlayers()
 	for _, player in players do
 		player:SetAttribute("Side", "Survivor")
@@ -138,7 +160,7 @@ function InfectionService.Begin(modeRules, botZombies: boolean?)
 	if botZombies then
 		updateCounts()
 		killFeed:FireAllClients({
-			message = "¡Empieza la infección! Sobrevive a los zombis",
+			message = `¡Empieza la infección! Los zombis salen en {headStart} s: ¡corre!`,
 			color = ZOMBIE_TEXT,
 		})
 		return
@@ -155,9 +177,10 @@ function InfectionService.Begin(modeRules, botZombies: boolean?)
 	local _, zombies = updateCounts()
 	killFeed:FireAllClients({
 		message = string.format(
-			"¡Empieza la infección! %d %s",
+			"¡Empieza la infección! %d %s · salen en %d s: ¡corre!",
 			zombies,
-			if zombies == 1 then "zombi" else "zombis"
+			if zombies == 1 then "zombi" else "zombis",
+			headStart
 		),
 		color = ZOMBIE_TEXT,
 	})
@@ -165,6 +188,7 @@ end
 
 function InfectionService.Stop()
 	active = false
+	releaseAt = 0
 	for _, player in Players:GetPlayers() do
 		player:SetAttribute("Side", nil)
 	end

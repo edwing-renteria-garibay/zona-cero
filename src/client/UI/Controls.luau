@@ -139,7 +139,7 @@ function Controls.Start()
 	-- Botón para móvil (en PC y control se usa la tecla)
 	local toggle = Instance.new("TextButton")
 	toggle.Size = UDim2.fromOffset(110, 30)
-	toggle.Position = UDim2.new(0, 16, 0.4, 132)
+	toggle.Position = UDim2.new(0, 16, 0.4, 182)
 	toggle.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 	toggle.BackgroundTransparency = 0.2
 	toggle.Font = Enum.Font.GothamBold
@@ -159,7 +159,7 @@ function Controls.Start()
 		device = newDevice
 		fill(if device == "touch" then TOUCH elseif device == "gamepad" then GAMEPAD else KEYBOARD)
 		toggle.Visible = device == "touch"
-		panel.Position = UDim2.new(0, 16, 0.4, if device == "touch" then 170 else 132)
+		panel.Position = UDim2.new(0, 16, 0.4, if device == "touch" then 220 else 182)
 	end
 	show(device)
 	panel.Visible = device == "keyboard"

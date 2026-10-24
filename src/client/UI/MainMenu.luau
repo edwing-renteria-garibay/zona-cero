@@ -250,17 +250,19 @@ local function inviteFriends()
 	pcall(SocialService.PromptGameInvite, SocialService, player, options)
 end
 
--- Los botones de la izquierda: "Menú (M)" en una partida rápida; "Invitar amigos" y
--- "Salir a partida rápida" en una partida contra la IA o privada
+-- Los botones de la izquierda: "Menú (M)" en una partida rápida; "Iniciar partida" (solo el
+-- anfitrión, antes de la primera), "Invitar amigos" y "Salir a partida rápida" en una
+-- partida contra la IA o privada
 local function buildSideButtons(gui: ScreenGui, kind: string)
 	local holder = Instance.new("Frame")
 	holder.BackgroundTransparency = 1
 	-- Debajo del botón de la tienda (centrado en 0.4 de la altura y de 36 de alto)
 	holder.AnchorPoint = Vector2.new(0, 0)
 	holder.Position = UDim2.new(0, 16, 0.4, 26)
-	holder.Size = UDim2.fromOffset(230, 120)
+	holder.Size = UDim2.fromOffset(230, 160)
 	holder.Parent = gui
 	local list = Instance.new("UIListLayout")
+	list.SortOrder = Enum.SortOrder.LayoutOrder
 	list.Padding = UDim.new(0, 8)
 	list.Parent = holder
 	local size = UDim2.fromOffset(230, 36)
@@ -295,13 +297,31 @@ local function buildSideButtons(gui: ScreenGui, kind: string)
 	if kind == "ai" and difficulty then
 		label.Text ..= " · " .. difficulty.name
 	end
+	label.LayoutOrder = 1
 	label.Parent = holder
+	-- Solo el anfitrión, y solo antes de la primera partida: la sala espera a que lo apriete
+	-- (así alcanzan a llegar los amigos invitados)
+	local start = newButton(holder, "Iniciar partida", size, AI_COLOR)
+	start.TextSize = 14
+	start.LayoutOrder = 2
+	start.Activated:Connect(function()
+		requestMatch:FireServer("start")
+	end)
+	local function updateStart()
+		start.Visible = ReplicatedStorage:GetAttribute("WaitingForHost") == true
+			and ReplicatedStorage:GetAttribute("HostUserId") == player.UserId
+	end
+	ReplicatedStorage:GetAttributeChangedSignal("WaitingForHost"):Connect(updateStart)
+	ReplicatedStorage:GetAttributeChangedSignal("HostUserId"):Connect(updateStart)
+	updateStart()
 	local invite = newButton(holder, "Invitar amigos", size, PRIVATE_COLOR)
 	invite.TextSize = 14
+	invite.LayoutOrder = 3
 	invite.Activated:Connect(inviteFriends)
 	local leave = newButton(holder, "Salir a partida rápida", size, BACKGROUND)
 	leave.BackgroundTransparency = 0.2
 	leave.TextSize = 14
+	leave.LayoutOrder = 4
 	leave.Activated:Connect(function()
 		leave.Text = "Saliendo..."
 		requestMatch:FireServer("leave")

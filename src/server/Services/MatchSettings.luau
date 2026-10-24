@@ -13,6 +13,10 @@
 -- Los amigos se invitan con la ventana de invitaciones de Roblox: la invitación lleva el
 -- código, y el servidor público donde caen los manda a la partida (ver onPlayerAdded).
 --
+-- En una sala reservada (contra la IA o privada) la primera partida no empieza sola: espera a
+-- que el anfitrión (el primero que llegó) apriete "Iniciar partida", así los amigos invitados
+-- alcanzan a entrar. Las siguientes empiezan solas, como siempre.
+--
 -- Nota: en Studio no existen los servidores reservados ni el teletransporte; solo se pueden
 -- probar en el juego publicado.
 
@@ -37,6 +41,9 @@ local MatchSettings = {
 	map = nil :: string?, -- el mapa elegido (nil = al azar)
 	difficulty = nil :: string?, -- contra la IA: la dificultad elegida (nil = Bots.defaultDifficulty)
 }
+
+local host: Player? = nil -- en una sala reservada: quien puede iniciar la partida
+local started = false -- ¿el anfitrión ya inició la primera partida?
 
 local lastRequest: { [Player]: number } = {}
 
@@ -68,6 +75,24 @@ function MatchSettings.VsAI(): boolean
 	return MatchSettings.kind == "ai"
 end
 
+-- ¿Hay que esperar a que el anfitrión inicie? (MatchService no empieza mientras sea true)
+function MatchSettings.WaitingForHost(): boolean
+	return MatchSettings.kind ~= "public" and not started
+end
+
+-- El anfitrión apretó "Iniciar partida": esta empieza y las siguientes ya no esperan
+function MatchSettings.MarkStarted()
+	if MatchSettings.kind ~= "public" then
+		started = true
+		ReplicatedStorage:SetAttribute("WaitingForHost", nil)
+	end
+end
+
+local function setHost(player: Player?)
+	host = player
+	ReplicatedStorage:SetAttribute("HostUserId", if player then player.UserId else nil)
+end
+
 -- Lo publica en ReplicatedStorage para que el menú del cliente sepa dónde está.
 -- "loading": servidor reservado que todavía no recibe los datos de la partida
 local function publish(inviteCode: string?, loading: boolean?)
@@ -96,6 +121,7 @@ local function configure(data: any)
 		MapService.SetForced(data.map)
 	end
 	publish(if type(data.code) == "string" then data.code else nil)
+	ReplicatedStorage:SetAttribute("WaitingForHost", true)
 	print("[Partida]", data.kind, data.mode, data.map or "mapa al azar")
 end
 
@@ -164,6 +190,9 @@ end
 local function onPlayerAdded(player: Player)
 	local joinData = player:GetJoinData()
 	if isReserved() then
+		if not host then
+			setHost(player) -- el primero que llega es el anfitrión
+		end
 		if ReplicatedStorage:GetAttribute("ServerKind") == "loading" then
 			configure(joinData.TeleportData)
 			if MatchSettings.kind == "public" then
@@ -193,6 +222,11 @@ function MatchSettings.Start()
 	requestMatch.OnServerEvent:Connect(function(player, action, ...)
 		if action == "leave" then
 			onLeave(player)
+		elseif action == "start" then
+			-- Solo el anfitrión, y solo mientras se espera
+			if player == host and MatchSettings.WaitingForHost() then
+				MatchSettings.MarkStarted()
+			end
 		else
 			onRequest(player, action, ...)
 		end
@@ -203,6 +237,15 @@ function MatchSettings.Start()
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		lastRequest[player] = nil
+		-- Si se va el anfitrión, el siguiente que quede toma su lugar
+		if player == host then
+			local others = Players:GetPlayers()
+			local index = table.find(others, player)
+			if index then
+				table.remove(others, index)
+			end
+			setHost(others[1])
+		end
 	end)
 end
 

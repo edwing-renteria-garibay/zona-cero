@@ -222,11 +222,17 @@ function Scoreboard.Start()
 		elseif phase == "Waiting" then
 			timer.Text = "--:--"
 			goal.Text = ""
-			banner.Text = string.format(
-				"Esperando jugadores (%d/%d)",
-				#Players:GetPlayers(),
-				ReplicatedStorage:GetAttribute("MatchPlayersNeeded") or 2
-			)
+			local players = #Players:GetPlayers()
+			local needed = ReplicatedStorage:GetAttribute("MatchPlayersNeeded") or 2
+			if players >= needed and ReplicatedStorage:GetAttribute("WaitingForHost") then
+				-- Sala contra la IA o privada: se espera a que el anfitrión la inicie
+				banner.Text = if ReplicatedStorage:GetAttribute("HostUserId")
+						== Players.LocalPlayer.UserId
+					then `Invita a tus amigos y aprieta "Iniciar partida" ({players} en la sala)`
+					else `Esperando a que el anfitrión inicie la partida ({players} en la sala)`
+			else
+				banner.Text = string.format("Esperando jugadores (%d/%d)", players, needed)
+			end
 		else
 			banner.Text = "" -- en "Ended" manda la pantalla de resultados
 		end

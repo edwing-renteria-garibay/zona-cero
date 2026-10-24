@@ -106,6 +106,10 @@ local function pickSpawn(card: Instance): SpawnLocation?
 			farthest, farthestDistance = spawn, nearest
 		end
 	end
+	-- Un zombi (Infección) siempre aparece lo más lejos posible de los sobrevivientes
+	if card:GetAttribute("Side") == "Zombie" then
+		return farthest
+	end
 	return if #safe > 0 then safe[math.random(#safe)] else farthest
 end
 
@@ -455,6 +459,11 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 
 	while alive() do
 		local now = os.clock()
+		-- Zombi al empezar la Infección: espera quieto mientras los sobrevivientes se esconden
+		if character:GetAttribute("Held") then
+			task.wait(THINK_EVERY)
+			continue
+		end
 		if humanoid.Sit then
 			humanoid.Sit = false
 			humanoid.Jump = true
