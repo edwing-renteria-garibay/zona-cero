@@ -131,7 +131,7 @@ Shop.weaponSkins = {
 Shop.creditPacks = {
 	{ credits = 500, robux = 49, productId = 3721754389 }, -- Paquete básico
 	{ credits = 1200, robux = 99, productId = 3721754556 }, -- Paquete intermedio
-	{ credits = 3000, robux = 199, productId = 0 },
+	{ credits = 3000, robux = 199, productId = 3721754667 }, -- Paquete grande
 }
 
 -- Busca un objeto de la tienda por su id ("Helmet.Elite", "Skin.Oro"...).
