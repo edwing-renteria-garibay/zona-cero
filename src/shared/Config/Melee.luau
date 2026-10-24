@@ -11,6 +11,7 @@ local Melee = {
 	range = 8,
 	cooldown = 0.8,
 	aimCone = 0.4,
+	sound = "Machete", -- el golpe normal también es con el machete del cinto
 }
 
 -- Armas de golpe: herramientas que no disparan (su forma está en Shared/WeaponModels).
@@ -25,6 +26,7 @@ Melee.weapons = {
 		range = 7,
 		cooldown = 0.7,
 		knockback = 0,
+		sound = "Machete",
 	},
 	RubberChicken = {
 		name = "Pollo de hule",

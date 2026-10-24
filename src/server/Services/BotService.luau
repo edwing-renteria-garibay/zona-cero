@@ -419,7 +419,9 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 		if toShield + toHealth <= 0 then
 			return
 		end
-		ExplosionService.PlaySoundAt(meleeStats.sound and Sounds.melee[meleeStats.sound], targetRoot.Position)
+		-- Con las manos vacías suena el puño; con un arma, el de esa arma (o el machete del cinto)
+		local soundKey = if tool and tool.Parent then meleeStats.sound or "" else "Punch"
+		ExplosionService.PlaySoundAt(Sounds.melee[soundKey], targetRoot.Position)
 		if
 			meleeStats.knockback
 			and meleeStats.knockback > 0
