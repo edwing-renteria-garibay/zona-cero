@@ -7,6 +7,7 @@
 
 local RunService = game:GetService("RunService")
 
+local Combatants = require(script.Parent.Combatants)
 local Rules = require(script.Parent.Rules)
 
 local MAX_SHIELD = 100
@@ -16,18 +17,19 @@ local REGEN_RATE = MAX_SHIELD / REGEN_TIME -- puntos de escudo por segundo
 
 local HealthService = {}
 
--- Se dispara cuando alguien muere: (victima: Player, asesino: Player?, causa: string?, cabeza: boolean)
+-- Se dispara cuando alguien muere: (victima, asesino?, causa: string?, cabeza: boolean)
+-- victima y asesino son un Player o el carnet de un bot (ver Combatants)
 -- causa es con qué fue el último golpe: el nombre del arma, "Turret", "Melee", "Backstab",
 -- "rocket", "grenade" o "jeep". cabeza es true si ese golpe fue un tiro a la cabeza.
 local killedEvent = Instance.new("BindableEvent")
 HealthService.Killed = killedEvent.Event
 
 local lastHit: { [Humanoid]: number } = {}
-local lastAttacker: { [Humanoid]: Player? } = {}
+local lastAttacker: { [Humanoid]: Combatants.Combatant? } = {}
 local lastCause: { [Humanoid]: string? } = {}
 local lastHeadshot: { [Humanoid]: boolean } = {}
 
-function HealthService.SetupCharacter(player: Player, character: Model)
+function HealthService.SetupCharacter(player: Combatants.Combatant, character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
 	humanoid.MaxHealth = 100
 	humanoid.Health = 100
@@ -55,7 +57,7 @@ end
 function HealthService.Damage(
 	humanoid: Humanoid,
 	amount: number,
-	attacker: Player?,
+	attacker: Combatants.Combatant?, -- un jugador o un bot
 	cause: string?,
 	headshot: boolean?
 ): (number, number)

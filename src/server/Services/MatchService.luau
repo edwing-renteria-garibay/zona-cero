@@ -3,6 +3,7 @@
 -- primer jugador en llegar a las bajas), Captura la bandera (puntos por capturas), Rey de la
 -- colina (puntos por segundo en la colina), Infección (zombis contra sobrevivientes) y Asalto
 -- (puntos por bomba detonada).
+-- Si no hay suficientes jugadores, la partida se rellena con bots (BotService, Config/Bots).
 --
 -- El estado de la partida se guarda en atributos de ReplicatedStorage para que la pantalla
 -- de cada jugador lo lea (también quien entra a mitad de partida):
@@ -21,6 +22,8 @@ local Teams = game:GetService("Teams")
 local Maps = require(ReplicatedStorage.Shared.Config.Maps)
 local Modes = require(ReplicatedStorage.Shared.Config.Modes)
 local AssaultService = require(script.Parent.AssaultService)
+local BotService = require(script.Parent.BotService)
+local Combatants = require(script.Parent.Combatants)
 local FlagService = require(script.Parent.FlagService)
 local HealthService = require(script.Parent.HealthService)
 local HillService = require(script.Parent.HillService)
@@ -53,8 +56,9 @@ local function setPhase(phase: string)
 	ReplicatedStorage:SetAttribute("MatchPhase", phase)
 end
 
--- Los contadores "Bajas" y "Muertes" que se ven en la lista de jugadores
-local function getStat(player: Player, name: string): IntValue?
+-- Los contadores "Bajas" y "Muertes" que se ven en la lista de jugadores (los bots tienen
+-- los suyos en su carnet, ver Combatants)
+local function getStat(player: Instance, name: string): IntValue?
 	local leaderstats = player:FindFirstChild("leaderstats")
 	return leaderstats and leaderstats:FindFirstChild(name) :: IntValue?
 end
@@ -68,7 +72,7 @@ local function resetScores()
 	for _, team in Teams:GetTeams() do
 		setScore(team, 0)
 	end
-	for _, player in Players:GetPlayers() do
+	for _, player in Combatants.All() do
 		for _, name in { "Bajas", "Muertes" } do
 			local stat = getStat(player, name)
 			if stat then
@@ -92,11 +96,11 @@ local function mapSpawns(): { SpawnLocation }
 	return spawns
 end
 
--- El equipo con menos jugadores
+-- El equipo con menos jugadores (contando bots)
 local function smallestTeam(): Team?
 	local smallest, count = nil, math.huge
 	for _, team in Teams:GetTeams() do
-		local players = #team:GetPlayers()
+		local players = Combatants.CountInTeam(team)
 		if players < count then
 			smallest, count = team, players
 		end
@@ -132,8 +136,8 @@ end
 -- Si todos tienen a alguien cerca, el que esté más lejos de todos.
 local function pickSoloSpawn(player: Player): SpawnLocation?
 	local enemies = {}
-	for _, other in Players:GetPlayers() do
-		local character = other.Character
+	for _, other in Combatants.All() do -- jugadores y bots
+		local character = Combatants.Character(other)
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		if other ~= player and character and humanoid and humanoid.Health > 0 then
 			table.insert(enemies, character:GetPivot().Position)
@@ -156,11 +160,12 @@ local function pickSoloSpawn(player: Player): SpawnLocation?
 	return if #safe > 0 then safe[math.random(#safe)] else farthest
 end
 
-local function teamColor(player: Player?): Color3
-	return if player and player.Team then player.TeamColor.Color else Color3.new(1, 1, 1)
+local function teamColor(player: Instance?): Color3
+	return Combatants.ColorOf(player)
 end
 
-HealthService.Killed:Connect(function(victim: Player, killer: Player?, cause: string?, headshot: boolean)
+-- victim y killer: un Player o el carnet de un bot
+HealthService.Killed:Connect(function(victim: Instance, killer: Instance?, cause: string?, headshot: boolean)
 	-- Registro de bajas: todos ven "quién eliminó a quién y con qué"
 	killFeed:FireAllClients({
 		killer = if killer and killer ~= victim then killer.Name else nil,
@@ -182,22 +187,23 @@ HealthService.Killed:Connect(function(victim: Player, killer: Player?, cause: st
 	if not killer or killer == victim then
 		return
 	end
-	if currentRules.teams and killer.Team == victim.Team then
+	local team = Combatants.TeamOf(killer)
+	if currentRules.teams and team == Combatants.TeamOf(victim) then
 		return
 	end
 	local kills = getStat(killer, "Bajas")
 	if kills then
 		kills.Value += 1
 	end
-	local team = killer.Team
 	if team and currentRules.teams and currentRules.scoreBy == "kills" then
 		setScore(team, scores[team] + 1)
 	end
 end)
 
--- El modo de esta partida: el elegido en Config/Modes o uno al azar
+-- El modo de esta partida: el elegido en Config/Modes o uno al azar.
+-- withBots: no hay jugadores suficientes, así que solo sirve un modo que los bots sepan jugar
 local nextTestMode = 0 -- modo de prueba: cuál de randomPool sigue
-local function chooseMode(): string
+local function chooseMode(withBots: boolean): string
 	local name = Modes.selected
 	if name == "Aleatorio" then
 		local testing = Modes.Testing
@@ -220,6 +226,15 @@ local function chooseMode(): string
 		warn("[Match] El mapa no tiene bases de bandera - juego TeamSlayer")
 		name = "TeamSlayer"
 	end
+	if withBots and not Modes[name].bots then
+		local pool = {}
+		for _, candidate in Modes.randomPool do
+			if Modes[candidate] and Modes[candidate].bots then
+				table.insert(pool, candidate)
+			end
+		end
+		name = if #pool > 0 then pool[math.random(#pool)] else "TeamSlayer"
+	end
 	return name
 end
 
@@ -233,7 +248,7 @@ local SURVIVOR_BLUE = Color3.fromRGB(120, 180, 255)
 -- Tabla de resultados: jugadores ordenados por bajas (y con menos muertes en empate)
 local function buildResults(rules, winner: Winner?)
 	local players = {}
-	for _, player in Players:GetPlayers() do
+	for _, player in Combatants.All() do -- jugadores y bots
 		local kills = getStat(player, "Bajas")
 		local deaths = getStat(player, "Muertes")
 		table.insert(players, {
@@ -309,7 +324,7 @@ local function winner(rules, timeUp: boolean): Winner?
 	local goal = if timeUp then 1 else rules.scoreToWin
 	if not rules.teams then
 		local best, bestKills, tied = nil, -1, false
-		for _, player in Players:GetPlayers() do
+		for _, player in Combatants.All() do -- jugadores y bots
 			local stat = getStat(player, "Bajas")
 			local kills = if stat then stat.Value else 0
 			if kills > bestKills then
@@ -358,16 +373,23 @@ function MatchService.Run(changeMap: () -> ())
 	local common = Modes.Common
 	local firstMatch = true
 
-	-- Quien entra a mitad de partida va a un equipo, o a ninguno en solitario
+	-- Quien entra a mitad de partida va a un equipo, o a ninguno en solitario, y un bot le
+	-- deja su lugar. Si alguien se va, un bot lo reemplaza.
 	Players.PlayerAdded:Connect(function(player)
 		assignTeam(player, currentRules)
+		BotService.Fill()
+	end)
+	Players.PlayerRemoving:Connect(function()
+		task.defer(BotService.Fill) -- cuando ya se fue de la lista
 	end)
 
-	ReplicatedStorage:SetAttribute("MatchPlayersNeeded", common.minPlayers)
+	-- Con bots basta un jugador para empezar
+	local playersNeeded = if BotService.Enabled() then 1 else common.minPlayers
+	ReplicatedStorage:SetAttribute("MatchPlayersNeeded", playersNeeded)
 	while true do
 		setPhase("Waiting")
 		broadcast("Waiting")
-		while #Players:GetPlayers() < common.minPlayers do
+		while #Players:GetPlayers() < playersNeeded do
 			task.wait(1)
 		end
 
@@ -383,10 +405,11 @@ function MatchService.Run(changeMap: () -> ())
 		end
 		firstMatch = false
 
-		local modeName = chooseMode()
+		local humans = #Players:GetPlayers()
+		local modeName = chooseMode(BotService.Enabled() and humans < common.minPlayers)
 		-- Copia de las reglas para poder ajustar la meta sin cambiar Config/Modes
 		local rules = table.clone(Modes[modeName])
-		rules.scoreToWin = scoreGoal(rules, #Players:GetPlayers())
+		rules.scoreToWin = scoreGoal(rules, humans + BotService.CountFor(rules))
 		applyTesting(rules)
 		currentRules = rules
 		Rules.current = rules
@@ -398,6 +421,7 @@ function MatchService.Run(changeMap: () -> ())
 			rules.vehicles ~= false or (mapKey ~= nil and Maps.alwaysVehicles[mapKey] == true)
 		)
 		resetScores()
+		BotService.Begin(rules) -- rellena con bots si faltan jugadores (y el modo los admite)
 		running = true
 		ReplicatedStorage:SetAttribute("MatchMode", modeName)
 		ReplicatedStorage:SetAttribute("MatchScoreToWin", rules.scoreToWin)
@@ -458,6 +482,7 @@ function MatchService.Run(changeMap: () -> ())
 		AssaultService.Stop()
 		setPhase("Ended")
 		broadcast("Ended", buildResults(rules, winningSide))
+		BotService.Stop() -- después de los resultados: ahí salen sus bajas
 		task.wait(common.resultsTime)
 	end
 end

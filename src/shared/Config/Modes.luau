@@ -5,6 +5,7 @@
 -- (ver scaleScore en Common)
 -- scoreBy: con qué suma puntos un equipo ("kills" = bajas, "captures" = banderas capturadas,
 -- "hill" = segundos solo en la colina)
+-- bots: true = los bots saben jugar este modo (Config/Bots); sin eso, no entran bots
 local Modes = {
 	TeamSlayer = {
 		name = "Asesino por equipos",
@@ -14,6 +15,7 @@ local Modes = {
 		teams = true,
 		vehicles = true,
 		scoreBy = "kills",
+		bots = true, -- con pocos jugadores se rellena con bots (Config/Bots)
 	},
 	-- SWAT: sin escudos, sin granadas, sin objetos en el mapa ni jeeps; solo rifle y pistola,
 	-- y un tiro a la cabeza mata
@@ -25,6 +27,7 @@ local Modes = {
 		teams = true,
 		vehicles = false,
 		scoreBy = "kills",
+		bots = true, -- con pocos jugadores se rellena con bots (Config/Bots)
 		loadout = { "AssaultRifle", "Pistol" },
 		shields = false,
 		grenades = 0,
@@ -57,6 +60,7 @@ local Modes = {
 		teams = true,
 		vehicles = false,
 		scoreBy = "kills",
+		bots = true, -- con pocos jugadores se rellena con bots (Config/Bots)
 		loadout = {},
 		testingKeepsLoadout = true, -- el modo de prueba no le da las 9 armas
 		shields = false,
@@ -72,6 +76,7 @@ local Modes = {
 		teams = true,
 		vehicles = false,
 		scoreBy = "kills",
+		bots = true, -- con pocos jugadores se rellena con bots (Config/Bots)
 		loadout = { "Machete", "RubberChicken" },
 		testingKeepsLoadout = true,
 		shields = false,
@@ -87,6 +92,7 @@ local Modes = {
 		teams = true,
 		vehicles = false,
 		scoreBy = "kills",
+		bots = true, -- con pocos jugadores se rellena con bots (Config/Bots)
 		loadout = {},
 		testingKeepsLoadout = true,
 		shields = false,
@@ -104,6 +110,7 @@ local Modes = {
 		teams = false,
 		vehicles = false,
 		scoreBy = "kills",
+		bots = true, -- con pocos jugadores se rellena con bots (Config/Bots)
 	},
 	CaptureTheFlag = {
 		name = "Captura la bandera",
@@ -217,7 +224,7 @@ Modes.Common = {
 	maxWeapons = 2,
 	respawnDelay = 5, -- segundos muerto antes de reaparecer
 	spawnProtection = 2, -- segundos de invulnerabilidad al reaparecer
-	minPlayers = 2, -- jugadores necesarios para empezar
+	minPlayers = 2, -- jugadores necesarios para empezar (con Config/Bots activado basta 1)
 	countdown = 10, -- cuenta regresiva antes de la partida
 	resultsTime = 12, -- segundos que se muestra la pantalla de resultados
 	-- Meta según jugadores (solo modos con minScoreToWin): con lowPlayers o menos la meta es

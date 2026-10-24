@@ -47,19 +47,24 @@ local function makeTeamBox(parent: Instance, order: number): (Frame, TextLabel)
 	return box, score
 end
 
-local function killsOf(someone: Player): number
+local function killsOf(someone: Instance): number
 	local leaderstats = someone:FindFirstChild("leaderstats")
 	local kills = leaderstats and leaderstats:FindFirstChild("Bajas")
 	return if kills and kills:IsA("IntValue") then kills.Value else 0
 end
 
--- Las bajas del que va ganando, sin contarte a ti
+-- Las bajas del que va ganando (jugador o bot), sin contarte a ti
 local function leaderKills(): number
 	local best = 0
 	for _, other in Players:GetPlayers() do
 		if other ~= player then
 			best = math.max(best, killsOf(other))
 		end
+	end
+	-- Los bots guardan sus bajas en ReplicatedStorage.Bots (ver Combatants en el servidor)
+	local bots = ReplicatedStorage:FindFirstChild("Bots")
+	for _, bot in if bots then bots:GetChildren() else {} do
+		best = math.max(best, killsOf(bot))
 	end
 	return best
 end
