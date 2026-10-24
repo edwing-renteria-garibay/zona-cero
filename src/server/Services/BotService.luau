@@ -24,6 +24,7 @@ local Melee = require(ReplicatedStorage.Shared.Config.Melee)
 local Modes = require(ReplicatedStorage.Shared.Config.Modes)
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
+local AimPose = require(script.Parent.AimPose)
 local Combatants = require(script.Parent.Combatants)
 local ExplosionService = require(script.Parent.ExplosionService)
 local HealthService = require(script.Parent.HealthService)
@@ -382,6 +383,13 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 
 	local function face(position: Vector3)
 		local flat = Vector3.new(position.X, root.Position.Y, position.Z)
+		-- Que inclinen el arma hacia arriba o abajo, como los jugadores (ver AimPose)
+		local offset = position - head.Position
+		local pitch = math.round(math.deg(math.atan2(offset.Y, Vector3.new(offset.X, 0, offset.Z).Magnitude)))
+		pitch = math.clamp(pitch, -AimPose.MAX_PITCH, AimPose.MAX_PITCH)
+		if character:GetAttribute("AimPitch") ~= pitch then
+			character:SetAttribute("AimPitch", pitch)
+		end
 		if (flat - root.Position).Magnitude > 0.1 then
 			align.CFrame = CFrame.lookAt(root.Position, flat)
 			align.Enabled = true
@@ -390,6 +398,7 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 	end
 
 	local function stopFacing()
+		character:SetAttribute("AimPitch", nil)
 		align.Enabled = false
 		humanoid.AutoRotate = true
 	end

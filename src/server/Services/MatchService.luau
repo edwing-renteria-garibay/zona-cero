@@ -627,9 +627,18 @@ function MatchService.Run(changeMap: () -> ())
 
 		local startTime = os.clock()
 		local winningSide = nil
+		MatchSettings.TakeChange() -- un cambio de antes de empezar ya se aplicó en esta partida
 		while os.clock() - startTime < rules.timeLimit do
 			winningSide = winner(rules, false)
 			if winningSide then
+				break
+			end
+			-- El anfitrión de la sala cambió el modo: se acaba aquí (gana quien vaya arriba)
+			if MatchSettings.TakeChange() then
+				killFeed:FireAllClients({
+					message = "El anfitrión cambió el modo de juego",
+					color = Color3.new(1, 1, 1),
+				})
 				break
 			end
 			task.wait(0.5)

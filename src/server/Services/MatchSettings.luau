@@ -16,6 +16,8 @@
 -- En una sala reservada (contra la IA o privada) la primera partida no empieza sola: espera a
 -- que el anfitrión (el primero que llegó) apriete "Iniciar partida", así los amigos invitados
 -- alcanzan a entrar. Las siguientes empiezan solas, como siempre.
+-- El anfitrión también puede cambiar el modo (y el mapa o la dificultad) sin salir de la
+-- sala: la partida en curso termina y la sala vuelve a esperar a que apriete "Iniciar".
 --
 -- Nota: en Studio no existen los servidores reservados ni el teletransporte; solo se pueden
 -- probar en el juego publicado.
@@ -44,6 +46,7 @@ local MatchSettings = {
 
 local host: Player? = nil -- en una sala reservada: quien puede iniciar la partida
 local started = false -- ¿el anfitrión ya inició la primera partida?
+local changed = false -- el anfitrión cambió el modo: la partida en curso debe terminar
 
 local lastRequest: { [Player]: number } = {}
 
@@ -86,6 +89,13 @@ function MatchSettings.MarkStarted()
 		started = true
 		ReplicatedStorage:SetAttribute("WaitingForHost", nil)
 	end
+end
+
+-- ¿El anfitrión cambió el modo? (MatchService termina la partida en curso). Lo "consume"
+function MatchSettings.TakeChange(): boolean
+	local was = changed
+	changed = false
+	return was
 end
 
 local function setHost(player: Player?)
@@ -178,6 +188,39 @@ local function onRequest(player: Player, kind: any, modeName: any, mapName: any,
 	end
 end
 
+-- El anfitrión cambia lo que se juega en esta sala: ("change", modo, mapa, dificultad)
+local function onChange(player: Player, modeName: any, mapName: any, difficulty: any)
+	if player ~= host or MatchSettings.kind == "public" then
+		return
+	end
+	local now = os.clock()
+	if now - (lastRequest[player] or 0) < REQUEST_COOLDOWN then
+		requestMatch:FireClient(player, "error", "Espera unos segundos e intenta otra vez.")
+		return
+	end
+	lastRequest[player] = now
+	local kind = MatchSettings.kind
+	if not validMode(modeName) or (kind == "ai" and not MatchSettings.CanPlayVsAI(modeName)) then
+		requestMatch:FireClient(player, "error", "Ese modo no se puede elegir.")
+		return
+	end
+	MatchSettings.mode = modeName
+	if kind == "ai" and type(difficulty) == "string" and Bots.difficulties[difficulty] then
+		MatchSettings.difficulty = difficulty
+	end
+	if kind == "private" then
+		MatchSettings.map = if validMap(mapName) then mapName else nil
+		MapService.SetForced(MatchSettings.map)
+	end
+	publish(ReplicatedStorage:GetAttribute("InviteCode") :: string?)
+	-- Se acaba la partida en curso (si hay) y se espera otra vez el botón "Iniciar partida"
+	changed = true
+	started = false
+	ReplicatedStorage:SetAttribute("WaitingForHost", true)
+	requestMatch:FireClient(player, "changed")
+	print("[Partida] El anfitrión cambió a", modeName, MatchSettings.map or "mapa al azar")
+end
+
 -- Volver a una partida rápida (un servidor público)
 local function onLeave(player: Player)
 	local ok, err = pcall(TeleportService.TeleportAsync, TeleportService, game.PlaceId, { player })
@@ -222,6 +265,8 @@ function MatchSettings.Start()
 	requestMatch.OnServerEvent:Connect(function(player, action, ...)
 		if action == "leave" then
 			onLeave(player)
+		elseif action == "change" then
+			onChange(player, ...)
 		elseif action == "start" then
 			-- Solo el anfitrión, y solo mientras se espera
 			if player == host and MatchSettings.WaitingForHost() then

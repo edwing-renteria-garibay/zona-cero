@@ -2,6 +2,7 @@
 -- los avisos de daño (números, barras sobre la cabeza), el marcador, el registro de bajas
 -- la pantalla de resultados, lo que se ve en Infección, la tienda, el menú de partidas y el cuadro de controles.
 
+local AimPose = require(script.Controllers.AimPose)
 local CameraController = require(script.Controllers.CameraController)
 local GrenadeController = require(script.Controllers.GrenadeController)
 local MeleeController = require(script.Controllers.MeleeController)
@@ -23,6 +24,7 @@ local Scoreboard = require(script.UI.Scoreboard)
 local Shop = require(script.UI.Shop)
 
 CameraController.Start()
+AimPose.Start() -- torso y brazos se inclinan hacia la mira
 ViewModel.Start()
 SpecialWeapons.Start()
 WeaponController.Start()
