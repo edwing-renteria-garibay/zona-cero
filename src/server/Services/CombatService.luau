@@ -564,6 +564,10 @@ local function onMelee(player: Player)
 	if not humanoid or not root or humanoid.Health <= 0 or humanoid.SeatPart then
 		return
 	end
+	-- Zombi esperando al principio de la Infección (InfectionService): todavía no golpea
+	if (character :: Model):GetAttribute("Held") then
+		return
+	end
 	local stats = meleeStats(character :: Model)
 	local now = os.clock()
 	if now - (lastMelee[player] or 0) < stats.cooldown * FIRE_RATE_TOLERANCE then

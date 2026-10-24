@@ -2,13 +2,16 @@
 --   Partida rápida   cierra el menú y juegas aquí (modo al azar; si falta gente, hay bots)
 --   Contra la IA     eliges un modo y vas a un servidor solo para ti (y tus amigos) contra bots
 --   Partida privada  eliges modo y mapa, y vas a un servidor para jugar con tus amigos
--- Se vuelve a abrir con el botón "Menú (M)" o la tecla M.
+-- Se vuelve a abrir con el botón "Menú (M)", la tecla M o la cruceta → del control.
 --
 -- En una partida contra la IA o privada, en vez del menú hay dos botones: "Invitar amigos"
--- (la ventana de invitaciones de Roblox) y "Salir a partida rápida".
+-- (la ventana de invitaciones de Roblox) y "Salir a partida rápida". Con control, la cruceta →
+-- entra a esos botones; al apretar uno se sueltan solos para volver a moverte y disparar.
 -- El menú solo pide cosas al servidor (RemoteEvent "RequestMatch"); el que crea la partida y
 -- teletransporta es el servidor (ver MatchSettings).
 
+local ContextActionService = game:GetService("ContextActionService")
+local GuiService = game:GetService("GuiService")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -76,8 +79,36 @@ local function newButton(parent: Instance, text: string, size: UDim2, color: Col
 	return button
 end
 
+-- Con control (PS/Xbox) moverse por los botones "selecciona" uno, y mientras haya uno
+-- seleccionado el stick y los gatillos mueven la selección, no al personaje. Por eso, al
+-- terminar con un botón, hay que soltar la selección
+local function usingGamepad(): boolean
+	return UserInputService:GetLastInputType().Name:sub(1, 7) == "Gamepad"
+end
+
+local function releaseSelection(root: Instance)
+	local selected = GuiService.SelectedObject
+	if selected and (selected == root or selected:IsDescendantOf(root)) then
+		GuiService.SelectedObject = nil
+	end
+end
+
+local function selectFirst(root: Instance)
+	for _, item in root:GetDescendants() do
+		if item:IsA("GuiButton") and item.Visible and item.Selectable then
+			GuiService.SelectedObject = item
+			return
+		end
+	end
+end
+
 local function setOpen(open: boolean)
 	backdrop.Visible = open
+	if open and usingGamepad() then
+		task.defer(selectFirst, backdrop) -- después de que se dibujen los botones nuevos
+	elseif not open then
+		releaseSelection(backdrop)
+	end
 end
 
 local function clearContent()
@@ -104,6 +135,9 @@ local function showGrid(options: { { text: string, color: Color3?, onClick: () -
 				option.onClick()
 			end
 		end)
+	end
+	if backdrop.Visible and usingGamepad() then
+		task.defer(selectFirst, backdrop)
 	end
 end
 
@@ -250,17 +284,19 @@ local function inviteFriends()
 	pcall(SocialService.PromptGameInvite, SocialService, player, options)
 end
 
--- Los botones de la izquierda: "Menú (M)" en una partida rápida; "Invitar amigos" y
--- "Salir a partida rápida" en una partida contra la IA o privada
+-- Los botones de la izquierda: "Menú (M)" en una partida rápida; "Iniciar partida" (solo el
+-- anfitrión, antes de la primera), "Invitar amigos" y "Salir a partida rápida" en una
+-- partida contra la IA o privada
 local function buildSideButtons(gui: ScreenGui, kind: string)
 	local holder = Instance.new("Frame")
 	holder.BackgroundTransparency = 1
 	-- Debajo del botón de la tienda (centrado en 0.4 de la altura y de 36 de alto)
 	holder.AnchorPoint = Vector2.new(0, 0)
 	holder.Position = UDim2.new(0, 16, 0.4, 26)
-	holder.Size = UDim2.fromOffset(230, 120)
+	holder.Size = UDim2.fromOffset(230, 160)
 	holder.Parent = gui
 	local list = Instance.new("UIListLayout")
+	list.SortOrder = Enum.SortOrder.LayoutOrder
 	list.Padding = UDim.new(0, 8)
 	list.Parent = holder
 	local size = UDim2.fromOffset(230, 36)
@@ -268,10 +304,19 @@ local function buildSideButtons(gui: ScreenGui, kind: string)
 		local menuButton = newButton(holder, "Menú (M)", size, BACKGROUND)
 		menuButton.BackgroundTransparency = 0.2
 		menuButton.TextSize = 14
-		menuButton.Activated:Connect(function()
+		local function toggleMenu()
 			showHome()
 			setOpen(not backdrop.Visible)
-		end)
+			releaseSelection(holder)
+		end
+		menuButton.Activated:Connect(toggleMenu)
+		-- Con control: cruceta → abre y cierra el menú
+		ContextActionService:BindAction("MainMenu", function(_name, state)
+			if state == Enum.UserInputState.Begin then
+				toggleMenu()
+			end
+			return Enum.ContextActionResult.Sink
+		end, false, Enum.KeyCode.DPadRight)
 		UserInputService.InputBegan:Connect(function(input, processed)
 			if not processed and input.KeyCode == Enum.KeyCode.M then
 				showHome()
@@ -295,17 +340,57 @@ local function buildSideButtons(gui: ScreenGui, kind: string)
 	if kind == "ai" and difficulty then
 		label.Text ..= " · " .. difficulty.name
 	end
+	label.LayoutOrder = 1
 	label.Parent = holder
+	-- Solo el anfitrión, y solo antes de la primera partida: la sala espera a que lo apriete
+	-- (así alcanzan a llegar los amigos invitados)
+	local start = newButton(holder, "Iniciar partida", size, AI_COLOR)
+	start.TextSize = 14
+	start.LayoutOrder = 2
+	start.Activated:Connect(function()
+		requestMatch:FireServer("start")
+	end)
+	local function updateStart()
+		start.Visible = ReplicatedStorage:GetAttribute("WaitingForHost") == true
+			and ReplicatedStorage:GetAttribute("HostUserId") == player.UserId
+	end
+	ReplicatedStorage:GetAttributeChangedSignal("WaitingForHost"):Connect(updateStart)
+	ReplicatedStorage:GetAttributeChangedSignal("HostUserId"):Connect(updateStart)
+	updateStart()
 	local invite = newButton(holder, "Invitar amigos", size, PRIVATE_COLOR)
 	invite.TextSize = 14
+	invite.LayoutOrder = 3
 	invite.Activated:Connect(inviteFriends)
 	local leave = newButton(holder, "Salir a partida rápida", size, BACKGROUND)
 	leave.BackgroundTransparency = 0.2
 	leave.TextSize = 14
+	leave.LayoutOrder = 4
 	leave.Activated:Connect(function()
 		leave.Text = "Saliendo..."
 		requestMatch:FireServer("leave")
 	end)
+
+	-- Con control: cruceta → entra a estos botones y otra vez → los suelta. Al apretar uno
+	-- (o al cerrar la ventana de invitaciones) se suelta solo, para volver a moverte y disparar
+	for _, button in { start, invite, leave } do
+		button.Activated:Connect(function()
+			releaseSelection(holder)
+		end)
+	end
+	SocialService.GameInvitePromptClosed:Connect(function()
+		releaseSelection(holder)
+	end)
+	ContextActionService:BindAction("SideButtons", function(_name, state)
+		if state == Enum.UserInputState.Begin then
+			local selected = GuiService.SelectedObject
+			if selected and selected:IsDescendantOf(holder) then
+				GuiService.SelectedObject = nil
+			else
+				selectFirst(holder)
+			end
+		end
+		return Enum.ContextActionResult.Sink
+	end, false, Enum.KeyCode.DPadRight)
 end
 
 local function build(kind: string)
@@ -324,6 +409,7 @@ local function build(kind: string)
 	backdrop.Text = ""
 	backdrop.AutoButtonColor = false
 	backdrop.Modal = true
+	backdrop.Selectable = false -- con control, que se seleccionen los botones de adentro
 	backdrop.Visible = false
 	backdrop.Parent = gui
 

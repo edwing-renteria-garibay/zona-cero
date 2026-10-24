@@ -146,13 +146,20 @@ local function applyTeams(rules)
 end
 
 -- En solitario: un punto de aparición al azar, de los que no tienen enemigos cerca.
--- Si todos tienen a alguien cerca, el que esté más lejos de todos.
+-- Si todos tienen a alguien cerca, el que esté más lejos de todos. En Infección los enemigos
+-- son los del otro lado, y un zombi aparece siempre en el más lejano.
 local function pickSoloSpawn(player: Player): SpawnLocation?
 	local enemies = {}
 	for _, other in Combatants.All() do -- jugadores y bots
 		local character = Combatants.Character(other)
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-		if other ~= player and character and humanoid and humanoid.Health > 0 then
+		if
+			other ~= player
+			and Combatants.IsEnemy(player, other)
+			and character
+			and humanoid
+			and humanoid.Health > 0
+		then
 			table.insert(enemies, character:GetPivot().Position)
 		end
 	end
@@ -169,6 +176,10 @@ local function pickSoloSpawn(player: Player): SpawnLocation?
 		if nearest > farthestDistance then
 			farthest, farthestDistance = spawn, nearest
 		end
+	end
+	-- Un zombi (Infección) siempre aparece lo más lejos posible de los sobrevivientes
+	if player:GetAttribute("Side") == "Zombie" then
+		return farthest
 	end
 	return if #safe > 0 then safe[math.random(#safe)] else farthest
 end
@@ -526,10 +537,12 @@ function MatchService.Run(changeMap: () -> ())
 		setPhase("Waiting")
 		broadcast("Waiting")
 		ReplicatedStorage:SetAttribute("MatchPlayersNeeded", playersNeeded())
-		while #Players:GetPlayers() < playersNeeded() do
+		-- En una sala contra la IA o privada, además, la primera partida espera a que el
+		-- anfitrión apriete "Iniciar partida" (MatchSettings), para que lleguen los invitados
+		while #Players:GetPlayers() < playersNeeded() or MatchSettings.WaitingForHost() do
 			-- Lo que hace falta puede cambiar cuando llega el primero a una partida privada
 			ReplicatedStorage:SetAttribute("MatchPlayersNeeded", playersNeeded())
-			task.wait(1)
+			task.wait(0.5)
 		end
 
 		setPhase("Countdown")
@@ -579,11 +592,17 @@ function MatchService.Run(changeMap: () -> ())
 			-- Los zombis se eligen antes de aparecer; contra la IA, los zombis son los bots
 			InfectionService.Begin(rules, MatchSettings.VsAI())
 		end
-		-- Bots si faltan jugadores (y el modo los admite), o los rivales en una partida contra la IA
-		BotService.Begin(rules)
-		for _, player in Players:GetPlayers() do
+		-- Primero aparecen los jugadores (en Infección, los sobrevivientes antes que los zombis)
+		-- y después los bots: así los zombis aparecen lejos de los sobrevivientes
+		local players = Players:GetPlayers()
+		table.sort(players, function(a, b)
+			return a:GetAttribute("Side") ~= "Zombie" and b:GetAttribute("Side") == "Zombie"
+		end)
+		for _, player in players do
 			player:LoadCharacter()
 		end
+		-- Bots si faltan jugadores (y el modo los admite), o los rivales en una partida contra la IA
+		BotService.Begin(rules)
 		if rules.scoreBy == "hill" then
 			HillService.Begin(function(team, points)
 				if running then

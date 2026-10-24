@@ -135,8 +135,10 @@ local Modes = {
 		playersPerZombie = 4, -- 1 zombi por cada 4 jugadores...
 		maxZombies = 6, -- ...hasta 6 (siempre al menos 1)
 		zombieSpeed = 26, -- los sobrevivientes caminan a 16
+		zombieJumpHeight = 13, -- saltan más alto que los sobrevivientes (7.2): suben a columnas y cajas
 		zombieHealth = 150, -- vida de un zombi (sin escudo); un sobreviviente tiene 100 + 100 de escudo
 		zombieMeleeDamage = 1000, -- un golpe de zombi mata
+		zombieHeadStart = 5, -- segundos que los zombis del principio esperan quietos
 		botZombies = true, -- se puede jugar contra la IA: los zombis son bots
 	},
 	-- Asalto: una bomba; un equipo ataca y otro defiende, y cada ronda se cambian

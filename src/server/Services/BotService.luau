@@ -106,6 +106,10 @@ local function pickSpawn(card: Instance): SpawnLocation?
 			farthest, farthestDistance = spawn, nearest
 		end
 	end
+	-- Un zombi (Infección) siempre aparece lo más lejos posible de los sobrevivientes
+	if card:GetAttribute("Side") == "Zombie" then
+		return farthest
+	end
 	return if #safe > 0 then safe[math.random(#safe)] else farthest
 end
 
@@ -312,13 +316,42 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 			pathGoal = goal
 			local ok = pcall(path.ComputeAsync, path, root.Position, goal)
 			if not ok or path.Status ~= Enum.PathStatus.Success then
-				-- No hay camino hasta allá (por ejemplo, está en un lugar alto): al menos que
-				-- salga hacia el centro del mapa, que siempre se puede alcanzar
+				-- No hay camino hasta allá (por ejemplo, está arriba de una columna): que vaya
+				-- al piso de abajo, junto a él (de ahí intenta subir de un salto). Si tampoco
+				-- se puede, al menos que salga hacia el centro del mapa
 				if not warnedPath then
 					warnedPath = true
 					warn("[Bot]", card.Name, "no encontró camino:", if ok then path.Status.Name else "error")
 				end
-				ok = pcall(path.ComputeAsync, path, root.Position, Vector3.new(0, root.Position.Y, 0))
+				-- Rayos que solo chocan con el mapa (no con piernas de nadie)
+				local bodies = { character }
+				for _, who in Combatants.All() do
+					local body = Combatants.Character(who)
+					if body then
+						table.insert(bodies, body)
+					end
+				end
+				local mapOnly = RaycastParams.new()
+				mapOnly.FilterType = Enum.RaycastFilterType.Exclude
+				mapOnly.FilterDescendantsInstances = bodies
+				local below = workspace:Raycast(goal, Vector3.new(0, -60, 0), mapOnly)
+				local floorUnder = if below then below.Position else goal
+				local around = Vector3.new(root.Position.X - goal.X, 0, root.Position.Z - goal.Z)
+				local side = if around.Magnitude > 0.1 then around.Unit else Vector3.xAxis
+				for _, reach in { 6, 10 } do
+					-- Desde lo alto, hacia el borde del lado donde está el bot y hasta el piso
+					local edge = floorUnder + side * reach + Vector3.new(0, 2, 0)
+					local ground = workspace:Raycast(edge, Vector3.new(0, -60, 0), mapOnly)
+					if ground and ground.Position.Y < floorUnder.Y - 2 then
+						ok = pcall(path.ComputeAsync, path, root.Position, ground.Position)
+						if ok and path.Status == Enum.PathStatus.Success then
+							break
+						end
+					end
+				end
+				if not ok or path.Status ~= Enum.PathStatus.Success then
+					ok = pcall(path.ComputeAsync, path, root.Position, Vector3.new(0, root.Position.Y, 0))
+				end
 			end
 			if ok and path.Status == Enum.PathStatus.Success then
 				waypoints = path:GetWaypoints()
@@ -455,6 +488,11 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 
 	while alive() do
 		local now = os.clock()
+		-- Zombi al empezar la Infección: espera quieto mientras los sobrevivientes se esconden
+		if character:GetAttribute("Held") then
+			task.wait(THINK_EVERY)
+			continue
+		end
 		if humanoid.Sit then
 			humanoid.Sit = false
 			humanoid.Jump = true
@@ -540,8 +578,16 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 				if melee then
 					-- A golpes: de cerca y al mismo nivel, directo hacia ti; si no, por el camino
 					-- (si estás en otro piso o detrás de algo, caminar derecho lo deja atorado)
+					local flatDistance = Vector3.new(offset.X, 0, offset.Z).Magnitude
 					if distance < 12 and math.abs(offset.Y) < 4 then
 						humanoid:MoveTo(targetRoot.Position)
+					elseif offset.Y >= 4 and flatDistance < 14 then
+						-- Está arriba, a un salto (sobre una caja o columna): corre hacia él y salta.
+						-- Un zombi salta más alto que un sobreviviente (ver InfectionService)
+						humanoid:MoveTo(targetRoot.Position)
+						if humanoid.FloorMaterial ~= Enum.Material.Air then
+							humanoid.Jump = true
+						end
 					else
 						walkTo(targetRoot.Position)
 					end
