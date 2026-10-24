@@ -150,6 +150,11 @@ local function update()
 	if scoped then
 		-- Con zoom el mouse gira más despacio, para poder apuntar fino
 		UserInputService.MouseDeltaSensitivity = camera.FieldOfView / NORMAL_FOV
+		-- La cruz de la mira va justo donde apunta el disparo (Aim.GetScreenPoint). Roblox
+		-- fija el mouse en el centro del área de juego, que queda un poco más abajo que el
+		-- centro de la pantalla por la barra de arriba: centrarla con escala 0.5 la movía.
+		local point = Aim.GetScreenPoint()
+		scopeFrame.Position = UDim2.fromOffset(point.X, point.Y)
 	end
 
 	-- Láser del cañón de iones
