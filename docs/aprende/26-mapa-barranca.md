@@ -1,22 +1,28 @@
 # 26. Mapa: La Barranca (con Terrain)
 
 Un cañón grande y abierto, inspirado en Blood Gulch de Halo, hecho para pelear con jeeps.
-Mide 600 de largo (de base a base) por 260 de ancho. Cada equipo tiene 2 jeeps frente a su
+Mide 800 de largo (de base a base) por 480 de ancho. Cada equipo tiene 6 jeeps frente a su
 base.
 
 ## Cómo está armado
 
 - **El cañón:** piso de pasto, paredes de roca de 100 de alto y peñascos pegados a las
   paredes, para que no se vean rectas.
-- **Las montañas:** 5, de distinta altura: una en cada esquina y una en el centro (la más
-  alta, 40). Los jeeps no las pueden subir y tienen que rodearlas; a pie sí se suben. En la
-  cima de la del centro están el **lanzacohetes** y el **cañón de iones**; en la más alta de
-  las esquinas de cada equipo, el rifle láser. Cada montaña es una loma ancha de pasto con
-  una punta de roca encima (función `mountain`).
-- **El camino:** de cada base a la montaña del centro, y luego un anillo alrededor de ella.
+- **Las montañas:** 4 iguales (35 de alto), en cruz alrededor del centro, con forma de
+  triángulo y la punta hacia el centro: una frente a cada base y una a cada lado (el dibujo
+  de edwing). Entre ellas quedan pasos en diagonal y el centro abierto, así que los jeeps
+  cruzan por en medio en cualquier dirección o rodean las 4 por afuera. Los jeeps no las
+  pueden subir; a pie sí. Cada una es una montaña redonda con una loma en cada esquina del
+  triángulo (función `triangleMountain`). En la cima de las de los lados están el
+  **lanzacohetes** y el **cañón de iones**; en la de frente a cada base, el rifle láser.
+- **Los caminos:** un anillo de tierra alrededor de las 4 montañas, una X por los pasos
+  del centro y uno de cada base al anillo.
 - **Las bases:** un búnker de metal con una puerta al centro de cada lado y azotea. A la
   azotea se sube por una rampa por detrás; ahí está el francotirador. Adentro están la
   bandera (en una esquina del fondo) y la escopeta.
+
+Para cambiar el tamaño o la forma, mueve los números de arriba de `Barranca.luau`:
+`HALF_LENGTH`, `HALF_WIDTH`, `MOUNTAIN_DISTANCE`, `TRIANGLE_SIDE`, `MOUNTAIN_HEIGHT` y `RING`.
 
 ## Terrain: el terreno de Roblox
 
