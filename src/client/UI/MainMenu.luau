@@ -255,8 +255,9 @@ end
 local function buildSideButtons(gui: ScreenGui, kind: string)
 	local holder = Instance.new("Frame")
 	holder.BackgroundTransparency = 1
-	holder.AnchorPoint = Vector2.new(0, 0.5)
-	holder.Position = UDim2.new(0, 16, 0.4, 44) -- debajo del botón de la tienda
+	-- Debajo del botón de la tienda (centrado en 0.4 de la altura y de 36 de alto)
+	holder.AnchorPoint = Vector2.new(0, 0)
+	holder.Position = UDim2.new(0, 16, 0.4, 26)
 	holder.Size = UDim2.fromOffset(230, 120)
 	holder.Parent = gui
 	local list = Instance.new("UIListLayout")
