@@ -107,6 +107,12 @@ local function pickSpawn(card: Instance): SpawnLocation?
 	return if #safe > 0 then safe[math.random(#safe)] else farthest
 end
 
+-- Los valores de la dificultad de esta partida (Config/Bots.difficulties)
+local function level()
+	return Bots.difficulties[MatchSettings.difficulty or Bots.defaultDifficulty]
+		or Bots.difficulties[Bots.defaultDifficulty]
+end
+
 local function isZombie(card: Instance): boolean
 	return card:GetAttribute("Side") == "Zombie"
 end
@@ -258,7 +264,7 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 		local otherHead = otherCharacter:FindFirstChild("Head") :: BasePart?
 		local point = if otherHead then otherHead.Position else otherRoot.Position
 		local offset = point - head.Position
-		if offset.Magnitude > Bots.sightRange then
+		if offset.Magnitude > level().sightRange then
 			return false
 		end
 		local result = workspace:Raycast(head.Position, offset, params)
@@ -339,12 +345,12 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 		humanoid.AutoRotate = true
 	end
 
-	-- Un disparo: un raycast desviado al azar (Bots.spread) hacia el pecho del enemigo
+	-- Un disparo: un raycast desviado al azar (spread de la dificultad) hacia el pecho del enemigo
 	local function shoot(targetRoot: BasePart)
 		local muzzle = tool and tool:FindFirstChild("Muzzle", true) :: Attachment?
 		local from = if muzzle then muzzle.WorldPosition else head.Position
 		local aimPoint = targetRoot.Position + Vector3.new(0, 1, 0)
-		local direction = spreadDirection(aimPoint - head.Position, Bots.spread) * stats.range
+		local direction = spreadDirection(aimPoint - head.Position, level().spread) * stats.range
 		local result = workspace:Raycast(head.Position, direction, params)
 		local surface: string? = nil
 		if result then
@@ -355,14 +361,14 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 			if vehicle then
 				VehicleService.Damage(
 					vehicle,
-					stats.damage * Bots.damageMultiplier,
+					stats.damage * level().damageMultiplier,
 					nil,
 					result.Instance :: BasePart
 				)
 				surface = "metal"
 			elseif model and victimHumanoid and Combatants.IsEnemy(card, Combatants.FromCharacter(model)) then
 				local headshot = stats.headshotMultiplier ~= nil and isHeadPart(result.Instance)
-				local damage = stats.damage * Bots.damageMultiplier
+				local damage = stats.damage * level().damageMultiplier
 				if headshot then
 					damage *= stats.headshotMultiplier
 					if rules.headshotKills then
@@ -388,7 +394,7 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 		local backstab = targetRoot.CFrame.LookVector:Dot(toTarget) > 0.5
 		local damage = if backstab
 			then meleeStats.backstabDamage
-			else meleeStats.damage * Bots.damageMultiplier
+			else meleeStats.damage * level().damageMultiplier
 		local cause = if backstab then "Backstab" elseif melee and weaponName then weaponName else "Machete"
 		if isZombie(card) then
 			damage = rules.zombieMeleeDamage or damage -- el machete de un zombi mata
@@ -487,7 +493,7 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 					end
 					if
 						not reloading
-						and now - seenAt >= Bots.reactionTime
+						and now - seenAt >= level().reactionTime
 						and now - lastShot >= 1 / stats.fireRate
 					then
 						if burstLeft <= 0 then

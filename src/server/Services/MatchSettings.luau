@@ -22,6 +22,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Teams = game:GetService("Teams")
 local TeleportService = game:GetService("TeleportService")
 
+local Bots = require(ReplicatedStorage.Shared.Config.Bots)
 local Maps = require(ReplicatedStorage.Shared.Config.Maps)
 local Modes = require(ReplicatedStorage.Shared.Config.Modes)
 local MapService = require(script.Parent.MapService)
@@ -34,6 +35,7 @@ local MatchSettings = {
 	kind = "public", -- "public", "ai" o "private"
 	mode = nil :: string?, -- el modo elegido (nil = al azar, como siempre)
 	map = nil :: string?, -- el mapa elegido (nil = al azar)
+	difficulty = nil :: string?, -- contra la IA: la dificultad elegida (nil = Bots.defaultDifficulty)
 }
 
 local lastRequest: { [Player]: number } = {}
@@ -72,6 +74,7 @@ local function publish(inviteCode: string?, loading: boolean?)
 	ReplicatedStorage:SetAttribute("ServerKind", if loading then "loading" else MatchSettings.kind)
 	ReplicatedStorage:SetAttribute("ServerMode", MatchSettings.mode)
 	ReplicatedStorage:SetAttribute("ServerMap", MatchSettings.map)
+	ReplicatedStorage:SetAttribute("ServerDifficulty", MatchSettings.difficulty)
 	ReplicatedStorage:SetAttribute("InviteCode", inviteCode)
 end
 
@@ -85,6 +88,9 @@ local function configure(data: any)
 	end
 	MatchSettings.kind = data.kind
 	MatchSettings.mode = data.mode
+	if data.kind == "ai" and type(data.difficulty) == "string" and Bots.difficulties[data.difficulty] then
+		MatchSettings.difficulty = data.difficulty
+	end
 	if data.kind == "private" and validMap(data.map) then
 		MatchSettings.map = data.map
 		MapService.SetForced(data.map)
@@ -104,8 +110,8 @@ local function teleportTo(players: { Player }, code: string, data: any): (boolea
 	return ok, if ok then nil else tostring(err)
 end
 
--- El menú pide una partida: ("ai", modo) o ("private", modo, mapa)
-local function onRequest(player: Player, kind: any, modeName: any, mapName: any)
+-- El menú pide una partida: ("ai", modo, nil, dificultad) o ("private", modo, mapa)
+local function onRequest(player: Player, kind: any, modeName: any, mapName: any, difficulty: any)
 	local now = os.clock()
 	if now - (lastRequest[player] or 0) < REQUEST_COOLDOWN then
 		return
@@ -121,6 +127,9 @@ local function onRequest(player: Player, kind: any, modeName: any, mapName: any)
 	if not validMap(mapName) then
 		mapName = nil -- "Aleatorio"
 	end
+	if kind ~= "ai" or type(difficulty) ~= "string" or not Bots.difficulties[difficulty] then
+		difficulty = nil
+	end
 	local ok, code = pcall(TeleportService.ReserveServer, TeleportService, game.PlaceId)
 	if not ok then
 		warn("[Partida] No se pudo reservar un servidor:", code)
@@ -135,7 +144,7 @@ local function onRequest(player: Player, kind: any, modeName: any, mapName: any)
 	local sent, err = teleportTo(
 		{ player },
 		code,
-		{ kind = kind, mode = modeName, map = mapName, code = code }
+		{ kind = kind, mode = modeName, map = mapName, difficulty = difficulty, code = code }
 	)
 	if not sent then
 		warn("[Partida] Falló el teletransporte:", err)

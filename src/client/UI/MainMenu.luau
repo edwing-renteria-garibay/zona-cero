@@ -15,6 +15,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SocialService = game:GetService("SocialService")
 local UserInputService = game:GetService("UserInputService")
 
+local Bots = require(ReplicatedStorage.Shared.Config.Bots)
 local Maps = require(ReplicatedStorage.Shared.Config.Maps)
 local Modes = require(ReplicatedStorage.Shared.Config.Modes)
 
@@ -106,11 +107,11 @@ local function showGrid(options: { { text: string, color: Color3?, onClick: () -
 	end
 end
 
-local function ask(kind: string, modeName: string, mapName: string?)
+local function ask(kind: string, modeName: string, mapName: string?, difficulty: string?)
 	busy = true
 	status.TextColor3 = ACCENT
 	status.Text = "Creando la partida..."
-	requestMatch:FireServer(kind, modeName, mapName)
+	requestMatch:FireServer(kind, modeName, mapName, difficulty)
 	-- Si el servidor no contesta (por ejemplo, ignoró un pedido muy seguido), se desbloquea
 	task.delay(12, function()
 		if busy then
@@ -154,7 +155,24 @@ local function showAI()
 	showGrid(modeOptions(function(mode)
 		return mode.bots == true or mode.botZombies == true
 	end, function(name)
-		ask("ai", name)
+		page("Contra la IA · " .. Modes[name].name, "Elige qué tan buenos son los bots.", showAI)
+		local colors = {
+			Color3.fromRGB(70, 150, 80),
+			Color3.fromRGB(60, 120, 170),
+			Color3.fromRGB(200, 120, 40),
+			Color3.fromRGB(180, 50, 50),
+		}
+		local options = {}
+		for i, key in Bots.difficultyOrder do
+			table.insert(options, {
+				text = Bots.difficulties[key].name,
+				color = colors[i],
+				onClick = function()
+					ask("ai", name, nil, key)
+				end,
+			})
+		end
+		showGrid(options)
 	end))
 end
 
@@ -272,6 +290,10 @@ local function buildSideButtons(gui: ScreenGui, kind: string)
 	local mode = Modes[ReplicatedStorage:GetAttribute("ServerMode") or ""]
 	local modeName = if type(mode) == "table" and mode.name then mode.name else ""
 	label.Text = (if kind == "ai" then "Contra la IA · " else "Partida privada · ") .. modeName
+	local difficulty = Bots.difficulties[ReplicatedStorage:GetAttribute("ServerDifficulty") or ""]
+	if kind == "ai" and difficulty then
+		label.Text ..= " · " .. difficulty.name
+	end
 	label.Parent = holder
 	local invite = newButton(holder, "Invitar amigos", size, PRIVATE_COLOR)
 	invite.TextSize = 14
