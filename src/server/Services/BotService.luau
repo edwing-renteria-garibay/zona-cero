@@ -261,6 +261,7 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 	local lastPosition, stuckSince = root.Position, os.clock()
 	local checkPosition, checkAt = root.Position, os.clock() -- para saber si avanza
 	local escapeTo: Vector3?, escapeUntil = nil, 0
+	local chasing = false -- a golpes: ve al enemigo pero todavía no lo alcanza
 	local warnedPath = false
 	local wanderGoal: Vector3? = nil
 	local nextGrenade = os.clock() + 2 + math.random() * 3
@@ -468,11 +469,12 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 			stuckSince = now
 		end
 		-- Si en 4 s casi no se movió, camina un momento hacia donde no haya muro y vuelve a
-		-- buscar camino (así sale de un cuarto o de una esquina aunque el camino falle)
+		-- buscar camino (así sale de un cuarto o de una esquina aunque el camino falle).
+		-- También si va a golpes tras alguien que ve pero no alcanza (otro piso, un muro)
 		if now - checkAt >= 4 then
 			local moved = (root.Position - checkPosition).Magnitude
 			checkPosition, checkAt = root.Position, now
-			if moved < 5 and seenAt == math.huge then
+			if moved < 5 and (seenAt == math.huge or chasing) then
 				local best, bestFree = nil, -1
 				for _ = 1, 8 do
 					local angle = math.random() * 2 * math.pi
@@ -534,8 +536,15 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 					lastMelee = now
 					hit(who, targetHumanoid, targetRoot)
 				end
+				chasing = melee and distance > meleeStats.range
 				if melee then
-					humanoid:MoveTo(targetRoot.Position) -- a golpes: directo hacia ti
+					-- A golpes: de cerca y al mismo nivel, directo hacia ti; si no, por el camino
+					-- (si estás en otro piso o detrás de algo, caminar derecho lo deja atorado)
+					if distance < 12 and math.abs(offset.Y) < 4 then
+						humanoid:MoveTo(targetRoot.Position)
+					else
+						walkTo(targetRoot.Position)
+					end
 				else
 					-- Con arma de fuego: se acerca, se aleja o se mueve de lado
 					local preferred = Bots.preferredDistance
@@ -578,10 +587,12 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 					end
 				end
 			else
+				chasing = false
 				stopFacing()
 				walkTo(targetRoot.Position)
 			end
 		else
+			chasing = false
 			-- Nadie a quien buscar: pasea entre los puntos de aparición
 			stopFacing()
 			if not wanderGoal or (wanderGoal - root.Position).Magnitude < 8 then
