@@ -4,8 +4,9 @@
 --   Partida privada  eliges modo y mapa, y vas a un servidor para jugar con tus amigos
 -- Se vuelve a abrir con el botón "Menú (M)", la tecla M o la cruceta → del control.
 --
--- En una partida contra la IA o privada, en vez del menú hay dos botones: "Invitar amigos"
--- (la ventana de invitaciones de Roblox) y "Salir a partida rápida". Con control, la cruceta →
+-- En una partida contra la IA o privada, en vez del menú hay botones: "Invitar amigos"
+-- (la ventana de invitaciones de Roblox), "Salir a partida rápida" y, para el anfitrión,
+-- "Iniciar partida" y "Cambiar modo" (cambia modo, mapa o dificultad sin salir de la sala). Con control, la cruceta →
 -- entra a esos botones; al apretar uno se sueltan solos para volver a moverte y disparar.
 -- El menú solo pide cosas al servidor (RemoteEvent "RequestMatch"); el que crea la partida y
 -- teletransporta es el servidor (ver MatchSettings).
@@ -44,6 +45,7 @@ local content: ScrollingFrame
 local backButton: TextButton
 local busy = false -- esperando el teletransporte
 local goBack: (() -> ())? = nil -- qué hace el botón "Atrás" en la página actual
+local changing = false -- el anfitrión está cambiando el modo de su sala (no crea otra)
 
 local function corner(parent: Instance, radius: number)
 	local c = Instance.new("UICorner")
@@ -144,8 +146,14 @@ end
 local function ask(kind: string, modeName: string, mapName: string?, difficulty: string?)
 	busy = true
 	status.TextColor3 = ACCENT
-	status.Text = "Creando la partida..."
-	requestMatch:FireServer(kind, modeName, mapName, difficulty)
+	if changing then
+		-- Dentro de la sala: el servidor cambia el modo sin mover a nadie
+		status.Text = "Cambiando el modo..."
+		requestMatch:FireServer("change", modeName, mapName, difficulty)
+	else
+		status.Text = "Creando la partida..."
+		requestMatch:FireServer(kind, modeName, mapName, difficulty)
+	end
 	-- Si el servidor no contesta (por ejemplo, ignoró un pedido muy seguido), se desbloquea
 	task.delay(12, function()
 		if busy then
@@ -157,6 +165,17 @@ end
 
 local showHome: () -> ()
 local showPrivateMode: () -> ()
+
+-- "Atrás" en la primera página: al inicio del menú, o si se está cambiando el modo de la
+-- sala, cerrar el menú
+local function backToStart()
+	if changing then
+		changing = false
+		setOpen(false)
+	else
+		showHome()
+	end
+end
 
 local function page(heading: string, help: string, onBack: (() -> ())?)
 	title.Text = heading
@@ -185,7 +204,7 @@ local function modeOptions(filter: (any) -> boolean, onPick: (string) -> ())
 end
 
 local function showAI()
-	page("Contra la IA", "Elige el modo. Tú (y los amigos que invites) contra bots.", showHome)
+	page("Contra la IA", "Elige el modo. Tú (y los amigos que invites) contra bots.", backToStart)
 	showGrid(modeOptions(function(mode)
 		return mode.bots == true or mode.botZombies == true
 	end, function(name)
@@ -244,7 +263,7 @@ local function showPrivateMap(modeName: string)
 end
 
 function showPrivateMode()
-	page("Partida privada", "Elige el modo para jugar con tus amigos.", showHome)
+	page("Partida privada", "Elige el modo para jugar con tus amigos.", backToStart)
 	showGrid(modeOptions(function()
 		return true
 	end, showPrivateMap))
@@ -285,15 +304,15 @@ local function inviteFriends()
 end
 
 -- Los botones de la izquierda: "Menú (M)" en una partida rápida; "Iniciar partida" (solo el
--- anfitrión, antes de la primera), "Invitar amigos" y "Salir a partida rápida" en una
--- partida contra la IA o privada
+-- anfitrión, antes de la primera), "Cambiar modo" (solo el anfitrión), "Invitar amigos" y
+-- "Salir a partida rápida" en una partida contra la IA o privada
 local function buildSideButtons(gui: ScreenGui, kind: string)
 	local holder = Instance.new("Frame")
 	holder.BackgroundTransparency = 1
 	-- Debajo del botón de la tienda (centrado en 0.4 de la altura y de 36 de alto)
 	holder.AnchorPoint = Vector2.new(0, 0)
 	holder.Position = UDim2.new(0, 16, 0.4, 26)
-	holder.Size = UDim2.fromOffset(230, 160)
+	holder.Size = UDim2.fromOffset(230, 204)
 	holder.Parent = gui
 	local list = Instance.new("UIListLayout")
 	list.SortOrder = Enum.SortOrder.LayoutOrder
@@ -333,15 +352,22 @@ local function buildSideButtons(gui: ScreenGui, kind: string)
 	label.TextColor3 = TEXT
 	label.TextStrokeTransparency = 0.5
 	label.TextXAlignment = Enum.TextXAlignment.Left
-	local mode = Modes[ReplicatedStorage:GetAttribute("ServerMode") or ""]
-	local modeName = if type(mode) == "table" and mode.name then mode.name else ""
-	label.Text = (if kind == "ai" then "Contra la IA · " else "Partida privada · ") .. modeName
-	local difficulty = Bots.difficulties[ReplicatedStorage:GetAttribute("ServerDifficulty") or ""]
-	if kind == "ai" and difficulty then
-		label.Text ..= " · " .. difficulty.name
-	end
 	label.LayoutOrder = 1
 	label.Parent = holder
+	-- El modo puede cambiar (botón "Cambiar modo"): el letrero se actualiza
+	local function updateLabel()
+		local current = Modes[ReplicatedStorage:GetAttribute("ServerMode") or ""]
+		local text = (if kind == "ai" then "Contra la IA · " else "Partida privada · ")
+			.. (if type(current) == "table" and current.name then current.name else "")
+		local level = Bots.difficulties[ReplicatedStorage:GetAttribute("ServerDifficulty") or ""]
+		if kind == "ai" and level then
+			text ..= " · " .. level.name
+		end
+		label.Text = text
+	end
+	ReplicatedStorage:GetAttributeChangedSignal("ServerMode"):Connect(updateLabel)
+	ReplicatedStorage:GetAttributeChangedSignal("ServerDifficulty"):Connect(updateLabel)
+	updateLabel()
 	-- Solo el anfitrión, y solo antes de la primera partida: la sala espera a que lo apriete
 	-- (así alcanzan a llegar los amigos invitados)
 	local start = newButton(holder, "Iniciar partida", size, AI_COLOR)
@@ -357,14 +383,37 @@ local function buildSideButtons(gui: ScreenGui, kind: string)
 	ReplicatedStorage:GetAttributeChangedSignal("WaitingForHost"):Connect(updateStart)
 	ReplicatedStorage:GetAttributeChangedSignal("HostUserId"):Connect(updateStart)
 	updateStart()
+	-- Solo el anfitrión: cambiar el modo (y el mapa o la dificultad) sin salir de la sala, así
+	-- los amigos no tienen que volver a entrar
+	local change = newButton(holder, "Cambiar modo", size, BACKGROUND)
+	change.BackgroundTransparency = 0.2
+	change.TextSize = 14
+	change.LayoutOrder = 3
+	change.Activated:Connect(function()
+		if busy then
+			return
+		end
+		changing = true
+		if kind == "ai" then
+			showAI()
+		else
+			showPrivateMode()
+		end
+		setOpen(true)
+	end)
+	local function updateHost()
+		change.Visible = ReplicatedStorage:GetAttribute("HostUserId") == player.UserId
+	end
+	ReplicatedStorage:GetAttributeChangedSignal("HostUserId"):Connect(updateHost)
+	updateHost()
 	local invite = newButton(holder, "Invitar amigos", size, PRIVATE_COLOR)
 	invite.TextSize = 14
-	invite.LayoutOrder = 3
+	invite.LayoutOrder = 4
 	invite.Activated:Connect(inviteFriends)
 	local leave = newButton(holder, "Salir a partida rápida", size, BACKGROUND)
 	leave.BackgroundTransparency = 0.2
 	leave.TextSize = 14
-	leave.LayoutOrder = 4
+	leave.LayoutOrder = 5
 	leave.Activated:Connect(function()
 		leave.Text = "Saliendo..."
 		requestMatch:FireServer("leave")
@@ -372,7 +421,7 @@ local function buildSideButtons(gui: ScreenGui, kind: string)
 
 	-- Con control: cruceta → entra a estos botones y otra vez → los suelta. Al apretar uno
 	-- (o al cerrar la ventana de invitaciones) se suelta solo, para volver a moverte y disparar
-	for _, button in { start, invite, leave } do
+	for _, button in { start, change, invite, leave } do
 		button.Activated:Connect(function()
 			releaseSelection(holder)
 		end)
@@ -472,6 +521,11 @@ local function onServerReply(state: string, message: string?)
 		status.TextColor3 = ACCENT
 		status.Text = "Entrando a la partida..."
 		setOpen(true)
+	elseif state == "changed" then
+		busy = false
+		changing = false
+		status.Text = ""
+		setOpen(false)
 	elseif state == "error" then
 		busy = false
 		status.TextColor3 = Color3.fromRGB(240, 110, 100)
