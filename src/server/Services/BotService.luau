@@ -259,6 +259,9 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 	local seenAt = 0
 	local strafeSide, strafeUntil = 1, 0
 	local lastPosition, stuckSince = root.Position, os.clock()
+	local checkPosition, checkAt = root.Position, os.clock() -- para saber si avanza
+	local escapeTo: Vector3?, escapeUntil = nil, 0
+	local warnedPath = false
 	local wanderGoal: Vector3? = nil
 	local nextGrenade = os.clock() + 2 + math.random() * 3
 
@@ -307,6 +310,15 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 			lastPath = now
 			pathGoal = goal
 			local ok = pcall(path.ComputeAsync, path, root.Position, goal)
+			if not ok or path.Status ~= Enum.PathStatus.Success then
+				-- No hay camino hasta allá (por ejemplo, está en un lugar alto): al menos que
+				-- salga hacia el centro del mapa, que siempre se puede alcanzar
+				if not warnedPath then
+					warnedPath = true
+					warn("[Bot]", card.Name, "no encontró camino:", if ok then path.Status.Name else "error")
+				end
+				ok = pcall(path.ComputeAsync, path, root.Position, Vector3.new(0, root.Position.Y, 0))
+			end
 			if ok and path.Status == Enum.PathStatus.Success then
 				waypoints = path:GetWaypoints()
 				waypointIndex = math.min(2, #waypoints)
@@ -453,6 +465,36 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 			lastPath = 0
 			stuckSince = now
 		end
+		-- Si en 4 s casi no se movió, camina un momento hacia donde no haya muro y vuelve a
+		-- buscar camino (así sale de un cuarto o de una esquina aunque el camino falle)
+		if now - checkAt >= 4 then
+			local moved = (root.Position - checkPosition).Magnitude
+			checkPosition, checkAt = root.Position, now
+			if moved < 5 and seenAt == math.huge then
+				local best, bestFree = nil, -1
+				for _ = 1, 8 do
+					local angle = math.random() * 2 * math.pi
+					local direction = Vector3.new(math.cos(angle), 0, math.sin(angle))
+					local hit = workspace:Raycast(root.Position, direction * 30, params)
+					local free = if hit then hit.Distance else 30
+					if free > bestFree then
+						best, bestFree = direction, free
+					end
+				end
+				if best then
+					escapeTo = root.Position + best * math.max(bestFree - 3, 4)
+					escapeUntil = now + 2
+					lastPath = 0
+				end
+			end
+		end
+		if escapeTo and now < escapeUntil then
+			stopFacing()
+			humanoid:MoveTo(escapeTo)
+			task.wait(THINK_EVERY)
+			continue
+		end
+		escapeTo = nil
 
 		local who, visible = findTarget()
 		if who ~= target then
