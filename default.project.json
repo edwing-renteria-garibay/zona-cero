@@ -41,6 +41,9 @@
         "Knockback": {
           "$className": "RemoteEvent"
         },
+        "AimPitch": {
+          "$className": "UnreliableRemoteEvent"
+        },
         "Shop": {
           "$className": "RemoteFunction"
         },

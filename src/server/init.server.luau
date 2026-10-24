@@ -7,6 +7,7 @@ local Teams = game:GetService("Teams")
 local Modes = require(ReplicatedStorage.Shared.Config.Modes)
 
 local Services = script.Services
+local AimPose = require(Services.AimPose)
 local AssaultService = require(Services.AssaultService)
 local CombatService = require(Services.CombatService)
 local FlagService = require(Services.FlagService)
@@ -43,6 +44,7 @@ AssaultService.Setup(map)
 HillService.Setup(map)
 InfectionService.Start()
 CombatService.Start()
+AimPose.Start() -- hacia dónde apunta cada quien (torso y brazos con el arma)
 VehicleService.Start()
 ProjectileService.Start()
 ShopService.Start() -- créditos, compras y lo que cada quien lleva puesto
