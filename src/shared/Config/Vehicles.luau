@@ -30,8 +30,9 @@ local base = {
 	blastRadius = 16,
 	-- Atropellar: a partir de minSpeed (studs por segundo), un enemigo que toca el jeep
 	-- pierde damage (primero el escudo, luego la vida) y sale volando con fuerza
-	-- knockback. Nunca lo mata: siempre le deja al menos 1 de vida. A la misma persona
-	-- solo se le puede volver a atropellar después de cooldown segundos.
+	-- knockback. Si tenía la vida y el escudo llenos no lo mata (le deja al menos 1); si ya
+	-- venía lastimado, sí. A la misma persona solo se le puede volver a atropellar después de
+	-- cooldown segundos.
 	runOver = {
 		minSpeed = 15,
 		damage = 80,
