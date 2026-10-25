@@ -2,14 +2,16 @@
 -- qué estás jugando (teclado y mouse, control de Xbox o PlayStation, o pantalla táctil) y
 -- cambian solos si cambias de uno a otro.
 --
--- Se muestra y se esconde junto con la tabla de jugadores de Roblox:
---   PC: Tab (la misma tecla que la tabla). Empieza visible, como la tabla.
---   Control: cruceta ← (la tabla de Roblox no tiene botón en el control). Empieza escondido.
+-- Se muestra y se esconde junto con la tabla de puntajes (UI/Standings), con el mismo botón:
+--   PC: Tab. Empieza visible.
+--   Control: cruceta ←. Empieza escondido.
 --   Móvil: el botón "Controles". Empieza escondido.
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+
+local Standings = require(script.Parent.Standings)
 
 local player = Players.LocalPlayer
 
@@ -31,7 +33,7 @@ local KEYBOARD = {
 	{ "E", "Cambiar arma del piso" },
 	{ "B", "Tienda" },
 	{ "M", "Menú (en una sala: invitar, etc.)" },
-	{ "Tab", "Mostrar / ocultar" },
+	{ "Tab", "Puntajes y controles" },
 }
 
 -- Xbox / PlayStation
@@ -48,7 +50,7 @@ local GAMEPAD = {
 	{ "Cruceta ↑", "Cambiar arma del piso" },
 	{ "Cruceta ↓", "Tienda" },
 	{ "Cruceta →", "Menú / botones de la sala" },
-	{ "Cruceta ←", "Mostrar / ocultar" },
+	{ "Cruceta ←", "Puntajes y controles" },
 }
 
 local TOUCH = {
@@ -58,6 +60,7 @@ local TOUCH = {
 	{ "Botones", "Recargar, Granada, Golpe," },
 	{ "", "Correr, Cámara y Tienda" },
 	{ "SimiO", "Lanzar SimiOs" },
+	{ "Puntajes", "Puntajes y controles" },
 	{ "Menú", "Menú de partidas" },
 }
 
@@ -146,7 +149,7 @@ function Controls.Start()
 	toggle.Font = Enum.Font.GothamBold
 	toggle.TextSize = 14
 	toggle.TextColor3 = TEXT
-	toggle.Text = "Controles"
+	toggle.Text = "Puntajes"
 	toggle.Parent = gui
 	local toggleCorner = Instance.new("UICorner")
 	toggleCorner.CornerRadius = UDim.new(0, 8)
@@ -163,7 +166,12 @@ function Controls.Start()
 		panel.Position = UDim2.new(0, 16, 0.4, if device == "touch" then 264 else 226)
 	end
 	show(device)
-	panel.Visible = device == "keyboard"
+	-- Los controles y la tabla de puntajes siempre juntos
+	local function setShown(visible: boolean)
+		panel.Visible = visible
+		Standings.SetVisible(visible)
+	end
+	setShown(device == "keyboard")
 
 	UserInputService.LastInputTypeChanged:Connect(function(inputType)
 		local newDevice = deviceOf(inputType)
@@ -173,17 +181,16 @@ function Controls.Start()
 	end)
 
 	toggle.Activated:Connect(function()
-		panel.Visible = not panel.Visible
+		setShown(not panel.Visible)
 	end)
-	-- Tab: sin "sink", para que también se abra y cierre la tabla de jugadores de Roblox
 	UserInputService.InputBegan:Connect(function(input)
 		if input.KeyCode == Enum.KeyCode.Tab and not UserInputService:GetFocusedTextBox() then
-			panel.Visible = not panel.Visible
+			setShown(not panel.Visible)
 		end
 	end)
 	ContextActionService:BindAction("ToggleControls", function(_name, state)
 		if state == Enum.UserInputState.Begin then
-			panel.Visible = not panel.Visible
+			setShown(not panel.Visible)
 			return Enum.ContextActionResult.Sink
 		end
 		return Enum.ContextActionResult.Pass

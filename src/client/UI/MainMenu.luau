@@ -146,16 +146,16 @@ local function showGrid(options: { { text: string, color: Color3?, onClick: () -
 	end
 end
 
-local function ask(kind: string, modeName: string, mapName: string?, difficulty: string?)
+local function ask(kind: string, modeName: string, mapName: string?, difficulty: string?, allies: boolean?)
 	busy = true
 	status.TextColor3 = ACCENT
 	if changing then
 		-- Dentro de la sala: el servidor cambia el modo sin mover a nadie
 		status.Text = "Cambiando el modo..."
-		requestMatch:FireServer("change", modeName, mapName, difficulty)
+		requestMatch:FireServer("change", modeName, mapName, difficulty, allies)
 	else
 		status.Text = "Creando la partida..."
-		requestMatch:FireServer(kind, modeName, mapName, difficulty)
+		requestMatch:FireServer(kind, modeName, mapName, difficulty, allies)
 	end
 	-- Si el servidor no contesta (por ejemplo, ignoró un pedido muy seguido), se desbloquea
 	task.delay(12, function()
@@ -206,30 +206,64 @@ local function modeOptions(filter: (any) -> boolean, onPick: (string) -> ())
 	return options
 end
 
-local function showAI()
+local showAI: () -> ()
+
+-- Contra la IA por equipos: ¿con bots aliados en tu equipo o solos contra todos?
+local function showAllies(name: string, difficulty: string, onBack: () -> ())
+	local size = Bots.vsAI.teamSize or 5
+	page("Contra la IA · " .. Modes[name].name, "¿Quieres bots en tu equipo?", onBack)
+	showGrid({
+		{
+			text = `Con bots aliados\n{size} contra {size}`,
+			color = AI_COLOR,
+			onClick = function()
+				ask("ai", name, nil, difficulty, true)
+			end,
+		},
+		{
+			text = `Sin aliados\nTú (y tus amigos) contra {size} bots`,
+			color = Color3.fromRGB(180, 50, 50),
+			onClick = function()
+				ask("ai", name, nil, difficulty, false)
+			end,
+		},
+	}, true)
+end
+
+local function showDifficulty(name: string)
+	page("Contra la IA · " .. Modes[name].name, "Elige qué tan buenos son los bots.", showAI)
+	local mode = Modes[name]
+	local colors = {
+		Color3.fromRGB(70, 150, 80),
+		Color3.fromRGB(60, 120, 170),
+		Color3.fromRGB(200, 120, 40),
+		Color3.fromRGB(180, 50, 50),
+	}
+	local options = {}
+	for i, key in Bots.difficultyOrder do
+		table.insert(options, {
+			text = Bots.difficulties[key].name,
+			color = colors[i],
+			onClick = function()
+				-- En los modos por equipos se elige además si hay bots aliados
+				if mode.teams and not mode.botZombies then
+					showAllies(name, key, function()
+						showDifficulty(name)
+					end)
+				else
+					ask("ai", name, nil, key)
+				end
+			end,
+		})
+	end
+	showGrid(options)
+end
+
+function showAI()
 	page("Contra la IA", "Elige el modo. Tú (y los amigos que invites) contra bots.", backToStart)
 	showGrid(modeOptions(function(mode)
 		return mode.bots == true or mode.botZombies == true
-	end, function(name)
-		page("Contra la IA · " .. Modes[name].name, "Elige qué tan buenos son los bots.", showAI)
-		local colors = {
-			Color3.fromRGB(70, 150, 80),
-			Color3.fromRGB(60, 120, 170),
-			Color3.fromRGB(200, 120, 40),
-			Color3.fromRGB(180, 50, 50),
-		}
-		local options = {}
-		for i, key in Bots.difficultyOrder do
-			table.insert(options, {
-				text = Bots.difficulties[key].name,
-				color = colors[i],
-				onClick = function()
-					ask("ai", name, nil, key)
-				end,
-			})
-		end
-		showGrid(options)
-	end))
+	end, showDifficulty))
 end
 
 local function showPrivateMap(modeName: string)
@@ -426,10 +460,14 @@ local function buildSideButtons(gui: ScreenGui, kind: string)
 		if kind == "ai" and level then
 			text ..= " · " .. level.name
 		end
+		if kind == "ai" and ReplicatedStorage:GetAttribute("ServerAllies") == false then
+			text ..= " · Sin aliados"
+		end
 		label.Text = text
 	end
 	ReplicatedStorage:GetAttributeChangedSignal("ServerMode"):Connect(updateLabel)
 	ReplicatedStorage:GetAttributeChangedSignal("ServerDifficulty"):Connect(updateLabel)
+	ReplicatedStorage:GetAttributeChangedSignal("ServerAllies"):Connect(updateLabel)
 	updateLabel()
 	-- Solo el anfitrión, y solo antes de la primera partida: la sala espera a que lo apriete
 	-- (así alcanzan a llegar los amigos invitados)

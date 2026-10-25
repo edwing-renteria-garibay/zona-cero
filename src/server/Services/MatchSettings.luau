@@ -3,7 +3,9 @@
 --             Config/Maps) y, si falta gente, bots (Config/Bots).
 --   "ai"      Contra la IA: un servidor reservado solo para ti (y los amigos que invites).
 --             Siempre se juega el modo que elegiste; todos los jugadores van en el mismo
---             equipo contra bots (en Infección, los bots son los zombis).
+--             equipo contra bots, con bots aliados si faltan para 5 contra 5 (Config/Bots,
+--             vsAI.teamSize). Se puede elegir "sin aliados": tú (y tus amigos) solos contra
+--             todos los bots rivales. En Infección, los bots son los zombis.
 --   "private" Partida privada: un servidor reservado con el modo y el mapa que elegiste, para
 --             jugar con tus amigos. Si faltan jugadores y el modo lo permite, entran bots.
 --
@@ -42,6 +44,7 @@ local MatchSettings = {
 	mode = nil :: string?, -- el modo elegido (nil = al azar, como siempre)
 	map = nil :: string?, -- el mapa elegido (nil = al azar)
 	difficulty = nil :: string?, -- contra la IA: la dificultad elegida (nil = Bots.defaultDifficulty)
+	allies = true, -- contra la IA por equipos: ¿se rellena tu equipo con bots aliados?
 }
 
 local host: Player? = nil -- en una sala reservada: quien puede iniciar la partida
@@ -78,6 +81,11 @@ function MatchSettings.VsAI(): boolean
 	return MatchSettings.kind == "ai"
 end
 
+-- Contra la IA: ¿van bots en el equipo de los jugadores? (false = solos contra todos)
+function MatchSettings.Allies(): boolean
+	return MatchSettings.kind == "ai" and MatchSettings.allies
+end
+
 -- ¿Hay que esperar a que el anfitrión inicie? (MatchService no empieza mientras sea true)
 function MatchSettings.WaitingForHost(): boolean
 	return MatchSettings.kind ~= "public" and not started
@@ -110,6 +118,10 @@ local function publish(inviteCode: string?, loading: boolean?)
 	ReplicatedStorage:SetAttribute("ServerMode", MatchSettings.mode)
 	ReplicatedStorage:SetAttribute("ServerMap", MatchSettings.map)
 	ReplicatedStorage:SetAttribute("ServerDifficulty", MatchSettings.difficulty)
+	ReplicatedStorage:SetAttribute(
+		"ServerAllies",
+		if MatchSettings.kind == "ai" then MatchSettings.allies else nil
+	)
 	ReplicatedStorage:SetAttribute("InviteCode", inviteCode)
 end
 
@@ -126,6 +138,7 @@ local function configure(data: any)
 	if data.kind == "ai" and type(data.difficulty) == "string" and Bots.difficulties[data.difficulty] then
 		MatchSettings.difficulty = data.difficulty
 	end
+	MatchSettings.allies = data.allies ~= false
 	if data.kind == "private" and validMap(data.map) then
 		MatchSettings.map = data.map
 		MapService.SetForced(data.map)
@@ -146,8 +159,8 @@ local function teleportTo(players: { Player }, code: string, data: any): (boolea
 	return ok, if ok then nil else tostring(err)
 end
 
--- El menú pide una partida: ("ai", modo, nil, dificultad) o ("private", modo, mapa)
-local function onRequest(player: Player, kind: any, modeName: any, mapName: any, difficulty: any)
+-- El menú pide una partida: ("ai", modo, nil, dificultad, aliados) o ("private", modo, mapa)
+local function onRequest(player: Player, kind: any, modeName: any, mapName: any, difficulty: any, allies: any)
 	local now = os.clock()
 	if now - (lastRequest[player] or 0) < REQUEST_COOLDOWN then
 		return
@@ -177,19 +190,22 @@ local function onRequest(player: Player, kind: any, modeName: any, mapName: any,
 		return
 	end
 	requestMatch:FireClient(player, "teleporting")
-	local sent, err = teleportTo(
-		{ player },
-		code,
-		{ kind = kind, mode = modeName, map = mapName, difficulty = difficulty, code = code }
-	)
+	local sent, err = teleportTo({ player }, code, {
+		kind = kind,
+		mode = modeName,
+		map = mapName,
+		difficulty = difficulty,
+		allies = allies ~= false,
+		code = code,
+	})
 	if not sent then
 		warn("[Partida] Falló el teletransporte:", err)
 		requestMatch:FireClient(player, "error", "No se pudo entrar a la partida. Intenta otra vez.")
 	end
 end
 
--- El anfitrión cambia lo que se juega en esta sala: ("change", modo, mapa, dificultad)
-local function onChange(player: Player, modeName: any, mapName: any, difficulty: any)
+-- El anfitrión cambia lo que se juega en esta sala: ("change", modo, mapa, dificultad, aliados)
+local function onChange(player: Player, modeName: any, mapName: any, difficulty: any, allies: any)
 	if player ~= host or MatchSettings.kind == "public" then
 		return
 	end
@@ -207,6 +223,9 @@ local function onChange(player: Player, modeName: any, mapName: any, difficulty:
 	MatchSettings.mode = modeName
 	if kind == "ai" and type(difficulty) == "string" and Bots.difficulties[difficulty] then
 		MatchSettings.difficulty = difficulty
+	end
+	if kind == "ai" then
+		MatchSettings.allies = allies ~= false
 	end
 	if kind == "private" then
 		MatchSettings.map = if validMap(mapName) then mapName else nil

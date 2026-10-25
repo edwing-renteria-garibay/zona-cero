@@ -22,6 +22,7 @@ local OverheadBars = require(script.UI.OverheadBars)
 local Results = require(script.UI.Results)
 local Scoreboard = require(script.UI.Scoreboard)
 local Shop = require(script.UI.Shop)
+local Standings = require(script.UI.Standings)
 
 CameraController.Start()
 AimPose.Start() -- torso y brazos se inclinan hacia la mira
@@ -41,5 +42,6 @@ KillFeed.Start()
 Results.Start()
 InfectionView.Start()
 Shop.Start()
-Controls.Start() -- los controles a la izquierda (Tab)
+Standings.Start() -- tabla de puntajes (antes que Controls, que la muestra y la esconde)
+Controls.Start() -- los controles a la izquierda y la tabla de puntajes (Tab)
 MainMenu.Start() -- partida rápida, contra la IA o privada
