@@ -6,13 +6,14 @@
 --   * Si llegas con ella a TU base mientras tu bandera está en casa, capturas: +1 punto.
 --   * Si mueres llevándola, cae al suelo. Si un compañero del dueño la toca, vuelve a su
 --     base; si un enemigo la toca, la vuelve a tomar. Sola vuelve a los returnTime segundos.
+-- Juegan jugadores y bots (Combatants). FlagService.BotGoal le dice a un bot a dónde ir.
 
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Teams = game:GetService("Teams")
 
 local Modes = require(ReplicatedStorage.Shared.Config.Modes)
+local Combatants = require(script.Parent.Combatants)
 
 local killFeed = ReplicatedStorage.Remotes.KillFeed :: RemoteEvent
 
@@ -26,7 +27,7 @@ type Flag = {
 	model: Model,
 	pole: BasePart,
 	state: "home" | "carried" | "dropped",
-	carrier: Player?,
+	carrier: Combatants.Combatant?, -- jugador o bot
 	weld: WeldConstraint?,
 	droppedAt: number,
 	lastPosition: Vector3,
@@ -37,7 +38,7 @@ local FlagService = {}
 local flags: { Flag } = {}
 local folder: Folder? = nil
 local active = false
-local onCapture: ((Player, Team) -> ())? = nil
+local onCapture: ((Combatants.Combatant, Team) -> ())? = nil
 local checking = false -- la revisión de cada fotograma ya está conectada
 
 -- Un aviso en el registro de bajas, del color de un equipo
@@ -119,18 +120,18 @@ local function returnHome(flag: Flag)
 	standAt(flag, flag.stand.Position + Vector3.new(0, flag.stand.Size.Y / 2, 0))
 end
 
-local function getRoot(player: Player): BasePart?
-	local character = player.Character
+local function getRoot(who: Combatants.Combatant): BasePart?
+	local character = Combatants.Character(who)
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if not humanoid or humanoid.Health <= 0 then
 		return nil
 	end
-	return character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	return (character :: Model):FindFirstChild("HumanoidRootPart") :: BasePart?
 end
 
-local function isCarrying(player: Player): boolean
+local function isCarrying(who: Combatants.Combatant): boolean
 	for _, flag in flags do
-		if flag.carrier == player then
+		if flag.carrier == who then
 			return true
 		end
 	end
@@ -146,9 +147,10 @@ local function flagOf(team: Team?): Flag?
 	return nil
 end
 
-local function pickUp(flag: Flag, player: Player)
-	local character = player.Character :: Model
-	local torso = (character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")) :: BasePart?
+local function pickUp(flag: Flag, player: Combatants.Combatant)
+	local character = Combatants.Character(player)
+	local torso = character
+		and (character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")) :: BasePart?
 	if not torso then
 		return
 	end
@@ -163,7 +165,7 @@ local function pickUp(flag: Flag, player: Player)
 	weld.Part1 = flag.pole
 	weld.Parent = flag.pole
 	flag.weld = weld
-	announce(string.format("%s tomó la bandera %s", player.Name, flag.team.Name), player.Team)
+	announce(string.format("%s tomó la bandera %s", player.Name, flag.team.Name), Combatants.TeamOf(player))
 end
 
 -- Suelta la bandera donde está quien la llevaba, sobre el piso
@@ -175,9 +177,10 @@ local function drop(flag: Flag)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	local ignore: { Instance } = { flag.model }
-	for _, player in Players:GetPlayers() do
-		if player.Character then
-			table.insert(ignore, player.Character)
+	for _, who in Combatants.All() do
+		local character = Combatants.Character(who)
+		if character then
+			table.insert(ignore, character)
 		end
 	end
 	params.FilterDescendantsInstances = ignore
@@ -185,22 +188,26 @@ local function drop(flag: Flag)
 	local hit = workspace:Raycast(from, Vector3.new(0, -50, 0), params)
 	standAt(flag, if hit then hit.Position else flag.lastPosition)
 	if carrier then
-		announce(string.format("%s soltó la bandera %s", carrier.Name, flag.team.Name), carrier.Team)
+		announce(
+			string.format("%s soltó la bandera %s", carrier.Name, flag.team.Name),
+			Combatants.TeamOf(carrier)
+		)
 	end
 end
 
-local function capture(flag: Flag, player: Player)
-	announce(string.format("¡%s capturó la bandera %s!", player.Name, flag.team.Name), player.Team)
+local function capture(flag: Flag, player: Combatants.Combatant)
+	local team = Combatants.TeamOf(player)
+	announce(string.format("¡%s capturó la bandera %s!", player.Name, flag.team.Name), team)
 	returnHome(flag)
-	if onCapture and player.Team then
-		onCapture(player, player.Team)
+	if onCapture and team then
+		onCapture(player, team)
 	end
 end
 
 local function update()
 	for _, flag in flags do
 		if flag.state == "carried" then
-			local carrier = flag.carrier :: Player
+			local carrier = flag.carrier :: Combatants.Combatant
 			local root = if carrier.Parent then getRoot(carrier) else nil
 			if not root then
 				drop(flag) -- murió o salió del juego
@@ -208,7 +215,7 @@ local function update()
 			end
 			flag.lastPosition = root.Position - Vector3.new(0, 3, 0)
 			-- Captura: llegar a tu propia base con tu bandera en casa
-			local own = flagOf(carrier.Team)
+			local own = flagOf(Combatants.TeamOf(carrier))
 			if own and own.state == "home" then
 				local standTop = own.stand.Position + Vector3.new(0, own.stand.Size.Y / 2, 0)
 				if (root.Position - standTop).Magnitude < rules.captureRadius then
@@ -221,26 +228,24 @@ local function update()
 				announce(string.format("La bandera %s volvió a su base", flag.team.Name), flag.team)
 				continue
 			end
-			for _, player in Players:GetPlayers() do
+			for _, player in Combatants.All() do
 				local root = getRoot(player)
-				if not root or not player.Team then
+				local team = Combatants.TeamOf(player)
+				if not root or not team then
 					continue
 				end
 				local reach = (root.Position - (flag.lastPosition + Vector3.new(0, 3, 0))).Magnitude
 				if reach > rules.pickupRadius then
 					continue
 				end
-				if player.Team ~= flag.team then
+				if team ~= flag.team then
 					if not isCarrying(player) then
 						pickUp(flag, player)
 						break
 					end
 				elseif flag.state == "dropped" then
 					returnHome(flag)
-					announce(
-						string.format("%s regresó la bandera %s", player.Name, flag.team.Name),
-						player.Team
-					)
+					announce(string.format("%s regresó la bandera %s", player.Name, flag.team.Name), team)
 					break
 				end
 			end
@@ -293,7 +298,7 @@ function FlagService.HasFlags(): boolean
 end
 
 -- Pone las banderas en su base y empieza a revisar. capture se llama en cada captura.
-function FlagService.Begin(capture: (Player, Team) -> ())
+function FlagService.Begin(capture: (Combatants.Combatant, Team) -> ())
 	onCapture = capture
 	if not folder then
 		local newFolder = Instance.new("Folder")
@@ -306,6 +311,58 @@ function FlagService.Begin(capture: (Player, Team) -> ())
 		flag.model.Parent = folder
 	end
 	active = true
+end
+
+-- A dónde debe ir un bot en Captura la bandera (nil = a pelear como siempre). Por orden:
+--   1. Si lleva la bandera enemiga: a su base, a capturar.
+--   2. Si su bandera está tirada cerca: a regresarla.
+--   3. Si un enemigo lleva su bandera: tras él.
+--   4. Si un compañero lleva la bandera enemiga: lo acompaña.
+--   5. Los atacantes van por la bandera enemiga; los defensores (defender = true) se quedan
+--      en su base (desde ahí disparan a quien se acerque).
+-- urgent = true: va aunque tenga enemigos enfrente (dispara mientras camina)
+function FlagService.BotGoal(
+	who: Combatants.Combatant,
+	position: Vector3,
+	defender: boolean
+): (Vector3?, boolean)
+	if not active then
+		return nil, false
+	end
+	local team = Combatants.TeamOf(who)
+	local own, enemy = flagOf(team), nil
+	for _, flag in flags do
+		if flag.team ~= team then
+			enemy = flag
+		end
+	end
+	if not own or not enemy then
+		return nil, false
+	end
+	local ownHome = own.stand.Position + Vector3.new(0, own.stand.Size.Y / 2, 0)
+	if enemy.carrier == who then
+		return ownHome, true
+	end
+	if own.state == "dropped" and (own.lastPosition - position).Magnitude < 120 then
+		return own.lastPosition, true
+	end
+	if own.state == "carried" and own.carrier then
+		local root = getRoot(own.carrier)
+		if root and (defender or (root.Position - position).Magnitude < 120) then
+			return root.Position, true
+		end
+	end
+	if defender then
+		return ownHome, false
+	end
+	if enemy.state == "carried" and enemy.carrier then
+		local root = getRoot(enemy.carrier)
+		if root and (root.Position - position).Magnitude > 12 then
+			return root.Position, false
+		end
+		return nil, false
+	end
+	return enemy.lastPosition, false
 end
 
 -- Quita las banderas al terminar la partida

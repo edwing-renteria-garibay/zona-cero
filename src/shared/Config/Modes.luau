@@ -123,6 +123,7 @@ local Modes = {
 		pickupRadius = 5, -- studs para tomar o regresar una bandera
 		captureRadius = 6, -- studs de tu base para capturar
 		flagReturnTime = 30, -- segundos que una bandera tirada tarda en volver sola
+		bots = true, -- los bots van por la bandera, la defienden y la regresan (FlagService.BotGoal)
 	},
 	-- Infección: zombis contra sobrevivientes (ver InfectionService)
 	Infection = {

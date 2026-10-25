@@ -28,6 +28,7 @@ local AimPose = require(script.Parent.AimPose)
 local Combatants = require(script.Parent.Combatants)
 local ExplosionService = require(script.Parent.ExplosionService)
 local HealthService = require(script.Parent.HealthService)
+local FlagService = require(script.Parent.FlagService)
 local InfectionService = require(script.Parent.InfectionService)
 local MatchSettings = require(script.Parent.MatchSettings)
 local ProjectileService = require(script.Parent.ProjectileService)
@@ -282,6 +283,8 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 	local warnedPath = false
 	local wanderGoal: Vector3? = nil
 	local nextGrenade = os.clock() + 2 + math.random() * 3
+	-- Captura la bandera: más o menos uno de cada tres cuida la base; los demás atacan
+	local defender = #card.Name % 3 == 0
 
 	-- ¿Lo ve? Un raycast de su cabeza a la del otro que no choque con nada antes
 	local function canSee(otherCharacter: Model, otherRoot: BasePart): boolean
@@ -599,6 +602,13 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 			seenAt = math.huge
 		end
 
+		-- Captura la bandera: a dónde ir (ver FlagService.BotGoal). urgent = va aunque haya
+		-- enemigos enfrente, disparando mientras camina
+		local goal: Vector3?, urgent = nil, false
+		if rules.scoreBy == "captures" then
+			goal, urgent = FlagService.BotGoal(card, root.Position, defender)
+		end
+
 		local targetCharacter, targetHumanoid, targetRoot
 		if who then
 			targetCharacter, targetHumanoid, targetRoot = aliveBody(who)
@@ -655,7 +665,9 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 					-- Con arma de fuego: se acerca, se aleja o se mueve de lado
 					local preferred = Bots.weaponDistance[weaponName] or Bots.preferredDistance
 					local flat = Vector3.new(offset.X, 0, offset.Z).Unit
-					if distance > preferred + 15 then
+					if goal and (urgent or distance > preferred + 15) then
+						walkTo(goal)
+					elseif distance > preferred + 15 then
 						walkTo(targetRoot.Position)
 					elseif distance < preferred - 15 then
 						humanoid:MoveTo(root.Position - flat * 8)
@@ -706,17 +718,19 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 			else
 				chasing = false
 				stopFacing()
-				walkTo(targetRoot.Position)
+				walkTo(goal or targetRoot.Position)
 			end
 		else
 			chasing = false
 			-- Nadie a quien buscar: pasea entre los puntos de aparición
 			stopFacing()
-			if not wanderGoal or (wanderGoal - root.Position).Magnitude < 8 then
+			if goal then
+				walkTo(goal)
+			elseif not wanderGoal or (wanderGoal - root.Position).Magnitude < 8 then
 				local spawns = mapSpawns()
 				wanderGoal = if #spawns > 0 then spawns[math.random(#spawns)].Position else nil
 			end
-			if wanderGoal then
+			if wanderGoal and not goal then
 				walkTo(wanderGoal)
 			end
 		end
