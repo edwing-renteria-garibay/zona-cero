@@ -2,7 +2,8 @@
 --   Partida rápida   cierra el menú y juegas aquí (modo al azar; si falta gente, hay bots)
 --   Contra la IA     eliges un modo y vas a un servidor solo para ti (y tus amigos) contra bots
 --   Partida privada  eliges modo y mapa, y vas a un servidor para jugar con tus amigos
--- Se vuelve a abrir con el botón "Menú (M)", la tecla M o la cruceta → del control.
+-- Se vuelve a abrir con el botón "Menú (M)", la tecla M o la cruceta → del control. En una
+-- sala, la tecla M abre la página de la sala (invitar, cambiar modo...) con el mouse libre.
 --
 -- En una partida contra la IA o privada, en vez del menú hay botones: "Invitar amigos"
 -- (la ventana de invitaciones de Roblox), "Salir a partida rápida" y, para el anfitrión,
@@ -106,6 +107,8 @@ end
 
 local function setOpen(open: boolean)
 	backdrop.Visible = open
+	-- Lo leen la cámara y la mira para soltar el mouse mientras el menú está abierto
+	player:SetAttribute("MenuOpen", open or nil)
 	if open and usingGamepad() then
 		task.defer(selectFirst, backdrop) -- después de que se dibujen los botones nuevos
 	elseif not open then
@@ -303,6 +306,66 @@ local function inviteFriends()
 	pcall(SocialService.PromptGameInvite, SocialService, player, options)
 end
 
+-- En una sala (contra la IA o privada), la tecla M abre esta página con los mismos botones
+-- de la izquierda. En PC hace falta: en partida el mouse está fijo en la mira y no se puede
+-- dar clic a esos botones; con el menú abierto el mouse queda libre
+local function showRoom(kind: string)
+	local isHost = ReplicatedStorage:GetAttribute("HostUserId") == player.UserId
+	page(
+		if kind == "ai" then "Contra la IA" else "Partida privada",
+		'Tu sala. Cierra con M o con "Volver al juego".',
+		nil
+	)
+	local options = {}
+	if isHost and ReplicatedStorage:GetAttribute("WaitingForHost") == true then
+		table.insert(options, {
+			text = "Iniciar partida",
+			color = AI_COLOR,
+			onClick = function()
+				requestMatch:FireServer("start")
+				setOpen(false)
+			end,
+		})
+	end
+	if isHost then
+		table.insert(options, {
+			text = "Cambiar modo",
+			onClick = function()
+				changing = true
+				if kind == "ai" then
+					showAI()
+				else
+					showPrivateMode()
+				end
+			end,
+		})
+	end
+	table.insert(options, {
+		text = "Invitar amigos",
+		color = PRIVATE_COLOR,
+		onClick = function()
+			setOpen(false)
+			inviteFriends()
+		end,
+	})
+	table.insert(options, {
+		text = "Salir a partida rápida",
+		onClick = function()
+			status.TextColor3 = ACCENT
+			status.Text = "Saliendo..."
+			requestMatch:FireServer("leave")
+		end,
+	})
+	table.insert(options, {
+		text = "Volver al juego",
+		color = ACCENT,
+		onClick = function()
+			setOpen(false)
+		end,
+	})
+	showGrid(options)
+end
+
 -- Los botones de la izquierda: "Menú (M)" en una partida rápida; "Iniciar partida" (solo el
 -- anfitrión, antes de la primera), "Cambiar modo" (solo el anfitrión), "Invitar amigos" y
 -- "Salir a partida rápida" en una partida contra la IA o privada
@@ -428,6 +491,18 @@ local function buildSideButtons(gui: ScreenGui, kind: string)
 	end
 	SocialService.GameInvitePromptClosed:Connect(function()
 		releaseSelection(holder)
+	end)
+	-- Tecla M: la página de la sala (con el mouse libre para dar clic)
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if not processed and input.KeyCode == Enum.KeyCode.M then
+			if backdrop.Visible then
+				changing = false
+				setOpen(false)
+			else
+				showRoom(kind)
+				setOpen(true)
+			end
+		end
 	end)
 	ContextActionService:BindAction("SideButtons", function(_name, state)
 		if state == Enum.UserInputState.Begin then
