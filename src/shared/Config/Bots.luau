@@ -59,7 +59,8 @@ return {
 	-- Contra la IA (botón del menú): todos los jugadores en Azul y los bots rivales en Rojo.
 	-- En los modos por equipos se juega teamSize contra teamSize: si faltan jugadores en Azul,
 	-- entran bots aliados (cada amigo que llega toma el lugar de uno). Con más jugadores que
-	-- teamSize, los dos equipos crecen.
+	-- teamSize, los dos equipos crecen. En el menú se puede elegir "sin aliados": los
+	-- jugadores solos contra los teamSize bots rivales.
 	-- En los demás (Infección, solitario): bots = jugadores × perPlayer, entre minBots y
 	-- maxBots. En Infección, esos bots son los zombis.
 	vsAI = { teamSize = 5, minBots = 3, perPlayer = 2, maxBots = 10 },

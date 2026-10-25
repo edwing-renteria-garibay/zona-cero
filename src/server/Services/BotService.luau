@@ -740,9 +740,13 @@ local function addBot()
 		local team = smallestTeam()
 		if MatchSettings.VsAI() then
 			-- Contra la IA: aliado si al equipo de los jugadores le falta gente para el tamaño
-			-- de equipo; si no, al equipo contrario
+			-- de equipo (y se eligió con aliados); si no, al equipo contrario
 			local humans = MatchSettings.HumanTeam()
-			if not humans or Combatants.CountInTeam(humans) >= vsAITeamSize(#Players:GetPlayers()) then
+			if
+				not humans
+				or not MatchSettings.Allies()
+				or Combatants.CountInTeam(humans) >= vsAITeamSize(#Players:GetPlayers())
+			then
 				for _, other in Teams:GetTeams() do
 					if other ~= humans then
 						team = other
@@ -807,8 +811,9 @@ local function countFor(modeRules, humans: number): number
 		local vsAI = Bots.vsAI
 		if modeRules.teams and not modeRules.botZombies and vsAI.teamSize then
 			-- Rivales (teamSize) más los aliados que falten en el equipo de los jugadores
+			-- (sin aliados: solo los rivales)
 			local size = vsAITeamSize(humans)
-			return size + (size - humans)
+			return if MatchSettings.Allies() then size + (size - humans) else size
 		end
 		return math.clamp(humans * vsAI.perPlayer, vsAI.minBots, vsAI.maxBots)
 	end
