@@ -47,10 +47,10 @@ local GAMEPAD = {
 	{ "A / Equis", "Saltar" },
 	{ "Y / Triángulo", "Cámara 1.ª / 3.ª persona" },
 	{ "LB RB / L1 R1", "Elegir arma" },
-	{ "Cruceta ↑", "Cambiar arma del piso" },
-	{ "Cruceta ↓", "Tienda" },
-	{ "Cruceta →", "Menú / botones de la sala" },
-	{ "Cruceta ←", "Puntajes y controles" },
+	{ "Cruceta arriba", "Cambiar arma del piso" },
+	{ "Cruceta abajo", "Tienda" },
+	{ "Cruceta der.", "Menú / botones de la sala" },
+	{ "Cruceta izq.", "Puntajes y controles" },
 }
 
 local TOUCH = {
