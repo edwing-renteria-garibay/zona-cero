@@ -30,6 +30,7 @@ return {
 	--   sightRange: studs; más lejos de eso no te ve
 	--   speedMultiplier: qué tan rápido camina comparado con un jugador (1.25 = 25 % más);
 	--     también a los bots zombis de Infección
+	--   zombiePotion: true = de zombi, se toma la pócima de supervelocidad al perseguirte
 	--   smart: true = juega más listo: apunta a veces a la cabeza, salta al moverse de lado
 	--     para que sea difícil atinarle y, de zombi, corre hacia donde vas, no hacia donde estás
 	difficultyOrder = { "Beginner", "Intermediate", "Hard", "Extreme" }, -- orden en el menú
@@ -56,6 +57,7 @@ return {
 			damageMultiplier = 0.9,
 			sightRange = 220,
 			speedMultiplier = 1.1,
+			zombiePotion = true,
 		},
 		Extreme = {
 			name = "Extrema",
@@ -64,6 +66,7 @@ return {
 			damageMultiplier = 1,
 			sightRange = 300,
 			speedMultiplier = 1.25,
+			zombiePotion = true,
 			smart = true,
 			headshotChance = 0.35, -- con smart: de cada 100 tiros, cuántos apunta a la cabeza
 		},

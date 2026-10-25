@@ -4,9 +4,15 @@
 --   · A los zombis del principio, que esperan quietos unos segundos (atributo "Held" del
 --     personaje, ver InfectionService), se les dice cuánto falta y, al soltarlos,
 --     "¡A por los sobrevivientes!".
+--   · La pócima de supervelocidad de los zombis: G (PC), Círculo/B (control) o un botón en
+--     móvil. Abajo se ve si está lista o cuánto falta; quien la tomó echa chispas verdes.
 -- El lado de cada jugador es su atributo "Side" (lo pone InfectionService en el servidor).
 
+local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local zombieBoost = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ZombieBoost") :: RemoteEvent
 
 local player = Players.LocalPlayer
 
@@ -103,6 +109,92 @@ function InfectionView.Start()
 	if player.Character then
 		watchHold(player.Character)
 	end
+
+	-- La pócima: el botón solo existe mientras eres zombi. Va por encima de la granada (misma
+	-- tecla), que un zombi no tiene
+	local potion = Instance.new("TextLabel")
+	potion.AnchorPoint = Vector2.new(0.5, 1)
+	potion.Position = UDim2.new(0.5, 0, 1, -110)
+	potion.Size = UDim2.fromOffset(420, 26)
+	potion.BackgroundTransparency = 1
+	potion.Font = Enum.Font.GothamBold
+	potion.TextSize = 18
+	potion.TextColor3 = ZOMBIE_TEXT
+	potion.TextStrokeTransparency = 0.4
+	potion.Visible = false
+	potion.Parent = gui
+	local bound = false
+	local function updateBinding()
+		local zombie = player:GetAttribute("Side") == "Zombie"
+		if zombie and not bound then
+			bound = true
+			ContextActionService:BindActionAtPriority("ZombieBoost", function(_name, state)
+				if state == Enum.UserInputState.Begin then
+					zombieBoost:FireServer()
+				end
+				return Enum.ContextActionResult.Sink
+			end, true, Enum.ContextActionPriority.High.Value, Enum.KeyCode.G, Enum.KeyCode.ButtonB)
+			ContextActionService:SetTitle("ZombieBoost", "Pócima")
+		elseif not zombie and bound then
+			bound = false
+			ContextActionService:UnbindAction("ZombieBoost")
+		end
+	end
+	player:GetAttributeChangedSignal("Side"):Connect(updateBinding)
+	updateBinding()
+	task.spawn(function()
+		while true do
+			local character = player.Character
+			if bound and character then
+				local left = (character:GetAttribute("BoostReadyAt") or 0) - workspace:GetServerTimeNow()
+				potion.Text = if character:GetAttribute("Boosted")
+					then "¡Supervelocidad!"
+					elseif left > 0 then `Pócima de velocidad: lista en {math.ceil(left)} s`
+					else "Pócima de velocidad lista: G / Círculo"
+				potion.Visible = true
+			else
+				potion.Visible = false
+			end
+			task.wait(0.2)
+		end
+	end)
+
+	-- Chispas verdes en quien va con supervelocidad (jugadores y bots)
+	local function sparkle(character: Model)
+		local root = character:FindFirstChild("HumanoidRootPart")
+		local fx = root and root:FindFirstChild("BoostFx")
+		local on = character:GetAttribute("Boosted") == true
+		if on and root and not fx then
+			local emitter = Instance.new("ParticleEmitter")
+			emitter.Name = "BoostFx"
+			emitter.Color = ColorSequence.new(ZOMBIE_TEXT)
+			emitter.LightEmission = 0.8
+			emitter.Size = NumberSequence.new(0.4, 0)
+			emitter.Lifetime = NumberRange.new(0.3, 0.6)
+			emitter.Rate = 60
+			emitter.Speed = NumberRange.new(2, 5)
+			emitter.SpreadAngle = Vector2.new(180, 180)
+			emitter.Parent = root
+		elseif not on and fx then
+			fx:Destroy()
+		end
+	end
+	task.spawn(function()
+		while true do
+			for _, other in Players:GetPlayers() do
+				if other.Character then
+					sparkle(other.Character)
+				end
+			end
+			local bots = workspace:FindFirstChild("Bots")
+			for _, character in if bots then bots:GetChildren() else {} do
+				if character:IsA("Model") then
+					sparkle(character)
+				end
+			end
+			task.wait(0.2)
+		end
+	end)
 
 	-- Revisar dos veces por segundo a quién hay que resaltar
 	task.spawn(function()

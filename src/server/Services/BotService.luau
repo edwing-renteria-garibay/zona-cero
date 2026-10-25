@@ -593,6 +593,10 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 					-- A golpes: de cerca y al mismo nivel, directo hacia ti; si no, por el camino
 					-- (si estás en otro piso o detrás de algo, caminar derecho lo deja atorado)
 					local flatDistance = Vector3.new(offset.X, 0, offset.Z).Magnitude
+					-- Zombi: la pócima de supervelocidad para alcanzarte (Difícil y Extrema)
+					if level().zombiePotion and distance > 12 and distance < 40 then
+						InfectionService.Boost(character)
+					end
 					if distance < 12 and math.abs(offset.Y) < 4 then
 						humanoid:MoveTo(targetRoot.Position)
 					elseif level().smart and distance < 45 and math.abs(offset.Y) < 4 then

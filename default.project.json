@@ -49,6 +49,9 @@
         },
         "RequestMatch": {
           "$className": "RemoteEvent"
+        },
+        "ZombieBoost": {
+          "$className": "RemoteEvent"
         }
       }
     },

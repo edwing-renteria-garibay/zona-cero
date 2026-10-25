@@ -140,6 +140,8 @@ local Modes = {
 		zombieHealth = 150, -- vida de un zombi (sin escudo); un sobreviviente tiene 100 + 100 de escudo
 		zombieMeleeDamage = 1000, -- un golpe de zombi mata
 		zombieHeadStart = 5, -- segundos que los zombis del principio esperan quietos
+		-- Pócima de supervelocidad de los zombis (G o Círculo/B): corren más por unos segundos
+		zombieBoost = { multiplier = 1.7, duration = 3, cooldown = 15 },
 		botZombies = true, -- se puede jugar contra la IA: los zombis son bots
 	},
 	-- Asalto: una bomba; un equipo ataca y otro defiende, y cada ronda se cambian
