@@ -30,7 +30,7 @@ local KEYBOARD = {
 	{ "1 - 9", "Elegir arma" },
 	{ "E", "Cambiar arma del piso" },
 	{ "B", "Tienda" },
-	{ "M", "Menú de partidas" },
+	{ "M", "Menú (en una sala: invitar, etc.)" },
 	{ "Tab", "Mostrar / ocultar" },
 }
 
