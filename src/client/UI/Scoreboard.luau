@@ -3,6 +3,9 @@
 -- y abajo en qué lugar vas. En Infección, cuántos sobrevivientes (izquierda) y zombis (derecha).
 -- Debajo de cada caja, un letrero dice qué es ("Tus bajas", "Líder", "Tu equipo"...).
 -- Antes de empezar muestra "Esperando jugadores" o la cuenta regresiva en grande.
+-- En los modos por equipos avisa de qué equipo eres y quiénes son tus enemigos ("Tus
+-- enemigos son los Rojos"): en grande en la cuenta regresiva y al empezar, y siempre en la
+-- línea de la meta.
 -- Todo se lee de los atributos que pone MatchService en ReplicatedStorage y en cada Team.
 
 local Players = game:GetService("Players")
@@ -98,6 +101,17 @@ local function leaderKills(): number
 	return best
 end
 
+local NOTE_AFTER_START = 6 -- segundos que sigue el aviso de equipos ya empezada la partida
+
+-- "Rojo" → "Rojos", "Azul" → "Azules"
+local function plural(name: string): string
+	return if name:match("[aeiou]$") then name .. "s" else name .. "es"
+end
+
+local function colored(text: string, color: Color3): string
+	return string.format('<font color="#%s">%s</font>', color:ToHex(), text)
+end
+
 local function formatTime(seconds: number): string
 	seconds = math.max(0, math.ceil(seconds))
 	return string.format("%d:%02d", seconds // 60, seconds % 60)
@@ -138,6 +152,16 @@ function Scoreboard.Start()
 	banner.AnchorPoint = Vector2.new(0.5, 0.5)
 	banner.Position = UDim2.fromScale(0.5, 0.3)
 
+	-- Debajo: de qué equipo eres y quiénes son tus enemigos
+	local teamNote = makeLabel(gui, UDim2.fromOffset(700, 34), 24)
+	teamNote.AnchorPoint = Vector2.new(0.5, 0)
+	teamNote.Position = UDim2.new(0.5, 0, 0.3, 34)
+	teamNote.Font = Enum.Font.GothamBold
+	teamNote.RichText = true
+
+	local lastPhase = nil
+	local playingSince = 0
+
 	RunService.RenderStepped:Connect(function()
 		local phase = ReplicatedStorage:GetAttribute("MatchPhase")
 		local mode = ReplicatedStorage:GetAttribute("MatchMode")
@@ -153,6 +177,33 @@ function Scoreboard.Start()
 		end)
 		local left, right = teams[1], teams[2]
 		bar.Visible = left ~= nil and right ~= nil
+		-- Tus enemigos (solo en los modos por equipos, y si ya tienes equipo)
+		local rules = Modes[mode]
+		local enemies = if mode ~= "Infection"
+				and type(rules) == "table"
+				and rules.teams
+				and not player.Neutral
+				and left == player.Team
+			then right
+			else nil
+		if phase ~= lastPhase then
+			lastPhase = phase
+			if phase == "Playing" then
+				playingSince = os.clock()
+			end
+		end
+		local showNote = phase == "Countdown"
+			or (phase == "Playing" and os.clock() - playingSince < NOTE_AFTER_START)
+		local myTeam = player.Team
+		teamNote.Text = if enemies
+				and myTeam
+				and showNote
+			then string.format(
+				"Eres del equipo %s · Tus enemigos son los %s",
+				colored(myTeam.Name, myTeam.TeamColor.Color),
+				colored(plural(enemies.Name), enemies.TeamColor.Color)
+			)
+			else ""
 		if mode == "Infection" then
 			leftBox.BackgroundColor3 = SURVIVORS
 			rightBox.BackgroundColor3 = ZOMBIES
@@ -183,7 +234,6 @@ function Scoreboard.Start()
 				then "capturas"
 				elseif mode == "KingOfTheHill" then "segundos en la colina"
 				else "bajas"
-			local rules = Modes[mode]
 			if mode == "Assault" then
 				local attackers = ReplicatedStorage:GetAttribute("AssaultAttackers")
 				local roundEnds = ReplicatedStorage:GetAttribute("AssaultRoundEndsAt") or 0
@@ -210,6 +260,9 @@ function Scoreboard.Start()
 					local rank, total = myRank()
 					goal.Text ..= string.format(" · Vas %d.º de %d", rank, total)
 				end
+			end
+			if enemies then
+				goal.Text ..= " · Enemigos: " .. plural(enemies.Name)
 			end
 			banner.Text = ""
 		elseif phase == "Countdown" then
