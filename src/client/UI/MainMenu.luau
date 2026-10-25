@@ -357,7 +357,7 @@ local function showJoin()
 end
 
 function showHome()
-	page("ZONA CERO", "¿Cómo quieres jugar?", nil)
+	page("ESCUADRÓN CERO", "¿Cómo quieres jugar?", nil)
 	showGrid({
 		{
 			text = "Partida rápida\nJuega ya: modo al azar y bots si falta gente",
@@ -384,7 +384,7 @@ local function inviteFriends()
 		return
 	end
 	local options = Instance.new("ExperienceInviteOptions")
-	options.PromptMessage = "¡Ven a jugar conmigo a Zona Cero!"
+	options.PromptMessage = "¡Ven a jugar conmigo a Escuadrón Cero!"
 	if type(code) == "string" then
 		options.LaunchData = HttpService:JSONEncode({ join = code })
 	end
