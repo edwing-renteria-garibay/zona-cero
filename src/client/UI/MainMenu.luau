@@ -2,11 +2,13 @@
 --   Partida rápida   cierra el menú y juegas aquí (modo al azar; si falta gente, hay bots)
 --   Contra la IA     eliges un modo y vas a un servidor solo para ti (y tus amigos) contra bots
 --   Partida privada  eliges modo y mapa, y vas a un servidor para jugar con tus amigos
+--   Unirse con código  escribes el código de 6 números de la sala de un amigo y entras
 -- Se vuelve a abrir con el botón "Menú (M)", la tecla M o la cruceta → del control. En una
 -- sala, la tecla M abre la página de la sala (invitar, cambiar modo...) con el mouse libre.
 --
 -- En una partida contra la IA o privada, en vez del menú hay botones: "Invitar amigos"
--- (la ventana de invitaciones de Roblox), "Salir a partida rápida" y, para el anfitrión,
+-- (la ventana de invitaciones de Roblox; el botón muestra el código de la sala, para los
+-- amigos de otra consola, que no reciben la invitación), "Salir a partida rápida" y, para el anfitrión,
 -- "Iniciar partida" y "Cambiar modo" (cambia modo, mapa o dificultad sin salir de la sala). Con control, la cruceta →
 -- entra a esos botones; al apretar uno se sueltan solos para volver a moverte y disparar.
 -- El menú solo pide cosas al servidor (RemoteEvent "RequestMatch"); el que crea la partida y
@@ -116,12 +118,9 @@ local function setOpen(open: boolean)
 	end
 end
 
+-- Borra la página anterior (botones y su cuadrícula)
 local function clearContent()
-	for _, child in content:GetChildren() do
-		if child:IsA("GuiObject") then
-			child:Destroy()
-		end
-	end
+	content:ClearAllChildren()
 end
 
 -- Una cuadrícula de botones, uno por opción
@@ -306,6 +305,57 @@ function showPrivateMode()
 	end, showPrivateMap))
 end
 
+-- Para entrar a la sala de un amigo con su código (sirve entre PS5, Xbox, PC y móvil)
+local function showJoin()
+	page("Unirse con código", "Escribe el código de 6 números que ve tu amigo en su sala.", showHome)
+	clearContent()
+	local box = Instance.new("TextBox")
+	box.Size = UDim2.new(1, 0, 0, 56)
+	box.BackgroundColor3 = CARD
+	box.Font = Enum.Font.GothamBold
+	box.TextSize = 30
+	box.TextColor3 = TEXT
+	box.PlaceholderText = "000000"
+	box.PlaceholderColor3 = MUTED
+	box.Text = ""
+	box.ClearTextOnFocus = false
+	box.Parent = content
+	corner(box, 8)
+	-- Solo números, hasta 6
+	box:GetPropertyChangedSignal("Text"):Connect(function()
+		local digits = box.Text:gsub("%D", ""):sub(1, 6)
+		if digits ~= box.Text then
+			box.Text = digits
+		end
+	end)
+	local enter = newButton(content, "Entrar", UDim2.new(1, 0, 0, 44), PRIVATE_COLOR)
+	enter.Position = UDim2.fromOffset(0, 68)
+	local function send()
+		if busy then
+			return
+		end
+		if #box.Text ~= 6 then
+			status.TextColor3 = Color3.fromRGB(240, 110, 100)
+			status.Text = "El código son 6 números."
+			return
+		end
+		status.TextColor3 = ACCENT
+		status.Text = "Buscando la sala..."
+		requestMatch:FireServer("join", box.Text)
+	end
+	enter.Activated:Connect(send)
+	box.FocusLost:Connect(function(enterPressed)
+		if enterPressed then
+			send()
+		end
+	end)
+	if usingGamepad() then
+		task.defer(function()
+			GuiService.SelectedObject = box -- con control: A abre el teclado de la consola
+		end)
+	end
+end
+
 function showHome()
 	page("ZONA CERO", "¿Cómo quieres jugar?", nil)
 	showGrid({
@@ -322,6 +372,7 @@ function showHome()
 			color = PRIVATE_COLOR,
 			onClick = showPrivateMode,
 		},
+		{ text = "Unirse con código\nEntra a la sala de un amigo", onClick = showJoin },
 	}, true)
 end
 
@@ -345,9 +396,11 @@ end
 -- dar clic a esos botones; con el menú abierto el mouse queda libre
 local function showRoom(kind: string)
 	local isHost = ReplicatedStorage:GetAttribute("HostUserId") == player.UserId
+	local roomCode = ReplicatedStorage:GetAttribute("RoomCode")
 	page(
 		if kind == "ai" then "Contra la IA" else "Partida privada",
-		'Tu sala. Cierra con M o con "Volver al juego".',
+		(if type(roomCode) == "string" then `Código de la sala: {roomCode}. ` else "")
+			.. 'Cierra con M o con "Volver al juego".',
 		nil
 	)
 	local options = {}
@@ -511,6 +564,15 @@ local function buildSideButtons(gui: ScreenGui, kind: string)
 	invite.TextSize = 14
 	invite.LayoutOrder = 4
 	invite.Activated:Connect(inviteFriends)
+	-- El código de la sala, para los amigos de otra consola ("Unirse con código")
+	local function updateCode()
+		local roomCode = ReplicatedStorage:GetAttribute("RoomCode")
+		invite.Text = if type(roomCode) == "string"
+			then `Invitar amigos · código {roomCode}`
+			else "Invitar amigos"
+	end
+	ReplicatedStorage:GetAttributeChangedSignal("RoomCode"):Connect(updateCode)
+	updateCode()
 	local leave = newButton(holder, "Salir a partida rápida", size, BACKGROUND)
 	leave.BackgroundTransparency = 0.2
 	leave.TextSize = 14
