@@ -3,6 +3,7 @@
 -- la pantalla de resultados, lo que se ve en Infección, la tienda, el menú de partidas y el cuadro de controles.
 
 local AimPose = require(script.Controllers.AimPose)
+local AudioSettings = require(script.Controllers.AudioSettings)
 local CameraController = require(script.Controllers.CameraController)
 local GrenadeController = require(script.Controllers.GrenadeController)
 local MeleeController = require(script.Controllers.MeleeController)
@@ -25,6 +26,7 @@ local Scoreboard = require(script.UI.Scoreboard)
 local Shop = require(script.UI.Shop)
 local Standings = require(script.UI.Standings)
 
+AudioSettings.Start() -- grupos de música y efectos (se apagan desde el menú)
 CameraController.Start()
 AimPose.Start() -- torso y brazos se inclinan hacia la mira
 ViewModel.Start()

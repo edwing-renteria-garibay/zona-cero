@@ -3,6 +3,7 @@
 --   Contra la IA     eliges un modo y vas a un servidor solo para ti (y tus amigos) contra bots
 --   Partida privada  eliges modo y mapa, y vas a un servidor para jugar con tus amigos
 --   Unirse con código  escribes el código de 6 números de la sala de un amigo y entras
+--   Sonido           apagar o prender la música y los efectos (también en la página de la sala)
 -- Se vuelve a abrir con el botón "Menú (M)", la tecla M o la cruceta → del control. En una
 -- sala, la tecla M abre la página de la sala (invitar, cambiar modo...) con el mouse libre.
 --
@@ -22,6 +23,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SocialService = game:GetService("SocialService")
 local UserInputService = game:GetService("UserInputService")
 
+local AudioSettings = require(script.Parent.Parent.Controllers.AudioSettings)
 local Bots = require(ReplicatedStorage.Shared.Config.Bots)
 local Maps = require(ReplicatedStorage.Shared.Config.Maps)
 local Modes = require(ReplicatedStorage.Shared.Config.Modes)
@@ -356,6 +358,26 @@ local function showJoin()
 	end
 end
 
+-- Prender o apagar la música y los efectos de sonido (cada uno por separado)
+local function showSound(onBack: () -> ())
+	page("Sonido", "Toca un botón para prenderlo o apagarlo. Se guarda para la próxima vez.", onBack)
+	local function option(kind: string, onText: string, offText: string)
+		local muted = AudioSettings.IsMuted(kind)
+		return {
+			text = if muted then offText else onText,
+			color = if muted then CARD else PRIVATE_COLOR,
+			onClick = function()
+				AudioSettings.SetMuted(kind, not muted)
+				showSound(onBack)
+			end,
+		}
+	end
+	showGrid({
+		option("Music", "Música: prendida", "Música: apagada"),
+		option("Effects", "Efectos: prendidos", "Efectos: apagados"),
+	})
+end
+
 function showHome()
 	page("ESCUADRÓN CERO", "¿Cómo quieres jugar?", nil)
 	showGrid({
@@ -373,6 +395,12 @@ function showHome()
 			onClick = showPrivateMode,
 		},
 		{ text = "Unirse con código\nEntra a la sala de un amigo", onClick = showJoin },
+		{
+			text = "Sonido\nApaga la música o los efectos",
+			onClick = function()
+				showSound(showHome)
+			end,
+		},
 	}, true)
 end
 
@@ -441,6 +469,14 @@ local function showRoom(kind: string)
 			status.TextColor3 = ACCENT
 			status.Text = "Saliendo..."
 			requestMatch:FireServer("leave")
+		end,
+	})
+	table.insert(options, {
+		text = "Sonido",
+		onClick = function()
+			showSound(function()
+				showRoom(kind)
+			end)
 		end,
 	})
 	table.insert(options, {
