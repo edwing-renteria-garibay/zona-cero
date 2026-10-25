@@ -132,6 +132,11 @@ local function chooseWeapon(card: Instance): (string?, any, boolean)
 	if isZombie(card) then
 		return "Machete", Melee.weapons.Machete, true
 	end
+	-- El arma que le tocó al aparecer (Bots.weaponPool)
+	local picked = card:GetAttribute("BotWeapon")
+	if type(picked) == "string" and Weapons[picked] then
+		return picked, Weapons[picked], false
+	end
 	local loadout = rules.loadout or Modes.Common.loadout
 	for _, name in loadout do
 		local stats = Weapons[name]
@@ -410,6 +415,8 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 		humanoid.AutoRotate = true
 	end
 
+	local shootRay: (from: Vector3, aimPoint: Vector3, spread: number) -> ()
+
 	-- Un disparo: un raycast desviado al azar (spread de la dificultad) hacia el pecho del enemigo
 	local function shoot(targetRoot: BasePart)
 		local muzzle = tool and tool:FindFirstChild("Muzzle", true) :: Attachment?
@@ -433,7 +440,17 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 		if level().smart and targetHead and math.random() < (level().headshotChance or 0) then
 			aimPoint = targetHead.Position
 		end
-		local direction = spreadDirection(aimPoint - head.Position, level().spread) * stats.range
+		-- La escopeta tira varios perdigones, cada uno con su propio raycast
+		local pellets = if stats.kind == "pellets" then stats.pellets or 1 else 1
+		for _ = 1, pellets do
+			local spread = level().spread + (if pellets > 1 then stats.spread or 0 else 0)
+			shootRay(from, aimPoint, spread)
+		end
+	end
+
+	-- Un raycast (una bala o un perdigón) hacia aimPoint, desviado hasta spread grados
+	function shootRay(from: Vector3, aimPoint: Vector3, spread: number)
+		local direction = spreadDirection(aimPoint - head.Position, spread) * stats.range
 		local result = workspace:Raycast(head.Position, direction, params)
 		local surface: string? = nil
 		if result then
@@ -636,7 +653,7 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 					end
 				else
 					-- Con arma de fuego: se acerca, se aleja o se mueve de lado
-					local preferred = Bots.preferredDistance
+					local preferred = Bots.weaponDistance[weaponName] or Bots.preferredDistance
 					local flat = Vector3.new(offset.X, 0, offset.Z).Unit
 					if distance > preferred + 15 then
 						walkTo(targetRoot.Position)
@@ -707,6 +724,26 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 	end
 end
 
+-- Un arma al azar de Bots.weaponPool, según qué tan seguido sale cada una
+local function pickWeapon(): string?
+	local total = 0
+	for name, weight in Bots.weaponPool do
+		if Weapons[name] and ServerStorage.Weapons:FindFirstChild(name) then
+			total += weight
+		end
+	end
+	local roll = math.random() * total
+	for name, weight in Bots.weaponPool do
+		if Weapons[name] and ServerStorage.Weapons:FindFirstChild(name) then
+			roll -= weight
+			if roll <= 0 then
+				return name
+			end
+		end
+	end
+	return nil
+end
+
 -- Hace aparecer a un bot (al empezar y cada vez que reaparece)
 function spawnBot(card: Instance)
 	if not active or card.Parent ~= Combatants.Cards then
@@ -725,6 +762,11 @@ function spawnBot(card: Instance)
 	ProjectileService.SetupCharacter(character) -- sus granadas (o SimiOs)
 	animate(character, humanoid)
 
+	-- En los modos con las armas de siempre, cada vez que aparece le toca una al azar
+	card:SetAttribute("BotWeapon", nil)
+	if not isZombie(card) and not rules.loadout and rules.pickups ~= false then
+		card:SetAttribute("BotWeapon", pickWeapon())
+	end
 	local weaponName = chooseWeapon(card)
 	local template = weaponName and ServerStorage.Weapons:FindFirstChild(weaponName)
 	if isZombie(card) then

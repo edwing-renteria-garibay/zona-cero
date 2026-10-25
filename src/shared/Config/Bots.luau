@@ -72,6 +72,20 @@ return {
 		},
 	},
 	preferredDistance = 35, -- studs: con un arma de fuego intenta quedarse a esta distancia
+	-- ...o a esta, según el arma que lleve
+	weaponDistance = { Sniper = 90, LaserRifle = 60, Shotgun = 10, Pistol = 30 },
+
+	-- En los modos con las armas de siempre (sin loadout propio: Asesino por equipos, en
+	-- solitario, Infección...), cada bot aparece con una de estas al azar. El número es qué
+	-- tan seguido sale (5 = cinco veces más que una de 1)
+	weaponPool = {
+		AssaultRifle = 4,
+		Pistol = 1,
+		Shotgun = 2,
+		Sniper = 1,
+		LaserRifle = 1,
+		RocketLauncher = 1,
+	},
 
 	-- Contra la IA (botón del menú): todos los jugadores en Azul y los bots rivales en Rojo.
 	-- En los modos por equipos se juega teamSize contra teamSize: si faltan jugadores en Azul,
