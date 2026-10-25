@@ -131,7 +131,8 @@ local Modes = {
 		teams = false,
 		vehicles = false,
 		scoreBy = "infection",
-		pickups = false,
+		-- Las plataformas de armas y granadas siguen: los sobrevivientes se arman con lo que
+		-- encuentren (los zombis no pueden recoger nada, ver PickupService)
 		playersPerZombie = 4, -- 1 zombi por cada 4 jugadores...
 		maxZombies = 6, -- ...hasta 6 (siempre al menos 1)
 		zombieSpeed = 26, -- los sobrevivientes caminan a 16
