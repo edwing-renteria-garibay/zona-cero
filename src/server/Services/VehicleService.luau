@@ -166,6 +166,34 @@ local function addSounds(model: Model, chassis: BasePart)
 	end)
 end
 
+-- Los zombis (Infección) no manejan ni se suben: si uno se sienta, lo bajan en seguida.
+-- El asiento se apaga un momento para que no se vuelva a sentar al seguir tocándolo
+local function keepZombiesOut(model: Model)
+	for _, seat in model:GetChildren() do
+		if not seat:IsA("Seat") and not seat:IsA("VehicleSeat") then
+			continue
+		end
+		local anySeat = seat :: any
+		seat:GetPropertyChangedSignal("Occupant"):Connect(function()
+			local humanoid = anySeat.Occupant :: Humanoid?
+			local who = humanoid and Combatants.FromCharacter(humanoid.Parent)
+			if not humanoid or not who or who:GetAttribute("Side") ~= "Zombie" then
+				return
+			end
+			local weld = seat:FindFirstChild("SeatWeld")
+			if weld then
+				weld:Destroy()
+			end
+			humanoid.Sit = false
+			humanoid.Jump = true
+			anySeat.Disabled = true
+			task.delay(1.5, function()
+				anySeat.Disabled = false
+			end)
+		end)
+	end
+end
+
 -- Lo que gira arriba del jeep: el cañón de la ametralladora o la caja del lanzacohetes.
 -- Se llama "TurretBarrel" en los dos, y su punta (donde salen balas o cohetes) está
 -- 2 studs delante de su centro
@@ -334,6 +362,7 @@ local function buildJeep(spawnCFrame: CFrame, kind: string): Model
 	steering.Parent = chassis
 
 	addSounds(model, chassis)
+	keepZombiesOut(model)
 
 	-- Barra de vida sobre el jeep, visible para todos los jugadores cercanos
 	local billboard = Instance.new("BillboardGui")

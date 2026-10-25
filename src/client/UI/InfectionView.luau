@@ -1,6 +1,9 @@
 -- Lo que se ve en el modo Infección:
 --   · Al zombi, los sobrevivientes se le resaltan a través de las paredes (Highlight).
 --   · Un aviso grande cuando te toca ser zombi o cuando empiezas como sobreviviente.
+--   · A los zombis del principio, que esperan quietos unos segundos (atributo "Held" del
+--     personaje, ver InfectionService), se les dice cuánto falta y, al soltarlos,
+--     "¡A por los sobrevivientes!".
 -- El lado de cada jugador es su atributo "Side" (lo pone InfectionService en el servidor).
 
 local Players = game:GetService("Players")
@@ -68,6 +71,38 @@ function InfectionView.Start()
 			show("Sobrevive: hay zombis entre ustedes", Color3.new(1, 1, 1))
 		end
 	end)
+
+	-- La pausa de los zombis del principio: cuenta lo que falta y luego los manda
+	local function countHold(character: Model)
+		while character.Parent and character:GetAttribute("Held") do
+			local untilTime = character:GetAttribute("HeldUntil") or 0
+			local left = math.max(1, math.ceil(untilTime - workspace:GetServerTimeNow()))
+			banner.Text = `¡Eres zombi! Sales en {left} s: prepárate`
+			banner.TextColor3 = ZOMBIE_TEXT
+			banner.Visible = true
+			shownAt = os.clock()
+			task.wait(0.2)
+		end
+		if character.Parent and player:GetAttribute("Side") == "Zombie" then
+			show("¡A por los sobrevivientes!", ZOMBIE_TEXT)
+		end
+	end
+	local function watchHold(character: Model)
+		local counting = false
+		local function check()
+			if character:GetAttribute("Held") and not counting then
+				counting = true
+				countHold(character)
+				counting = false
+			end
+		end
+		character:GetAttributeChangedSignal("Held"):Connect(check)
+		task.spawn(check)
+	end
+	player.CharacterAdded:Connect(watchHold)
+	if player.Character then
+		watchHold(player.Character)
+	end
 
 	-- Revisar dos veces por segundo a quién hay que resaltar
 	task.spawn(function()
