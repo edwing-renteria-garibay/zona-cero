@@ -11,6 +11,11 @@
 -- rules.zombieHeadStart segundos, para que los sobrevivientes se alejen y se escondan. Además
 -- aparecen en el punto más lejano de los sobrevivientes (MatchService y BotService).
 --
+-- Pócima de supervelocidad: un zombi (jugador con G o Círculo/B, o bot al perseguir) corre
+-- rules.zombieBoost.multiplier veces más rápido por unos segundos y luego espera a que se
+-- recargue. El personaje lleva "BoostReadyAt" (hora del servidor en que se puede volver a
+-- tomar) y "Boosted" mientras dura, para el aviso y el brillo en el cliente.
+--
 -- Cada jugador (y cada bot) tiene el atributo "Side": "Zombie" o "Survivor" (solo durante la partida).
 -- Los del mismo lado no se pueden hacer daño (ver CombatService y ExplosionService).
 -- En ReplicatedStorage, "Survivors" y "Zombies" dicen cuántos hay de cada lado.
@@ -24,6 +29,7 @@ local Combatants = require(script.Parent.Combatants)
 local HealthService = require(script.Parent.HealthService)
 
 local killFeed = ReplicatedStorage.Remotes.KillFeed :: RemoteEvent
+local zombieBoost = ReplicatedStorage.Remotes.ZombieBoost :: RemoteEvent
 
 local ZOMBIE_SKIN = Color3.fromRGB(110, 150, 80)
 local ZOMBIE_TEXT = Color3.fromRGB(120, 220, 90)
@@ -42,6 +48,37 @@ local releaseAt = 0 -- os.clock() en que los zombis del principio pueden moverse
 
 function InfectionService.IsZombie(player: Player): boolean
 	return player:GetAttribute("Side") == "Zombie"
+end
+
+-- Toma la pócima si se puede (es zombi, no está en su pausa, vivo y ya se recargó).
+-- Devuelve si la tomó
+function InfectionService.Boost(character: Model): boolean
+	local boost = rules and rules.zombieBoost
+	local who = Combatants.FromCharacter(character)
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not active or not boost or not who or who:GetAttribute("Side") ~= "Zombie" then
+		return false
+	end
+	if not humanoid or humanoid.Health <= 0 or character:GetAttribute("Held") then
+		return false
+	end
+	local now = workspace:GetServerTimeNow()
+	if now < (character:GetAttribute("BoostReadyAt") or 0) then
+		return false
+	end
+	character:SetAttribute("BoostReadyAt", now + boost.duration + boost.cooldown)
+	character:SetAttribute("Boosted", true)
+	local normal = humanoid.WalkSpeed
+	local fast = normal * boost.multiplier
+	humanoid.WalkSpeed = fast
+	task.delay(boost.duration, function()
+		character:SetAttribute("Boosted", nil)
+		-- Si algo más le cambió la velocidad mientras tanto (el hielo), no se toca
+		if humanoid.Parent and humanoid.WalkSpeed == fast then
+			humanoid.WalkSpeed = normal
+		end
+	end)
+	return true
 end
 
 -- Cuenta a cada lado y lo publica para el marcador
@@ -218,6 +255,11 @@ function InfectionService.SetupCharacter(player: Player, character: Model)
 end
 
 function InfectionService.Start()
+	zombieBoost.OnServerEvent:Connect(function(player)
+		if player.Character then
+			InfectionService.Boost(player.Character)
+		end
+	end)
 	HealthService.Killed:Connect(function(victim: Player)
 		if active and victim:GetAttribute("Side") == "Survivor" then
 			infect(victim, true)

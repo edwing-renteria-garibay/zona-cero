@@ -28,6 +28,11 @@ return {
 	--   spread: grados que se desvía cada bala al azar (más = falla más)
 	--   damageMultiplier: qué parte del daño normal hacen (0.7 = 70 %)
 	--   sightRange: studs; más lejos de eso no te ve
+	--   speedMultiplier: qué tan rápido camina comparado con un jugador (1.25 = 25 % más);
+	--     también a los bots zombis de Infección
+	--   zombiePotion: true = de zombi, se toma la pócima de supervelocidad al perseguirte
+	--   smart: true = juega más listo: apunta a veces a la cabeza, salta al moverse de lado
+	--     para que sea difícil atinarle y, de zombi, corre hacia donde vas, no hacia donde estás
 	difficultyOrder = { "Beginner", "Intermediate", "Hard", "Extreme" }, -- orden en el menú
 	defaultDifficulty = "Intermediate",
 	difficulties = {
@@ -51,10 +56,36 @@ return {
 			spread = 2,
 			damageMultiplier = 0.9,
 			sightRange = 220,
+			speedMultiplier = 1.1,
+			zombiePotion = true,
 		},
-		Extreme = { name = "Extrema", reactionTime = 0.2, spread = 1, damageMultiplier = 1, sightRange = 300 },
+		Extreme = {
+			name = "Extrema",
+			reactionTime = 0.2,
+			spread = 1,
+			damageMultiplier = 1,
+			sightRange = 300,
+			speedMultiplier = 1.25,
+			zombiePotion = true,
+			smart = true,
+			headshotChance = 0.35, -- con smart: de cada 100 tiros, cuántos apunta a la cabeza
+		},
 	},
 	preferredDistance = 35, -- studs: con un arma de fuego intenta quedarse a esta distancia
+	-- ...o a esta, según el arma que lleve
+	weaponDistance = { Sniper = 90, LaserRifle = 60, Shotgun = 10, Pistol = 30 },
+
+	-- En los modos con las armas de siempre (sin loadout propio: Asesino por equipos, en
+	-- solitario, Infección...), cada bot aparece con una de estas al azar. El número es qué
+	-- tan seguido sale (5 = cinco veces más que una de 1)
+	weaponPool = {
+		AssaultRifle = 4,
+		Pistol = 1,
+		Shotgun = 2,
+		Sniper = 1,
+		LaserRifle = 1,
+		RocketLauncher = 1,
+	},
 
 	-- Contra la IA (botón del menú): todos los jugadores en Azul y los bots rivales en Rojo.
 	-- En los modos por equipos se juega teamSize contra teamSize: si faltan jugadores en Azul,

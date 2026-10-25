@@ -50,6 +50,7 @@ local Modes = {
 		grenades = 0,
 		pickups = false,
 		testingKeepsLoadout = true, -- también en el modo de prueba: solo lanzacohetes
+		bots = true, -- los bots también disparan cohetes
 	},
 	-- A puño limpio: sin armas de fuego ni granadas; solo el machete (clic o F). Por la espalda, mata de uno
 	Brawl = {
@@ -122,6 +123,7 @@ local Modes = {
 		pickupRadius = 5, -- studs para tomar o regresar una bandera
 		captureRadius = 6, -- studs de tu base para capturar
 		flagReturnTime = 30, -- segundos que una bandera tirada tarda en volver sola
+		bots = true, -- los bots van por la bandera, la defienden y la regresan (FlagService.BotGoal)
 	},
 	-- Infección: zombis contra sobrevivientes (ver InfectionService)
 	Infection = {
@@ -131,7 +133,8 @@ local Modes = {
 		teams = false,
 		vehicles = false,
 		scoreBy = "infection",
-		pickups = false,
+		-- Las plataformas de armas y granadas siguen: los sobrevivientes se arman con lo que
+		-- encuentren (los zombis no pueden recoger nada, ver PickupService)
 		playersPerZombie = 4, -- 1 zombi por cada 4 jugadores...
 		maxZombies = 6, -- ...hasta 6 (siempre al menos 1)
 		zombieSpeed = 26, -- los sobrevivientes caminan a 16
@@ -139,6 +142,8 @@ local Modes = {
 		zombieHealth = 150, -- vida de un zombi (sin escudo); un sobreviviente tiene 100 + 100 de escudo
 		zombieMeleeDamage = 1000, -- un golpe de zombi mata
 		zombieHeadStart = 5, -- segundos que los zombis del principio esperan quietos
+		-- Pócima de supervelocidad de los zombis (G o Círculo/B): corren más por unos segundos
+		zombieBoost = { multiplier = 1.7, duration = 3, cooldown = 15 },
 		botZombies = true, -- se puede jugar contra la IA: los zombis son bots
 	},
 	-- Asalto: una bomba; un equipo ataca y otro defiende, y cada ronda se cambian

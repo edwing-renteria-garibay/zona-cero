@@ -28,6 +28,7 @@ local AimPose = require(script.Parent.AimPose)
 local Combatants = require(script.Parent.Combatants)
 local ExplosionService = require(script.Parent.ExplosionService)
 local HealthService = require(script.Parent.HealthService)
+local FlagService = require(script.Parent.FlagService)
 local InfectionService = require(script.Parent.InfectionService)
 local MatchSettings = require(script.Parent.MatchSettings)
 local ProjectileService = require(script.Parent.ProjectileService)
@@ -125,16 +126,28 @@ local function isZombie(card: Instance): boolean
 end
 
 -- Con qué pelea el bot en este modo: el primer arma de fuego normal de su loadout
--- (rifle, pistola...). Si no hay ninguna, va a golpes, con el arma de golpe que haya.
+-- (rifle, pistola...); si no hay, el lanzacohetes (SWAT explosivo). Si no hay ninguna, va a
+-- golpes, con el arma de golpe que haya.
 -- Un bot zombi (Infección contra la IA) solo lleva el machete.
 local function chooseWeapon(card: Instance): (string?, any, boolean)
 	if isZombie(card) then
 		return "Machete", Melee.weapons.Machete, true
 	end
+	-- El arma que le tocó al aparecer (Bots.weaponPool)
+	local picked = card:GetAttribute("BotWeapon")
+	if type(picked) == "string" and Weapons[picked] then
+		return picked, Weapons[picked], false
+	end
 	local loadout = rules.loadout or Modes.Common.loadout
 	for _, name in loadout do
 		local stats = Weapons[name]
 		if stats and not stats.kind and not stats.projectile then
+			return name, stats, false
+		end
+	end
+	for _, name in loadout do
+		local stats = Weapons[name]
+		if stats and not stats.kind and stats.projectile then
 			return name, stats, false
 		end
 	end
@@ -270,6 +283,8 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 	local warnedPath = false
 	local wanderGoal: Vector3? = nil
 	local nextGrenade = os.clock() + 2 + math.random() * 3
+	-- Captura la bandera: más o menos uno de cada tres cuida la base; los demás atacan
+	local defender = #card.Name % 3 == 0
 
 	-- ¿Lo ve? Un raycast de su cabeza a la del otro que no choque con nada antes
 	local function canSee(otherCharacter: Model, otherRoot: BasePart): boolean
@@ -403,12 +418,42 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 		humanoid.AutoRotate = true
 	end
 
+	local shootRay: (from: Vector3, aimPoint: Vector3, spread: number) -> ()
+
 	-- Un disparo: un raycast desviado al azar (spread de la dificultad) hacia el pecho del enemigo
 	local function shoot(targetRoot: BasePart)
 		local muzzle = tool and tool:FindFirstChild("Muzzle", true) :: Attachment?
 		local from = if muzzle then muzzle.WorldPosition else head.Position
+		if stats.projectile then
+			-- Cohete: a los pies, para que la explosión alcance aunque no atine directo. Los
+			-- listos le apuntan a donde vas a estar cuando llegue
+			local aimAt = targetRoot.Position - Vector3.new(0, 2.5, 0)
+			if level().smart then
+				local velocity = targetRoot.AssemblyLinearVelocity
+				local travel = (aimAt - from).Magnitude / stats.speed
+				aimAt += Vector3.new(velocity.X, 0, velocity.Z) * travel
+			end
+			local direction = spreadDirection(aimAt - from, level().spread)
+			ProjectileService.FireRocket(card :: any, from, direction, stats, { character })
+			return
+		end
 		local aimPoint = targetRoot.Position + Vector3.new(0, 1, 0)
-		local direction = spreadDirection(aimPoint - head.Position, level().spread) * stats.range
+		-- Los listos (Extrema) a veces apuntan a la cabeza
+		local targetHead = targetRoot.Parent and targetRoot.Parent:FindFirstChild("Head") :: BasePart?
+		if level().smart and targetHead and math.random() < (level().headshotChance or 0) then
+			aimPoint = targetHead.Position
+		end
+		-- La escopeta tira varios perdigones, cada uno con su propio raycast
+		local pellets = if stats.kind == "pellets" then stats.pellets or 1 else 1
+		for _ = 1, pellets do
+			local spread = level().spread + (if pellets > 1 then stats.spread or 0 else 0)
+			shootRay(from, aimPoint, spread)
+		end
+	end
+
+	-- Un raycast (una bala o un perdigón) hacia aimPoint, desviado hasta spread grados
+	function shootRay(from: Vector3, aimPoint: Vector3, spread: number)
+		local direction = spreadDirection(aimPoint - head.Position, spread) * stats.range
 		local result = workspace:Raycast(head.Position, direction, params)
 		local surface: string? = nil
 		if result then
@@ -557,6 +602,13 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 			seenAt = math.huge
 		end
 
+		-- Captura la bandera: a dónde ir (ver FlagService.BotGoal). urgent = va aunque haya
+		-- enemigos enfrente, disparando mientras camina
+		local goal: Vector3?, urgent = nil, false
+		if rules.scoreBy == "captures" then
+			goal, urgent = FlagService.BotGoal(card, root.Position, defender)
+		end
+
 		local targetCharacter, targetHumanoid, targetRoot
 		if who then
 			targetCharacter, targetHumanoid, targetRoot = aliveBody(who)
@@ -588,8 +640,17 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 					-- A golpes: de cerca y al mismo nivel, directo hacia ti; si no, por el camino
 					-- (si estás en otro piso o detrás de algo, caminar derecho lo deja atorado)
 					local flatDistance = Vector3.new(offset.X, 0, offset.Z).Magnitude
+					-- Zombi: la pócima de supervelocidad para alcanzarte (Difícil y Extrema)
+					if level().zombiePotion and distance > 12 and distance < 40 then
+						InfectionService.Boost(character)
+					end
 					if distance < 12 and math.abs(offset.Y) < 4 then
 						humanoid:MoveTo(targetRoot.Position)
+					elseif level().smart and distance < 45 and math.abs(offset.Y) < 4 then
+						-- Los listos le cortan el paso: corren hacia donde vas a estar
+						local velocity = targetRoot.AssemblyLinearVelocity
+						local ahead = Vector3.new(velocity.X, 0, velocity.Z) * math.min(distance / 30, 0.8)
+						humanoid:MoveTo(targetRoot.Position + ahead)
 					elseif offset.Y >= 4 and flatDistance < 14 then
 						-- Está arriba, a un salto (sobre una caja o columna): corre hacia él y salta.
 						-- Un zombi salta más alto que un sobreviviente (ver InfectionService)
@@ -602,9 +663,11 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 					end
 				else
 					-- Con arma de fuego: se acerca, se aleja o se mueve de lado
-					local preferred = Bots.preferredDistance
+					local preferred = Bots.weaponDistance[weaponName] or Bots.preferredDistance
 					local flat = Vector3.new(offset.X, 0, offset.Z).Unit
-					if distance > preferred + 15 then
+					if goal and (urgent or distance > preferred + 15) then
+						walkTo(goal)
+					elseif distance > preferred + 15 then
 						walkTo(targetRoot.Position)
 					elseif distance < preferred - 15 then
 						humanoid:MoveTo(root.Position - flat * 8)
@@ -615,6 +678,14 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 						end
 						local side = Vector3.new(-flat.Z, 0, flat.X) * strafeSide
 						humanoid:MoveTo(root.Position + side * 8)
+						-- Los listos brincan de vez en cuando: así es más difícil atinarles
+						if
+							level().smart
+							and humanoid.FloorMaterial ~= Enum.Material.Air
+							and math.random() < 0.04
+						then
+							humanoid.Jump = true
+						end
 					end
 
 					-- Dispara en ráfagas cortas, con una pausa al ver a alguien (reactionTime)
@@ -627,6 +698,7 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 						not reloading
 						and now - seenAt >= level().reactionTime
 						and now - lastShot >= 1 / stats.fireRate
+						and not (stats.projectile and distance < 14) -- de cerca, un cohete lo mataría a él
 					then
 						if burstLeft <= 0 then
 							if now - lastShot >= 0.5 then
@@ -635,7 +707,9 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 						end
 						if burstLeft > 0 then
 							burstLeft -= 1
-							ammo -= 1
+							if not rules.infiniteAmmo then
+								ammo -= 1
+							end
 							lastShot = now
 							shoot(targetRoot)
 						end
@@ -644,22 +718,44 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 			else
 				chasing = false
 				stopFacing()
-				walkTo(targetRoot.Position)
+				walkTo(goal or targetRoot.Position)
 			end
 		else
 			chasing = false
 			-- Nadie a quien buscar: pasea entre los puntos de aparición
 			stopFacing()
-			if not wanderGoal or (wanderGoal - root.Position).Magnitude < 8 then
+			if goal then
+				walkTo(goal)
+			elseif not wanderGoal or (wanderGoal - root.Position).Magnitude < 8 then
 				local spawns = mapSpawns()
 				wanderGoal = if #spawns > 0 then spawns[math.random(#spawns)].Position else nil
 			end
-			if wanderGoal then
+			if wanderGoal and not goal then
 				walkTo(wanderGoal)
 			end
 		end
 		task.wait(THINK_EVERY)
 	end
+end
+
+-- Un arma al azar de Bots.weaponPool, según qué tan seguido sale cada una
+local function pickWeapon(): string?
+	local total = 0
+	for name, weight in Bots.weaponPool do
+		if Weapons[name] and ServerStorage.Weapons:FindFirstChild(name) then
+			total += weight
+		end
+	end
+	local roll = math.random() * total
+	for name, weight in Bots.weaponPool do
+		if Weapons[name] and ServerStorage.Weapons:FindFirstChild(name) then
+			roll -= weight
+			if roll <= 0 then
+				return name
+			end
+		end
+	end
+	return nil
 end
 
 -- Hace aparecer a un bot (al empezar y cada vez que reaparece)
@@ -680,6 +776,11 @@ function spawnBot(card: Instance)
 	ProjectileService.SetupCharacter(character) -- sus granadas (o SimiOs)
 	animate(character, humanoid)
 
+	-- En los modos con las armas de siempre, cada vez que aparece le toca una al azar
+	card:SetAttribute("BotWeapon", nil)
+	if not isZombie(card) and not rules.loadout and rules.pickups ~= false then
+		card:SetAttribute("BotWeapon", pickWeapon())
+	end
 	local weaponName = chooseWeapon(card)
 	local template = weaponName and ServerStorage.Weapons:FindFirstChild(weaponName)
 	if isZombie(card) then
@@ -687,6 +788,8 @@ function spawnBot(card: Instance)
 	elseif template then
 		humanoid:EquipTool(template:Clone()) -- el arma en la mano
 	end
+	-- Más rápidos en las dificultades altas (de soldado o de zombi)
+	humanoid.WalkSpeed *= level().speedMultiplier or 1
 
 	-- Protección breve al aparecer, como los jugadores
 	HealthService.Protect(character, Modes.Common.spawnProtection)

@@ -5,7 +5,8 @@
 --                                Modes.Common.maxWeapons armas: con las manos llenas hay
 --                                que pulsar E en la plataforma para cambiar la de la mano
 --   Pickup = "Grenades"        → da granadas (Config/Grenades)
--- En los modos con pickups = false (SWAT) las plataformas se apagan.
+-- En los modos con pickups = false (SWAT) las plataformas se apagan. Los zombis de Infección
+-- no recogen nada.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -212,6 +213,9 @@ local function setupPad(pad: BasePart)
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		if not player or not humanoid or humanoid.Health <= 0 then
 			return
+		end
+		if player:GetAttribute("Side") == "Zombie" then
+			return -- Infección: los zombis solo llevan su machete
 		end
 		if kind.give(player, character :: Model, swap) then
 			available = false
