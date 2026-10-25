@@ -42,7 +42,12 @@ type Profile = {
 	owned: { [string]: boolean },
 	equipped: { [string]: string },
 	receipts: { string },
+	-- Sonido apagado por el jugador (menú > Sonido). Se guarda aquí para que no tenga que
+	-- volver a apagarlo cada vez que entra
+	muted: { [string]: boolean },
 }
+
+local SOUND_KINDS = { Music = true, Effects = true }
 
 local profiles: { [Player]: Profile } = {}
 local dirty: { [Player]: boolean } = {} -- cambió algo desde la última vez que se guardó
@@ -70,6 +75,7 @@ local function newProfile(): Profile
 		owned = {},
 		equipped = {},
 		receipts = {},
+		muted = {},
 	}
 end
 
@@ -100,6 +106,7 @@ local function load(player: Player): Profile
 			profile.owned = if type(data.owned) == "table" then data.owned else {}
 			profile.equipped = if type(data.equipped) == "table" then data.equipped else {}
 			profile.receipts = if type(data.receipts) == "table" then data.receipts else {}
+			profile.muted = if type(data.muted) == "table" then data.muted else {}
 		elseif not ok then
 			warn("[Tienda] No se pudo cargar el perfil de", player.Name, data)
 			if RunService:IsStudio() then
@@ -159,14 +166,23 @@ local function applyArmor(player: Player)
 	ArmorService.Apply(character, profile.equipped)
 end
 
--- Lo que el cliente puede pedir: "get", "buy" (comprar) o "equip" (equipar o quitar)
-local function onShopRequest(player: Player, action: any, itemId: any)
+-- Lo que el cliente puede pedir: "get", "buy" (comprar), "equip" (equipar o quitar) o
+-- "mute" (apagar o prender la música o los efectos: itemId "Music" o "Effects")
+local function onShopRequest(player: Player, action: any, itemId: any, muted: any)
 	local profile = profiles[player]
 	if not profile then
 		return nil
 	end
 	if action == "get" then
 		return snapshot(profile)
+	end
+	if action == "mute" then
+		if type(itemId) == "string" and SOUND_KINDS[itemId] and type(muted) == "boolean" then
+			profile.muted[itemId] = muted or nil
+			player:SetAttribute(itemId .. "Muted", muted)
+			dirty[player] = true
+		end
+		return nil
 	end
 	if type(itemId) ~= "string" then
 		return snapshot(profile)
@@ -305,6 +321,9 @@ local function onPlayerAdded(player: Player)
 	end
 	profiles[player] = profile
 	player:SetAttribute("Credits", profile.credits)
+	for kind in SOUND_KINDS do
+		player:SetAttribute(kind .. "Muted", profile.muted[kind] == true)
+	end
 	player:SetAttribute("WeaponSkin", profile.equipped.Skin)
 
 	local function onCharacter(character: Model)

@@ -6,6 +6,7 @@ local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
 local Music = require(ReplicatedStorage.Shared.Config.Music)
+local AudioSettings = require(script.Parent.AudioSettings)
 
 local MusicController = {}
 
@@ -39,6 +40,7 @@ local function update()
 		sound.SoundId = soundId
 		sound.Looped = true
 		sound.Volume = 0
+		sound.SoundGroup = AudioSettings.music -- se apaga desde menú > Sonido
 		sound.Parent = SoundService
 		sound:Play()
 		TweenService:Create(sound, TweenInfo.new(Music.fadeTime), { Volume = Music.volume }):Play()
