@@ -1,6 +1,9 @@
-# Zona Cero (nombre de trabajo)
+# Escuadrón Cero
 
 Shooter de arena por equipos para Roblox, estilo Halo: Combat Evolved en línea, con vehículos.
+
+(Antes se llamaba "Zona Cero"; el repositorio y algunos nombres internos lo conservan, como el DataStore "ZonaCeroPerfiles", que no se cambia para no perder los créditos guardados.)
+
 Documento de diseño: https://claude.ai/artifact/Db9y3BWdNtESCJbiRrMR1z
 
 ## Qué hay ya
