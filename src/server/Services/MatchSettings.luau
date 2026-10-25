@@ -21,10 +21,17 @@
 -- El anfitrión también puede cambiar el modo (y el mapa o la dificultad) sin salir de la
 -- sala: la partida en curso termina y la sala vuelve a esperar a que apriete "Iniciar".
 --
+-- Código de sala: la invitación de Roblox no cruza entre consolas (en PS5 solo ves a tus
+-- amigos de PlayStation; en Xbox, a los de Xbox). Por eso cada sala tiene también un código
+-- de 6 números: se le dice al amigo y él lo escribe en "Unirse con código" del menú, desde
+-- cualquier aparato. Los códigos se guardan unas horas en MemoryStoreService (una memoria
+-- que comparten todos los servidores del juego) y apuntan al servidor reservado.
+--
 -- Nota: en Studio no existen los servidores reservados ni el teletransporte; solo se pueden
 -- probar en el juego publicado.
 
 local HttpService = game:GetService("HttpService")
+local MemoryStoreService = game:GetService("MemoryStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Teams = game:GetService("Teams")
@@ -38,6 +45,11 @@ local MapService = require(script.Parent.MapService)
 local requestMatch = ReplicatedStorage.Remotes.RequestMatch :: RemoteEvent
 
 local REQUEST_COOLDOWN = 8 -- segundos entre pedidos de un mismo jugador
+local JOIN_COOLDOWN = 3 -- segundos entre intentos de "Unirse con código" (por si se equivoca)
+local CODE_LIFETIME = 6 * 60 * 60 -- segundos que dura un código guardado...
+local CODE_REFRESH = 30 * 60 -- ...y cada cuánto se renueva mientras la sala siga abierta
+
+local roomCodes = MemoryStoreService:GetSortedMap("CodigosDeSala")
 
 local MatchSettings = {
 	kind = "public", -- "public", "ai" o "private"
@@ -125,6 +137,46 @@ local function publish(inviteCode: string?, loading: boolean?)
 	ReplicatedStorage:SetAttribute("InviteCode", inviteCode)
 end
 
+-- Le da a esta sala un código de 6 números que nadie más esté usando y lo publica en el
+-- atributo "RoomCode" (el menú lo muestra). Lo renueva mientras la sala siga abierta
+local function registerRoomCode(accessCode: string)
+	local roomCode: string? = nil
+	for _ = 1, 10 do
+		local candidate = string.format("%06d", math.random(0, 999999))
+		local ok, taken = pcall(function()
+			local wasFree = false
+			roomCodes:UpdateAsync(candidate, function(current)
+				if current ~= nil then
+					return nil -- ocupado: no se cambia
+				end
+				wasFree = true
+				return accessCode
+			end, CODE_LIFETIME)
+			return not wasFree
+		end)
+		if ok and not taken then
+			roomCode = candidate
+			break
+		elseif not ok then
+			warn("[Partida] No se pudo guardar el código de sala:", taken)
+			task.wait(2)
+		end
+	end
+	if not roomCode then
+		return
+	end
+	ReplicatedStorage:SetAttribute("RoomCode", roomCode)
+	task.spawn(function()
+		while true do
+			task.wait(CODE_REFRESH)
+			pcall(roomCodes.SetAsync, roomCodes, roomCode, accessCode, CODE_LIFETIME)
+		end
+	end)
+	game:BindToClose(function()
+		pcall(roomCodes.RemoveAsync, roomCodes, roomCode)
+	end)
+end
+
 -- El primero en llegar a un servidor reservado trae los datos de la partida
 local function configure(data: any)
 	if type(data) ~= "table" or (data.kind ~= "ai" and data.kind ~= "private") then
@@ -144,6 +196,9 @@ local function configure(data: any)
 		MapService.SetForced(data.map)
 	end
 	publish(if type(data.code) == "string" then data.code else nil)
+	if type(data.code) == "string" then
+		task.spawn(registerRoomCode, data.code)
+	end
 	ReplicatedStorage:SetAttribute("WaitingForHost", true)
 	print("[Partida]", data.kind, data.mode, data.map or "mapa al azar")
 end
@@ -240,6 +295,40 @@ local function onChange(player: Player, modeName: any, mapName: any, difficulty:
 	print("[Partida] El anfitrión cambió a", modeName, MatchSettings.map or "mapa al azar")
 end
 
+-- "Unirse con código": busca la sala de ese código y manda al jugador para allá
+local function onJoin(player: Player, roomCode: any)
+	local now = os.clock()
+	if now - (lastRequest[player] or 0) < JOIN_COOLDOWN then
+		requestMatch:FireClient(player, "error", "Espera unos segundos e intenta otra vez.")
+		return
+	end
+	lastRequest[player] = now
+	if type(roomCode) ~= "string" or not roomCode:match("^%d%d%d%d%d%d$") then
+		requestMatch:FireClient(player, "error", "El código son 6 números.")
+		return
+	end
+	if roomCode == ReplicatedStorage:GetAttribute("RoomCode") then
+		requestMatch:FireClient(player, "error", "Ya estás en esa sala.")
+		return
+	end
+	local ok, accessCode = pcall(roomCodes.GetAsync, roomCodes, roomCode)
+	if not ok then
+		warn("[Partida] No se pudo leer el código de sala:", accessCode)
+		requestMatch:FireClient(player, "error", "No se pudo buscar la sala. Intenta otra vez.")
+		return
+	end
+	if type(accessCode) ~= "string" then
+		requestMatch:FireClient(player, "error", "No hay ninguna sala con ese código.")
+		return
+	end
+	requestMatch:FireClient(player, "teleporting")
+	local sent, err = teleportTo({ player }, accessCode, nil)
+	if not sent then
+		warn("[Partida] No se pudo entrar con código:", err)
+		requestMatch:FireClient(player, "error", "Esa sala ya no existe.")
+	end
+end
+
 -- Volver a una partida rápida (un servidor público)
 local function onLeave(player: Player)
 	local ok, err = pcall(TeleportService.TeleportAsync, TeleportService, game.PlaceId, { player })
@@ -286,6 +375,8 @@ function MatchSettings.Start()
 			onLeave(player)
 		elseif action == "change" then
 			onChange(player, ...)
+		elseif action == "join" then
+			onJoin(player, ...)
 		elseif action == "start" then
 			-- Solo el anfitrión, y solo mientras se espera
 			if player == host and MatchSettings.WaitingForHost() then
