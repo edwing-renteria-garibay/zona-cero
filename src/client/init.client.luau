@@ -1,11 +1,12 @@
 -- Punto de entrada del cliente: arranca la cámara, el arma en primera persona, la mira y el láser de algunas armas, los controles de armas, golpe, granada, correr y jeep, el HUD, la mira
--- los avisos de daño (números, barras sobre la cabeza), el marcador, el registro de bajas
+-- los avisos de daño (números, barras sobre la cabeza), el marcador, el registro de bajas, la música de fondo
 -- la pantalla de resultados, lo que se ve en Infección, la tienda, el menú de partidas y el cuadro de controles.
 
 local AimPose = require(script.Controllers.AimPose)
 local CameraController = require(script.Controllers.CameraController)
 local GrenadeController = require(script.Controllers.GrenadeController)
 local MeleeController = require(script.Controllers.MeleeController)
+local MusicController = require(script.Controllers.MusicController)
 local VehicleController = require(script.Controllers.VehicleController)
 local SpecialWeapons = require(script.Controllers.SpecialWeapons)
 local SprintController = require(script.Controllers.SprintController)
@@ -33,6 +34,7 @@ VehicleController.Start()
 MeleeController.Start()
 GrenadeController.Start()
 SprintController.Start()
+MusicController.Start() -- música de fondo de cada modo
 HUD.Start()
 Crosshair.Start()
 HitFeedback.Start()
