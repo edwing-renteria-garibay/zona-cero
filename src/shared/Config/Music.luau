@@ -13,11 +13,10 @@ return {
 		MeleeWeapons = "rbxassetid://111737108754664", -- Pollos y machetes
 		SimiRain = "rbxassetid://139818146051220", -- Lluvia de SimiOs
 		Infection = "rbxassetid://9048538224",
-		-- Todavía sin canción
-		TeamSlayer = "",
-		FreeForAll = "",
-		Brawl = "",
-		Assault = "",
-		KingOfTheHill = "",
+		TeamSlayer = "rbxassetid://9048331099", -- Asesino por equipos
+		FreeForAll = "rbxassetid://87930939031099", -- Asesino en solitario
+		Brawl = "rbxassetid://9038695296", -- A puño limpio
+		Assault = "rbxassetid://1835344449", -- Asalto
+		KingOfTheHill = "rbxassetid://132102982404688", -- Rey de la colina
 	},
 }
