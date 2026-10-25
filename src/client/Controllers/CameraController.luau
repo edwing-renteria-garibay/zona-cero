@@ -4,6 +4,10 @@
 -- En las dos vistas el mouse queda fijo en el centro de la pantalla: la mira está ahí
 -- y Aim.GetTarget() apunta a donde mira la cámara. En tercera persona el personaje
 -- gira para mirar hacia donde mira la cámara, como en Halo.
+--
+-- La bandera que llevas en la espalda (Captura la bandera) no está dentro de tu personaje,
+-- así que Roblox no la esconde en primera persona y te tapa la vista: aquí se esconde solo
+-- para ti (LocalTransparencyModifier) en primera persona, y en tercera se ve a medias.
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -33,6 +37,34 @@ end
 local function getHumanoid(): Humanoid?
 	local character = player.Character
 	return character and character:FindFirstChildOfClass("Humanoid")
+end
+
+-- ¿Esta bandera va soldada a tu personaje? (FlagService la suelda a tu torso al tomarla)
+local function isMine(flag: Instance, character: Model): boolean
+	local pole = flag:FindFirstChild("Pole")
+	for _, weld in if pole then pole:GetChildren() else {} do
+		if weld:IsA("WeldConstraint") and weld.Part0 and weld.Part0:IsDescendantOf(character) then
+			return true
+		end
+	end
+	return false
+end
+
+local function hideCarriedFlag()
+	local flags = workspace:FindFirstChild("Flags")
+	local character = player.Character
+	if not flags or not character then
+		return
+	end
+	for _, flag in flags:GetChildren() do
+		-- En tercera persona se ve a medias, para que no estorbe a la cámara de atrás
+		local hidden = if not isMine(flag, character) then 0 elseif firstPerson then 1 else 0.6
+		for _, part in flag:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.LocalTransparencyModifier = hidden
+			end
+		end
+	end
 end
 
 local function apply()
@@ -88,6 +120,7 @@ function CameraController.Start()
 			camera.CFrame *= CFrame.Angles(math.rad(delta), 0, 0)
 			recoilApplied = recoil
 		end
+		hideCarriedFlag()
 		if firstPerson then
 			return -- en primera persona Roblox ya fija el mouse y gira al personaje
 		end
