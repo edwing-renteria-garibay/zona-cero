@@ -105,11 +105,13 @@ local function applyZombie(character: Model)
 	local root = character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if holdFor > 0 and root then
 		character:SetAttribute("Held", true)
+		character:SetAttribute("HeldUntil", workspace:GetServerTimeNow() + holdFor) -- para la cuenta del cliente
 		root.Anchored = true
 		task.delay(holdFor, function()
 			if character.Parent then
 				root.Anchored = false
 				character:SetAttribute("Held", nil)
+				character:SetAttribute("HeldUntil", nil)
 			end
 		end)
 	end
