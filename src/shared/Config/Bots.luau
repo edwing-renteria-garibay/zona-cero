@@ -56,10 +56,13 @@ return {
 	},
 	preferredDistance = 35, -- studs: con un arma de fuego intenta quedarse a esta distancia
 
-	-- Contra la IA (botón del menú): todos los jugadores en un equipo y los bots en el otro.
-	-- Bots = jugadores × perPlayer, pero nunca menos de minBots ni más de maxBots.
-	-- En Infección, esos bots son los zombis.
-	vsAI = { minBots = 3, perPlayer = 2, maxBots = 10 },
+	-- Contra la IA (botón del menú): todos los jugadores en Azul y los bots rivales en Rojo.
+	-- En los modos por equipos se juega teamSize contra teamSize: si faltan jugadores en Azul,
+	-- entran bots aliados (cada amigo que llega toma el lugar de uno). Con más jugadores que
+	-- teamSize, los dos equipos crecen.
+	-- En los demás (Infección, solitario): bots = jugadores × perPlayer, entre minBots y
+	-- maxBots. En Infección, esos bots son los zombis.
+	vsAI = { teamSize = 5, minBots = 3, perPlayer = 2, maxBots = 10 },
 
 	-- Créditos de la tienda por eliminar a un bot (false = no dan créditos)
 	creditsForKills = true,

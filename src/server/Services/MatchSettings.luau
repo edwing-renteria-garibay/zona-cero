@@ -3,7 +3,8 @@
 --             Config/Maps) y, si falta gente, bots (Config/Bots).
 --   "ai"      Contra la IA: un servidor reservado solo para ti (y los amigos que invites).
 --             Siempre se juega el modo que elegiste; todos los jugadores van en el mismo
---             equipo contra bots (en Infección, los bots son los zombis).
+--             equipo contra bots, con bots aliados si faltan para 5 contra 5 (Config/Bots,
+--             vsAI.teamSize). En Infección, los bots son los zombis.
 --   "private" Partida privada: un servidor reservado con el modo y el mapa que elegiste, para
 --             jugar con tus amigos. Si faltan jugadores y el modo lo permite, entran bots.
 --
