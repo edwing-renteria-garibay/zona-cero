@@ -50,6 +50,7 @@ local Modes = {
 		grenades = 0,
 		pickups = false,
 		testingKeepsLoadout = true, -- también en el modo de prueba: solo lanzacohetes
+		bots = true, -- los bots también disparan cohetes
 	},
 	-- A puño limpio: sin armas de fuego ni granadas; solo el machete (clic o F). Por la espalda, mata de uno
 	Brawl = {

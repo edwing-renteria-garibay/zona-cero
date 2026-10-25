@@ -125,7 +125,8 @@ local function isZombie(card: Instance): boolean
 end
 
 -- Con qué pelea el bot en este modo: el primer arma de fuego normal de su loadout
--- (rifle, pistola...). Si no hay ninguna, va a golpes, con el arma de golpe que haya.
+-- (rifle, pistola...); si no hay, el lanzacohetes (SWAT explosivo). Si no hay ninguna, va a
+-- golpes, con el arma de golpe que haya.
 -- Un bot zombi (Infección contra la IA) solo lleva el machete.
 local function chooseWeapon(card: Instance): (string?, any, boolean)
 	if isZombie(card) then
@@ -135,6 +136,12 @@ local function chooseWeapon(card: Instance): (string?, any, boolean)
 	for _, name in loadout do
 		local stats = Weapons[name]
 		if stats and not stats.kind and not stats.projectile then
+			return name, stats, false
+		end
+	end
+	for _, name in loadout do
+		local stats = Weapons[name]
+		if stats and not stats.kind and stats.projectile then
 			return name, stats, false
 		end
 	end
@@ -407,6 +414,19 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 	local function shoot(targetRoot: BasePart)
 		local muzzle = tool and tool:FindFirstChild("Muzzle", true) :: Attachment?
 		local from = if muzzle then muzzle.WorldPosition else head.Position
+		if stats.projectile then
+			-- Cohete: a los pies, para que la explosión alcance aunque no atine directo. Los
+			-- listos le apuntan a donde vas a estar cuando llegue
+			local aimAt = targetRoot.Position - Vector3.new(0, 2.5, 0)
+			if level().smart then
+				local velocity = targetRoot.AssemblyLinearVelocity
+				local travel = (aimAt - from).Magnitude / stats.speed
+				aimAt += Vector3.new(velocity.X, 0, velocity.Z) * travel
+			end
+			local direction = spreadDirection(aimAt - from, level().spread)
+			ProjectileService.FireRocket(card :: any, from, direction, stats, { character })
+			return
+		end
 		local aimPoint = targetRoot.Position + Vector3.new(0, 1, 0)
 		-- Los listos (Extrema) a veces apuntan a la cabeza
 		local targetHead = targetRoot.Parent and targetRoot.Parent:FindFirstChild("Head") :: BasePart?
@@ -649,6 +669,7 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 						not reloading
 						and now - seenAt >= level().reactionTime
 						and now - lastShot >= 1 / stats.fireRate
+						and not (stats.projectile and distance < 14) -- de cerca, un cohete lo mataría a él
 					then
 						if burstLeft <= 0 then
 							if now - lastShot >= 0.5 then
@@ -657,7 +678,9 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 						end
 						if burstLeft > 0 then
 							burstLeft -= 1
-							ammo -= 1
+							if not rules.infiniteAmmo then
+								ammo -= 1
+							end
 							lastShot = now
 							shoot(targetRoot)
 						end
