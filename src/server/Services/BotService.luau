@@ -408,6 +408,11 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 		local muzzle = tool and tool:FindFirstChild("Muzzle", true) :: Attachment?
 		local from = if muzzle then muzzle.WorldPosition else head.Position
 		local aimPoint = targetRoot.Position + Vector3.new(0, 1, 0)
+		-- Los listos (Extrema) a veces apuntan a la cabeza
+		local targetHead = targetRoot.Parent and targetRoot.Parent:FindFirstChild("Head") :: BasePart?
+		if level().smart and targetHead and math.random() < (level().headshotChance or 0) then
+			aimPoint = targetHead.Position
+		end
 		local direction = spreadDirection(aimPoint - head.Position, level().spread) * stats.range
 		local result = workspace:Raycast(head.Position, direction, params)
 		local surface: string? = nil
@@ -590,6 +595,11 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 					local flatDistance = Vector3.new(offset.X, 0, offset.Z).Magnitude
 					if distance < 12 and math.abs(offset.Y) < 4 then
 						humanoid:MoveTo(targetRoot.Position)
+					elseif level().smart and distance < 45 and math.abs(offset.Y) < 4 then
+						-- Los listos le cortan el paso: corren hacia donde vas a estar
+						local velocity = targetRoot.AssemblyLinearVelocity
+						local ahead = Vector3.new(velocity.X, 0, velocity.Z) * math.min(distance / 30, 0.8)
+						humanoid:MoveTo(targetRoot.Position + ahead)
 					elseif offset.Y >= 4 and flatDistance < 14 then
 						-- Está arriba, a un salto (sobre una caja o columna): corre hacia él y salta.
 						-- Un zombi salta más alto que un sobreviviente (ver InfectionService)
@@ -615,6 +625,14 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 						end
 						local side = Vector3.new(-flat.Z, 0, flat.X) * strafeSide
 						humanoid:MoveTo(root.Position + side * 8)
+						-- Los listos brincan de vez en cuando: así es más difícil atinarles
+						if
+							level().smart
+							and humanoid.FloorMaterial ~= Enum.Material.Air
+							and math.random() < 0.04
+						then
+							humanoid.Jump = true
+						end
 					end
 
 					-- Dispara en ráfagas cortas, con una pausa al ver a alguien (reactionTime)
@@ -687,6 +705,8 @@ function spawnBot(card: Instance)
 	elseif template then
 		humanoid:EquipTool(template:Clone()) -- el arma en la mano
 	end
+	-- Más rápidos en las dificultades altas (de soldado o de zombi)
+	humanoid.WalkSpeed *= level().speedMultiplier or 1
 
 	-- Protección breve al aparecer, como los jugadores
 	HealthService.Protect(character, Modes.Common.spawnProtection)

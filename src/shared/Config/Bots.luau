@@ -28,6 +28,10 @@ return {
 	--   spread: grados que se desvía cada bala al azar (más = falla más)
 	--   damageMultiplier: qué parte del daño normal hacen (0.7 = 70 %)
 	--   sightRange: studs; más lejos de eso no te ve
+	--   speedMultiplier: qué tan rápido camina comparado con un jugador (1.25 = 25 % más);
+	--     también a los bots zombis de Infección
+	--   smart: true = juega más listo: apunta a veces a la cabeza, salta al moverse de lado
+	--     para que sea difícil atinarle y, de zombi, corre hacia donde vas, no hacia donde estás
 	difficultyOrder = { "Beginner", "Intermediate", "Hard", "Extreme" }, -- orden en el menú
 	defaultDifficulty = "Intermediate",
 	difficulties = {
@@ -51,8 +55,18 @@ return {
 			spread = 2,
 			damageMultiplier = 0.9,
 			sightRange = 220,
+			speedMultiplier = 1.1,
 		},
-		Extreme = { name = "Extrema", reactionTime = 0.2, spread = 1, damageMultiplier = 1, sightRange = 300 },
+		Extreme = {
+			name = "Extrema",
+			reactionTime = 0.2,
+			spread = 1,
+			damageMultiplier = 1,
+			sightRange = 300,
+			speedMultiplier = 1.25,
+			smart = true,
+			headshotChance = 0.35, -- con smart: de cada 100 tiros, cuántos apunta a la cabeza
+		},
 	},
 	preferredDistance = 35, -- studs: con un arma de fuego intenta quedarse a esta distancia
 
