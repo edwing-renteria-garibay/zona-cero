@@ -180,14 +180,19 @@ local function onAction(_name: string, state: Enum.UserInputState)
 	return Enum.ContextActionResult.Pass
 end
 
+-- ¿El disparo lanza granadas? (modos con granadas infinitas, como Lluvia de SimiOs)
+local fireThrows = false
+function GrenadeController.FireThrows(): boolean
+	return fireThrows
+end
+
 function GrenadeController.Start()
-	-- El "true" crea un botón táctil en móvil
-	-- En control usamos B: L1 y R1 ya los usa Roblox para cambiar de arma
-	ContextActionService:BindAction("Grenade", onAction, true, Enum.KeyCode.G, Enum.KeyCode.ButtonB)
+	-- En control usamos B: L1 y R1 ya los usa Roblox para cambiar de arma. El botón de móvil
+	-- es de UI/TouchButtons (por eso el "false")
+	ContextActionService:BindAction("Grenade", onAction, false, Enum.KeyCode.G, Enum.KeyCode.ButtonB)
 	ContextActionService:SetTitle("Grenade", "Granada")
 
 	-- Granadas infinitas: el disparo también lanza (por encima del golpe con clic)
-	local fireThrows = false
 	local function updateFire()
 		local mode = Modes[ReplicatedStorage:GetAttribute("MatchMode") or ""]
 		local wanted = type(mode) == "table" and mode.infiniteGrenades == true

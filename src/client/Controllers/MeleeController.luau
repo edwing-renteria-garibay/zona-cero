@@ -62,6 +62,12 @@ local function clickMelees(): boolean
 end
 
 local clickBound = false
+
+-- ¿El clic (o el botón "Disparar" en celular) golpea ahora mismo?
+function MeleeController.ClickMelees(): boolean
+	return clickBound
+end
+
 local function updateClick()
 	local wanted = clickMelees()
 	if wanted == clickBound then
@@ -89,9 +95,9 @@ local function onKnockback(push: Vector3)
 end
 
 function MeleeController.Start()
-	-- El "true" crea un botón táctil en móvil
-	-- En control: R3 (apretar el stick derecho), como en muchos shooters
-	ContextActionService:BindAction("Melee", onAction, true, Enum.KeyCode.F, Enum.KeyCode.ButtonR3)
+	-- En control: R3 (apretar el stick derecho), como en muchos shooters. El botón de móvil
+	-- es de UI/TouchButtons (por eso el "false")
+	ContextActionService:BindAction("Melee", onAction, false, Enum.KeyCode.F, Enum.KeyCode.ButtonR3)
 	ContextActionService:SetTitle("Melee", "Golpe")
 
 	-- Revisa el clic al cambiar de arma, al reaparecer, al sentarse o pararse y al volverse zombi

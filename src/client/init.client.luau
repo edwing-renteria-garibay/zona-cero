@@ -1,6 +1,7 @@
 -- Punto de entrada del cliente: arranca la cámara, el arma en primera persona, la mira y el láser de algunas armas, los controles de armas, golpe, granada, correr y jeep, el HUD, la mira
 -- los avisos de daño (números, barras sobre la cabeza), el marcador, el registro de bajas, la música de fondo
--- la pantalla de resultados, lo que se ve en Infección, la tienda, el menú de partidas y el cuadro de controles.
+-- la pantalla de resultados, lo que se ve en Infección, la tienda, el menú de partidas, el cuadro de controles
+-- y los botones de la pantalla en celular.
 
 local AimPose = require(script.Controllers.AimPose)
 local AudioSettings = require(script.Controllers.AudioSettings)
@@ -25,6 +26,7 @@ local Results = require(script.UI.Results)
 local Scoreboard = require(script.UI.Scoreboard)
 local Shop = require(script.UI.Shop)
 local Standings = require(script.UI.Standings)
+local TouchButtons = require(script.UI.TouchButtons)
 
 AudioSettings.Start() -- grupos de música y efectos (se apagan desde el menú)
 CameraController.Start()
@@ -49,3 +51,4 @@ Shop.Start()
 Standings.Start() -- tabla de puntajes (antes que Controls, que la muestra y la esconde)
 Controls.Start() -- los controles a la izquierda y la tabla de puntajes (Tab)
 MainMenu.Start() -- partida rápida, contra la IA o privada
+TouchButtons.Start() -- en celular: disparar, apuntar, recargar, granada...

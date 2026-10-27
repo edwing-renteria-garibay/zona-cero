@@ -77,10 +77,15 @@ function VehicleController.GetVehicle(): Model?
 	return nil
 end
 
+-- En celular la torreta dispara con el botón "Disparar" (UI/TouchButtons), no tocando la
+-- pantalla: el dedo en la pantalla es para mover la cámara
 local function isTrigger(input: InputObject): boolean
-	return input.UserInputType == Enum.UserInputType.MouseButton1
-		or input.UserInputType == Enum.UserInputType.Touch
-		or input.KeyCode == Enum.KeyCode.ButtonR2
+	return input.UserInputType == Enum.UserInputType.MouseButton1 or input.KeyCode == Enum.KeyCode.ButtonR2
+end
+
+-- El botón "Disparar" en celular
+function VehicleController.SetTrigger(held: boolean)
+	triggerHeld = held
 end
 
 -- Sentado en la torreta, el cañón (o la caja de cohetes) y su base tapan la vista: solo en tu

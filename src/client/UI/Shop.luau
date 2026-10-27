@@ -14,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Shop = require(ReplicatedStorage.Shared.Config.Shop)
+local Mobile = require(script.Parent.Parent.Controllers.Mobile)
 
 local shopRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Shop") :: RemoteFunction
 
@@ -87,7 +88,9 @@ end
 
 local function updateCredits()
 	creditsLabel.Text = string.format("%d créditos", credits())
-	openButton.Text = string.format("Tienda (B) · %d créditos", credits())
+	-- En celular no hay tecla B
+	local format = if Mobile.IsTouch() then "Tienda · %d créditos" else "Tienda (B) · %d créditos"
+	openButton.Text = string.format(format, credits())
 end
 
 -- La vista previa: una copia de tu personaje dentro del ViewportFrame
@@ -340,6 +343,13 @@ local function build()
 	openButton.AnchorPoint = Vector2.new(0, 0.5)
 	openButton.Position = UDim2.new(0, 16, 0.4, 0)
 	openButton.BackgroundTransparency = 0.2
+	if Mobile.IsTouch() then
+		-- En celular, arriba a la izquierda y más pequeño: el centro-izquierda es del stick
+		openButton.AnchorPoint = Vector2.new(0, 0)
+		openButton.Position = UDim2.fromOffset(12, 6)
+		openButton.Size = UDim2.fromOffset(170, 28)
+		openButton.TextSize = 12
+	end
 	openButton.Activated:Connect(function()
 		setOpen(not backdrop.Visible)
 	end)
@@ -462,7 +472,7 @@ function ShopUI.Start()
 		end
 	end)
 	-- En control: flecha abajo del D-pad
-	ContextActionService:BindAction("Shop", onToggle, true, Enum.KeyCode.B, Enum.KeyCode.DPadDown)
+	ContextActionService:BindAction("Shop", onToggle, false, Enum.KeyCode.B, Enum.KeyCode.DPadDown)
 	ContextActionService:SetTitle("Shop", "Tienda")
 
 	-- La vista previa gira despacio

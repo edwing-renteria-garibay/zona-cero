@@ -99,7 +99,7 @@ local function onToggle(_name: string, state: Enum.UserInputState)
 end
 
 function CameraController.Start()
-	ContextActionService:BindAction("ToggleCamera", onToggle, true, Enum.KeyCode.V, Enum.KeyCode.ButtonY)
+	ContextActionService:BindAction("ToggleCamera", onToggle, false, Enum.KeyCode.V, Enum.KeyCode.ButtonY)
 	ContextActionService:SetTitle("ToggleCamera", "Cámara")
 
 	-- Al reaparecer, el personaje es nuevo: se vuelve a aplicar la vista elegida

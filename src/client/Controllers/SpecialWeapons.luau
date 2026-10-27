@@ -53,6 +53,11 @@ local function setScoped(value: boolean)
 	end
 end
 
+-- ¿Estás apuntando con zoom? (el botón "Apuntar" de celular se pinta de color)
+function SpecialWeapons.IsScoped(): boolean
+	return scoped
+end
+
 local function onScope(_name: string, state: Enum.UserInputState)
 	local tool, stats = equipped()
 	if not tool or not stats or not stats.zoom then
