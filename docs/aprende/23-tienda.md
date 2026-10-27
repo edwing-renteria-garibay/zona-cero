@@ -32,12 +32,15 @@ Se ganan jugando (valores en `Shop.rewards`):
 
 | Qué | Créditos |
 | --- | --- |
-| Baja | 10 |
-| Baja a la cabeza | 5 extra |
-| Terminar una partida | 25 |
-| Ganarla | 75 extra |
+| Baja | 5 |
+| Baja a la cabeza | 3 extra |
+| Asistencia | 2 |
+| Terminar una partida | 20 |
+| Ganarla | 40 extra |
 
-Un jugador nuevo empieza con 200 créditos.
+Un jugador nuevo empieza con 0 créditos. Una partida de 10 minutos deja unos 80, así que
+una parte de armadura Militar (400) sale en unas 5 partidas y la Élite completa (8000) en
+unas 100. Si los precios se sienten muy caros o muy baratos, cambia `price` o `Shop.rewards`.
 
 ## Dónde está cada cosa
 
@@ -90,7 +93,7 @@ activarlos:
 1. Publica el juego.
 2. En el [Creator Dashboard](https://create.roblox.com/dashboard/creations), abre la
    experiencia y ve a **Monetization > Developer Products**.
-3. Crea uno por paquete, por ejemplo "500 créditos" a 49 Robux.
+3. Crea uno por paquete, por ejemplo "1000 créditos" a 49 Robux.
 4. Copia el **ID** de cada uno y ponlo en `productId` dentro de `Shop.creditPacks`.
    El campo `robux` solo es el texto que se muestra: el precio real es el del Dashboard,
    así que pon el mismo número en los dos.
