@@ -36,6 +36,14 @@ local function makeLabel(parent: Instance, size: UDim2, textSize: number): TextL
 	return label
 end
 
+-- La letra se encoge para caber en la etiqueta, hasta maxSize como máximo
+local function fitText(label: TextLabel, maxSize: number)
+	label.TextScaled = true
+	local limit = Instance.new("UITextSizeConstraint")
+	limit.MaxTextSize = maxSize
+	limit.Parent = label
+end
+
 -- Una caja con el color del equipo y su puntuación
 local function makeTeamBox(parent: Instance, order: number): (Frame, TextLabel)
 	local box = Instance.new("Frame")
@@ -147,13 +155,16 @@ function Scoreboard.Start()
 	goal.Position = UDim2.new(0.5, 0, 0, 66) -- debajo de los letreros de las cajas
 	goal.Font = Enum.Font.GothamBold
 
-	-- Mensaje grande en el centro (esperando / cuenta regresiva)
-	local banner = makeLabel(gui, UDim2.fromOffset(600, 60), 36)
+	-- Mensaje grande en el centro (esperando / cuenta regresiva). Si no cabe a lo ancho (en
+	-- celular), la letra se hace más chica en vez de cortarse
+	local banner = makeLabel(gui, UDim2.new(0.9, 0, 0, 60), 36)
 	banner.AnchorPoint = Vector2.new(0.5, 0.5)
 	banner.Position = UDim2.fromScale(0.5, 0.3)
+	fitText(banner, 36)
 
 	-- Debajo: de qué equipo eres y quiénes son tus enemigos
-	local teamNote = makeLabel(gui, UDim2.fromOffset(700, 34), 24)
+	local teamNote = makeLabel(gui, UDim2.new(0.9, 0, 0, 34), 24)
+	fitText(teamNote, 24)
 	teamNote.AnchorPoint = Vector2.new(0.5, 0)
 	teamNote.Position = UDim2.new(0.5, 0, 0.3, 34)
 	teamNote.Font = Enum.Font.GothamBold

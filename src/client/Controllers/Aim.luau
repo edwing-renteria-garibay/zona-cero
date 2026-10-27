@@ -1,9 +1,11 @@
--- Calcula el punto del mundo que señala el mouse (o el último toque en móvil).
--- Con control (Xbox/PlayStation) no hay mouse: se apunta al centro de la pantalla,
--- donde está la mira. Lo usan las armas, las granadas y la torreta del jeep.
+-- Calcula el punto del mundo que señala el mouse.
+-- Con control (Xbox/PlayStation) o en celular no hay mouse: se apunta al centro de la
+-- pantalla, donde está la mira. Lo usan las armas, las granadas y la torreta del jeep.
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+
+local Mobile = require(script.Parent.Mobile)
 
 local player = Players.LocalPlayer
 
@@ -17,7 +19,8 @@ end
 
 -- Punto de la pantalla al que apuntas
 function Aim.GetScreenPoint(): Vector2
-	if Aim.UsingGamepad() then
+	-- En celular la mira no sigue al dedo: el dedo arrastra la cámara y la mira queda en medio
+	if Aim.UsingGamepad() or Mobile.IsTouch() then
 		local camera = workspace.CurrentCamera
 		-- ViewportSize incluye la barra de arriba, igual que GetMouseLocation
 		return camera.ViewportSize / 2

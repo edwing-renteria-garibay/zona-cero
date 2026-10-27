@@ -1,10 +1,13 @@
 -- HUD sencillo: escudo, vida y vida del jeep abajo a la izquierda; munición abajo a la derecha.
+-- En celular va todo en el centro, más pequeño y encima de la barra de armas: abajo a la
+-- izquierda está el stick y abajo a la derecha los botones.
 -- Se crea desde código para no depender de archivos de Studio.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local GrenadeController = require(script.Parent.Parent.Controllers.GrenadeController)
+local Mobile = require(script.Parent.Parent.Controllers.Mobile)
 local VehicleController = require(script.Parent.Parent.Controllers.VehicleController)
 local WeaponController = require(script.Parent.Parent.Controllers.WeaponController)
 
@@ -36,6 +39,16 @@ function HUD.Start()
 	local healthLabel = makeLabel(gui, Vector2.new(0, 1), UDim2.new(0, 24, 1, -24))
 	local ammoLabel = makeLabel(gui, Vector2.new(1, 1), UDim2.new(1, -24, 1, -24))
 	local vehicleLabel = makeLabel(gui, Vector2.new(0, 1), UDim2.new(0, 24, 1, -64))
+	if Mobile.IsTouch() then
+		-- Una encima de otra, centradas, arriba de la barra de armas de Roblox
+		for i, label in { healthLabel, ammoLabel, vehicleLabel } do
+			label.AnchorPoint = Vector2.new(0.5, 1)
+			label.Position = UDim2.new(0.5, 0, 1, -62 - (i - 1) * 20)
+			label.Size = UDim2.fromOffset(360, 20)
+			label.TextSize = if label == ammoLabel then 17 else 15
+			label.TextXAlignment = Enum.TextXAlignment.Center
+		end
+	end
 
 	-- Se actualiza en cada fotograma; es barato porque solo cambia texto
 	RunService.RenderStepped:Connect(function()

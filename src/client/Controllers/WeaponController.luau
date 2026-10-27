@@ -12,6 +12,7 @@ local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Aim = require(script.Parent.Aim)
 local CameraController = require(script.Parent.CameraController)
+local Mobile = require(script.Parent.Mobile)
 local Sfx = require(script.Parent.Sfx)
 local ViewModel = require(script.Parent.ViewModel)
 
@@ -37,6 +38,11 @@ function WeaponController.GetEquipped(): (Tool?, any)
 		return nil, nil
 	end
 	return tool, stats
+end
+
+-- El botón "Disparar" en celular (UI/TouchButtons): apretar y soltar el gatillo
+function WeaponController.SetTrigger(held: boolean)
+	triggerHeld = held
 end
 
 -- Balas en el cargador; el servidor guarda el valor real en el atributo "Ammo"
@@ -248,12 +254,18 @@ local function onShotFired(
 	end
 end
 
--- Tool.Activated funciona igual con clic, toque en móvil o gatillo del mando
+-- Tool.Activated funciona igual con clic o gatillo del mando (en móvil, ver SetTrigger)
 local function connectTool(tool: Instance)
 	if not tool:IsA("Tool") or connectedTools[tool] or not Weapons[tool.Name] then
 		return
 	end
 	connectedTools[tool] = true
+	if Mobile.IsTouch() then
+		-- En celular se dispara solo con el botón "Disparar": si no, cada toque para mirar
+		-- alrededor también soltaba un tiro (el cambio es solo en tu pantalla, que es donde se
+		-- aprieta el gatillo)
+		tool.ManualActivationOnly = true
+	end
 	tool.Activated:Connect(function()
 		triggerHeld = true
 	end)
@@ -280,14 +292,14 @@ function WeaponController.Start()
 	end
 
 	-- Recargar: R en teclado, X (Cuadrado en PlayStation) en control y botón "Recargar" en
-	-- móvil (el "true" crea el botón táctil)
+	-- móvil (ese botón es de UI/TouchButtons, por eso el "false")
 	ContextActionService:BindAction("Reload", function(_name, state)
 		if state == Enum.UserInputState.Begin then
 			reloadWeapon:FireServer()
 			return Enum.ContextActionResult.Sink
 		end
 		return Enum.ContextActionResult.Pass
-	end, true, Enum.KeyCode.R, Enum.KeyCode.ButtonX)
+	end, false, Enum.KeyCode.R, Enum.KeyCode.ButtonX)
 	ContextActionService:SetTitle("Reload", "Recargar")
 
 	RunService.Heartbeat:Connect(function()

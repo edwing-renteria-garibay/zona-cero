@@ -133,7 +133,7 @@ function InfectionView.Start()
 					zombieBoost:FireServer()
 				end
 				return Enum.ContextActionResult.Sink
-			end, true, Enum.ContextActionPriority.High.Value, Enum.KeyCode.G, Enum.KeyCode.ButtonB)
+			end, false, Enum.ContextActionPriority.High.Value, Enum.KeyCode.G, Enum.KeyCode.ButtonB)
 			ContextActionService:SetTitle("ZombieBoost", "Pócima")
 		elseif not zombie and bound then
 			bound = false

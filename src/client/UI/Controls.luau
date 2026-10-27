@@ -5,7 +5,7 @@
 -- Se muestra y se esconde junto con la tabla de puntajes (UI/Standings), con el mismo botón:
 --   PC: Tab. Empieza visible.
 --   Control: cruceta ←. Empieza escondido.
---   Móvil: el botón "Controles". Empieza escondido.
+--   Móvil: el botón "Puntajes" (arriba, junto a la tienda). Empieza escondido.
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -53,13 +53,15 @@ local GAMEPAD = {
 	{ "Cruceta izq.", "Puntajes y controles" },
 }
 
+-- Los botones de la derecha son de UI/TouchButtons
 local TOUCH = {
 	{ "Stick izq.", "Moverte" },
 	{ "Arrastrar", "Mirar" },
-	{ "Tocar", "Disparar" },
-	{ "Botones", "Recargar, Granada, Golpe," },
-	{ "", "Correr, Cámara y Tienda" },
-	{ "SimiO", "Lanzar SimiOs" },
+	{ "Disparar", "Disparar o golpear" },
+	{ "Apuntar", "Zoom (francotirador)" },
+	{ "Granada", "Mantén y suelta" },
+	{ "Correr", "Toca para correr o parar" },
+	{ "Otros", "Recargar, Golpe, Cámara" },
 	{ "Puntajes", "Puntajes y controles" },
 	{ "Menú", "Menú de partidas" },
 }
@@ -83,7 +85,7 @@ function Controls.Start()
 	gui.ResetOnSpawn = false
 	gui.Parent = player:WaitForChild("PlayerGui")
 
-	-- Debajo de los botones de Tienda y Menú (ver show: en móvil, debajo del botón Controles)
+	-- Debajo de los botones de Tienda y Menú (ver show: en móvil, debajo del botón Puntajes)
 	local panel = Instance.new("Frame")
 	panel.AutomaticSize = Enum.AutomaticSize.XY
 	panel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
@@ -140,14 +142,14 @@ function Controls.Start()
 		end
 	end
 
-	-- Botón para móvil (en PC y control se usa la tecla)
+	-- Botón para móvil (en PC y control se usa la tecla), arriba a la derecha de la tienda
 	local toggle = Instance.new("TextButton")
-	toggle.Size = UDim2.fromOffset(110, 30)
-	toggle.Position = UDim2.new(0, 16, 0.4, 226)
+	toggle.Size = UDim2.fromOffset(90, 28)
+	toggle.Position = UDim2.fromOffset(188, 6)
 	toggle.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 	toggle.BackgroundTransparency = 0.2
 	toggle.Font = Enum.Font.GothamBold
-	toggle.TextSize = 14
+	toggle.TextSize = 12
 	toggle.TextColor3 = TEXT
 	toggle.Text = "Puntajes"
 	toggle.Parent = gui
@@ -163,7 +165,7 @@ function Controls.Start()
 		device = newDevice
 		fill(if device == "touch" then TOUCH elseif device == "gamepad" then GAMEPAD else KEYBOARD)
 		toggle.Visible = device == "touch"
-		panel.Position = UDim2.new(0, 16, 0.4, if device == "touch" then 264 else 226)
+		panel.Position = if device == "touch" then UDim2.fromOffset(188, 40) else UDim2.new(0, 16, 0.4, 226)
 	end
 	show(device)
 	-- Los controles y la tabla de puntajes siempre juntos

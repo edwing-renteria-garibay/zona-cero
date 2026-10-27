@@ -12,6 +12,10 @@
 -- amigos de otra consola, que no reciben la invitación), "Salir a partida rápida" y, para el anfitrión,
 -- "Iniciar partida" y "Cambiar modo" (cambia modo, mapa o dificultad sin salir de la sala). Con control, la cruceta →
 -- entra a esos botones; al apretar uno se sueltan solos para volver a moverte y disparar.
+-- El menú se cierra con la X de arriba a la derecha (o con M). En celular los botones de la
+-- izquierda van arriba y más pequeños, y "Salir a partida rápida" pide un segundo toque para
+-- no salirte por accidente. Con el menú o la tienda abiertos esos botones se esconden: antes
+-- quedaban encima del menú y al tocar el menú se apretaban sin querer.
 -- El menú solo pide cosas al servidor (RemoteEvent "RequestMatch"); el que crea la partida y
 -- teletransporta es el servidor (ver MatchSettings).
 
@@ -24,6 +28,7 @@ local SocialService = game:GetService("SocialService")
 local UserInputService = game:GetService("UserInputService")
 
 local AudioSettings = require(script.Parent.Parent.Controllers.AudioSettings)
+local Mobile = require(script.Parent.Parent.Controllers.Mobile)
 local Bots = require(ReplicatedStorage.Shared.Config.Bots)
 local Maps = require(ReplicatedStorage.Shared.Config.Maps)
 local Modes = require(ReplicatedStorage.Shared.Config.Modes)
@@ -129,13 +134,19 @@ end
 local function showGrid(options: { { text: string, color: Color3?, onClick: () -> () } }, tall: boolean?)
 	clearContent()
 	local grid = Instance.new("UIGridLayout")
-	grid.CellSize = if tall then UDim2.new(1, 0, 0, 64) else UDim2.new(0.5, -6, 0, 44)
+	local touch = Mobile.IsTouch()
+	grid.CellSize = if tall
+		then UDim2.new(1, 0, 0, if touch then 52 else 64)
+		else UDim2.new(0.5, -6, 0, 44)
 	grid.CellPadding = UDim2.fromOffset(12, 10)
 	grid.SortOrder = Enum.SortOrder.LayoutOrder
 	grid.Parent = content
 	for i, option in options do
 		local button = newButton(content, option.text, UDim2.fromOffset(0, 0), option.color or CARD)
 		button.LayoutOrder = i
+		if touch then
+			button.TextSize = 14
+		end
 		button.Activated:Connect(function()
 			if not busy then
 				option.onClick()
@@ -493,22 +504,29 @@ end
 -- anfitrión, antes de la primera), "Cambiar modo" (solo el anfitrión), "Invitar amigos" y
 -- "Salir a partida rápida" en una partida contra la IA o privada
 local function buildSideButtons(gui: ScreenGui, kind: string)
+	local touch = Mobile.IsTouch()
 	local holder = Instance.new("Frame")
 	holder.BackgroundTransparency = 1
-	-- Debajo del botón de la tienda (centrado en 0.4 de la altura y de 36 de alto)
+	-- Debajo del botón de la tienda (centrado en 0.4 de la altura y de 36 de alto). En celular
+	-- la tienda va arriba a la izquierda (y mide 28 de alto)
 	holder.AnchorPoint = Vector2.new(0, 0)
-	holder.Position = UDim2.new(0, 16, 0.4, 26)
-	holder.Size = UDim2.fromOffset(230, 204)
+	holder.Position = if touch then UDim2.fromOffset(12, 40) else UDim2.new(0, 16, 0.4, 26)
+	holder.Size = if touch then UDim2.fromOffset(170, 160) else UDim2.fromOffset(230, 204)
 	holder.Parent = gui
 	local list = Instance.new("UIListLayout")
 	list.SortOrder = Enum.SortOrder.LayoutOrder
-	list.Padding = UDim.new(0, 8)
+	list.Padding = UDim.new(0, if touch then 6 else 8)
 	list.Parent = holder
-	local size = UDim2.fromOffset(230, 36)
+	local size = if touch then UDim2.fromOffset(170, 28) else UDim2.fromOffset(230, 36)
+	local textSize = if touch then 12 else 14
+	-- Con el menú o la tienda abiertos se esconden: si no, quedan encima y se tocan sin querer
+	player:GetAttributeChangedSignal("MenuOpen"):Connect(function()
+		holder.Visible = not player:GetAttribute("MenuOpen")
+	end)
 	if kind == "public" then
-		local menuButton = newButton(holder, "Menú (M)", size, BACKGROUND)
+		local menuButton = newButton(holder, if touch then "Menú" else "Menú (M)", size, BACKGROUND)
 		menuButton.BackgroundTransparency = 0.2
-		menuButton.TextSize = 14
+		menuButton.TextSize = textSize
 		local function toggleMenu()
 			showHome()
 			setOpen(not backdrop.Visible)
@@ -532,9 +550,9 @@ local function buildSideButtons(gui: ScreenGui, kind: string)
 	end
 	local label = Instance.new("TextLabel")
 	label.BackgroundTransparency = 1
-	label.Size = UDim2.fromOffset(230, 18)
+	label.Size = UDim2.fromOffset(if touch then 320 else 230, if touch then 14 else 18)
 	label.Font = Enum.Font.GothamBold
-	label.TextSize = 13
+	label.TextSize = if touch then 11 else 13
 	label.TextColor3 = TEXT
 	label.TextStrokeTransparency = 0.5
 	label.TextXAlignment = Enum.TextXAlignment.Left
@@ -561,7 +579,7 @@ local function buildSideButtons(gui: ScreenGui, kind: string)
 	-- Solo el anfitrión, y solo antes de la primera partida: la sala espera a que lo apriete
 	-- (así alcanzan a llegar los amigos invitados)
 	local start = newButton(holder, "Iniciar partida", size, AI_COLOR)
-	start.TextSize = 14
+	start.TextSize = textSize
 	start.LayoutOrder = 2
 	start.Activated:Connect(function()
 		requestMatch:FireServer("start")
@@ -577,7 +595,7 @@ local function buildSideButtons(gui: ScreenGui, kind: string)
 	-- los amigos no tienen que volver a entrar
 	local change = newButton(holder, "Cambiar modo", size, BACKGROUND)
 	change.BackgroundTransparency = 0.2
-	change.TextSize = 14
+	change.TextSize = textSize
 	change.LayoutOrder = 3
 	change.Activated:Connect(function()
 		if busy then
@@ -597,7 +615,7 @@ local function buildSideButtons(gui: ScreenGui, kind: string)
 	ReplicatedStorage:GetAttributeChangedSignal("HostUserId"):Connect(updateHost)
 	updateHost()
 	local invite = newButton(holder, "Invitar amigos", size, PRIVATE_COLOR)
-	invite.TextSize = 14
+	invite.TextSize = textSize
 	invite.LayoutOrder = 4
 	invite.Activated:Connect(inviteFriends)
 	-- El código de la sala, para los amigos de otra consola ("Unirse con código")
@@ -611,9 +629,23 @@ local function buildSideButtons(gui: ScreenGui, kind: string)
 	updateCode()
 	local leave = newButton(holder, "Salir a partida rápida", size, BACKGROUND)
 	leave.BackgroundTransparency = 0.2
-	leave.TextSize = 14
+	leave.TextSize = textSize
 	leave.LayoutOrder = 5
+	-- Hay que tocarlo dos veces seguidas: un toque sin querer ya no te saca de la sala
+	local leaveArmed = false
 	leave.Activated:Connect(function()
+		if not leaveArmed then
+			leaveArmed = true
+			leave.Text = "¿Salir? Toca otra vez"
+			task.delay(3, function()
+				if leaveArmed then
+					leaveArmed = false
+					leave.Text = "Salir a partida rápida"
+				end
+			end)
+			return
+		end
+		leaveArmed = false
 		leave.Text = "Saliendo..."
 		requestMatch:FireServer("leave")
 	end)
@@ -676,22 +708,29 @@ local function build(kind: string)
 	local panel = Instance.new("Frame")
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	panel.Position = UDim2.fromScale(0.5, 0.5)
-	panel.Size = UDim2.new(0, 480, 0, 460)
+	-- Casi toda la pantalla, hasta 480 × 460: en un celular acostado no caben 460 de alto
+	panel.Size = UDim2.fromScale(0.94, 0.94)
 	panel.BackgroundColor3 = BACKGROUND
 	panel.Parent = backdrop
 	corner(panel, 12)
-	local sizeLimit = Instance.new("UISizeConstraint") -- en pantallas pequeñas se encoge
+	local sizeLimit = Instance.new("UISizeConstraint")
 	sizeLimit.MaxSize = Vector2.new(480, 460)
 	sizeLimit.Parent = panel
+	local touch = Mobile.IsTouch()
 	local padding = Instance.new("UIPadding")
 	for _, side in { "PaddingTop", "PaddingBottom", "PaddingLeft", "PaddingRight" } do
 		(padding :: any)[side] = UDim.new(0, 18)
 	end
 	padding.Parent = panel
 
-	title = newLabel(panel, "", 26, TEXT)
-	subtitle = newLabel(panel, "", 14, MUTED)
-	subtitle.Position = UDim2.fromOffset(0, 36)
+	title = newLabel(panel, "", if touch then 20 else 26, TEXT)
+	subtitle = newLabel(panel, "", if touch then 12 else 14, MUTED)
+	subtitle.Position = UDim2.fromOffset(0, if touch then 28 else 36)
+	-- El título no debe quedar debajo de la X
+	title.Size = UDim2.new(1, -80, 0, title.TextSize + 8)
+	title.Position = UDim2.fromOffset(40, 0)
+	subtitle.Size = UDim2.new(1, -80, 0, subtitle.TextSize + 8)
+	subtitle.Position += UDim2.fromOffset(40, 0)
 
 	content = Instance.new("ScrollingFrame")
 	content.BackgroundTransparency = 1
@@ -700,8 +739,8 @@ local function build(kind: string)
 	content.CanvasSize = UDim2.new()
 	content.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	content.ScrollingDirection = Enum.ScrollingDirection.Y
-	content.Position = UDim2.fromOffset(0, 70)
-	content.Size = UDim2.new(1, 0, 1, -140)
+	content.Position = UDim2.fromOffset(0, if touch then 52 else 70)
+	content.Size = UDim2.new(1, 0, 1, if touch then -112 else -140)
 	content.Parent = panel
 
 	status = newLabel(panel, "", 14, ACCENT)
@@ -716,6 +755,16 @@ local function build(kind: string)
 		if goBack and not busy then
 			goBack()
 		end
+	end)
+
+	-- Cerrar el menú (en celular no hay tecla M)
+	local close = newButton(panel, "X", UDim2.fromOffset(36, 36), CARD)
+	close.AnchorPoint = Vector2.new(1, 0)
+	close.Position = UDim2.new(1, 0, 0, -4)
+	close.TextSize = 18
+	close.Activated:Connect(function()
+		changing = false
+		setOpen(false)
 	end)
 
 	buildSideButtons(gui, kind)

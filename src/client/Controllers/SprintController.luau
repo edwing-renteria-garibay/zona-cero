@@ -1,4 +1,5 @@
--- Correr: mantén Shift (L3 en control, botón "Correr" en móvil) para ir más rápido.
+-- Correr: mantén Shift (L3 en control) para ir más rápido. En móvil, el botón "Correr"
+-- (UI/TouchButtons) se toca una vez para correr y otra para dejar de correr.
 -- Los zombis no corren: ya son rápidos (Config/Modes, zombieSpeed).
 --
 -- La velocidad de tu personaje la controla tu propio cliente, así que basta con cambiar
@@ -41,8 +42,8 @@ local function onAction(_name: string, state: Enum.UserInputState)
 end
 
 function SprintController.Start()
-	-- El "true" crea un botón táctil en móvil
-	ContextActionService:BindAction("Sprint", onAction, true, Enum.KeyCode.LeftShift, Enum.KeyCode.ButtonL3)
+	-- El botón de móvil es de UI/TouchButtons (por eso el "false")
+	ContextActionService:BindAction("Sprint", onAction, false, Enum.KeyCode.LeftShift, Enum.KeyCode.ButtonL3)
 	ContextActionService:SetTitle("Sprint", "Correr")
 
 	-- Si te vuelves zombi mientras corres, dejas de correr

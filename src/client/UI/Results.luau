@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
 
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
+local Mobile = require(script.Parent.Parent.Controllers.Mobile)
 local Sfx = require(script.Parent.Parent.Controllers.Sfx)
 
 local matchState = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("MatchState") :: RemoteEvent
@@ -91,7 +92,7 @@ function Results.Start()
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "Results"
 	gui.ResetOnSpawn = false
-	gui.DisplayOrder = 20 -- encima del HUD
+	gui.DisplayOrder = 25 -- encima del HUD y de los botones del menú de partidas
 	gui.Enabled = false
 	gui.Parent = player:WaitForChild("PlayerGui")
 
@@ -102,6 +103,7 @@ function Results.Start()
 	panel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 	panel.BackgroundTransparency = 0.15
 	panel.Parent = gui
+	Mobile.FitToScreen(panel, 480, 500) -- en celular se encoge para caber completo
 	local corner = Instance.new("UICorner")
 	corner.CornerRadius = UDim.new(0, 10)
 	corner.Parent = panel
