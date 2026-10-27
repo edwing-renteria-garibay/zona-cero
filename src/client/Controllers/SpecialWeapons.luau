@@ -3,13 +3,13 @@
 --   Cañón de iones: un láser rojo marca a dónde va a caer el rayo
 --   Arma de hielo: si te da, la pantalla se pone azul y oyes el sonido de congelado
 
-local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
+local Actions = require(script.Parent.Actions)
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Aim = require(script.Parent.Aim)
@@ -207,7 +207,7 @@ function SpecialWeapons.Start()
 	pointer.Transparency = 0.3
 	dot = newPart("IonDot", Enum.PartType.Ball, Vector3.one * 0.6)
 
-	ContextActionService:BindAction(
+	Actions.Bind(
 		"Scope",
 		onScope,
 		false,

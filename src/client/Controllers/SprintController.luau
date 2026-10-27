@@ -10,6 +10,7 @@ local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Actions = require(script.Parent.Actions)
 local Movement = require(ReplicatedStorage.Shared.Config.Movement)
 
 local player = Players.LocalPlayer
@@ -43,7 +44,7 @@ end
 
 function SprintController.Start()
 	-- El botón de móvil es de UI/TouchButtons (por eso el "false")
-	ContextActionService:BindAction("Sprint", onAction, false, Enum.KeyCode.LeftShift, Enum.KeyCode.ButtonL3)
+	Actions.Bind("Sprint", onAction, false, Enum.KeyCode.LeftShift, Enum.KeyCode.ButtonL3)
 	ContextActionService:SetTitle("Sprint", "Correr")
 
 	-- Si te vuelves zombi mientras corres, dejas de correr
