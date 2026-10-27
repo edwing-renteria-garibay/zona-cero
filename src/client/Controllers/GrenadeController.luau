@@ -11,6 +11,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Actions = require(script.Parent.Actions)
 local Grenades = require(ReplicatedStorage.Shared.Config.Grenades)
 local Modes = require(ReplicatedStorage.Shared.Config.Modes)
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
@@ -189,7 +190,7 @@ end
 function GrenadeController.Start()
 	-- En control usamos B: L1 y R1 ya los usa Roblox para cambiar de arma. El botón de móvil
 	-- es de UI/TouchButtons (por eso el "false")
-	ContextActionService:BindAction("Grenade", onAction, false, Enum.KeyCode.G, Enum.KeyCode.ButtonB)
+	Actions.Bind("Grenade", onAction, false, Enum.KeyCode.G, Enum.KeyCode.ButtonB)
 	ContextActionService:SetTitle("Grenade", "Granada")
 
 	-- Granadas infinitas: el disparo también lanza (por encima del golpe con clic)
@@ -201,7 +202,7 @@ function GrenadeController.Start()
 		end
 		fireThrows = wanted
 		if wanted then
-			ContextActionService:BindActionAtPriority(
+			Actions.BindAtPriority(
 				"GrenadeFire",
 				onAction,
 				false,
@@ -210,7 +211,7 @@ function GrenadeController.Start()
 				Enum.KeyCode.ButtonR2
 			)
 		else
-			ContextActionService:UnbindAction("GrenadeFire")
+			Actions.Unbind("GrenadeFire")
 		end
 		ContextActionService:SetTitle(
 			"Grenade",

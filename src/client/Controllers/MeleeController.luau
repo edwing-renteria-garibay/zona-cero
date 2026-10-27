@@ -7,6 +7,7 @@ local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Actions = require(script.Parent.Actions)
 local Melee = require(ReplicatedStorage.Shared.Config.Melee)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local ViewModel = require(script.Parent.ViewModel)
@@ -75,9 +76,9 @@ local function updateClick()
 	end
 	clickBound = wanted
 	if wanted then
-		ContextActionService:BindAction("ClickMelee", onAction, false, Enum.UserInputType.MouseButton1)
+		Actions.Bind("ClickMelee", onAction, false, Enum.UserInputType.MouseButton1)
 	else
-		ContextActionService:UnbindAction("ClickMelee")
+		Actions.Unbind("ClickMelee")
 	end
 end
 
@@ -97,7 +98,7 @@ end
 function MeleeController.Start()
 	-- En control: R3 (apretar el stick derecho), como en muchos shooters. El botón de móvil
 	-- es de UI/TouchButtons (por eso el "false")
-	ContextActionService:BindAction("Melee", onAction, false, Enum.KeyCode.F, Enum.KeyCode.ButtonR3)
+	Actions.Bind("Melee", onAction, false, Enum.KeyCode.F, Enum.KeyCode.ButtonR3)
 	ContextActionService:SetTitle("Melee", "Golpe")
 
 	-- Revisa el clic al cambiar de arma, al reaparecer, al sentarse o pararse y al volverse zombi

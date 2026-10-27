@@ -14,6 +14,8 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
+local Actions = require(script.Parent.Actions)
+
 local player = Players.LocalPlayer
 
 local THIRD_PERSON_DISTANCE = 10 -- studs de la cámara al personaje
@@ -99,7 +101,7 @@ local function onToggle(_name: string, state: Enum.UserInputState)
 end
 
 function CameraController.Start()
-	ContextActionService:BindAction("ToggleCamera", onToggle, false, Enum.KeyCode.V, Enum.KeyCode.ButtonY)
+	Actions.Bind("ToggleCamera", onToggle, false, Enum.KeyCode.V, Enum.KeyCode.ButtonY)
 	ContextActionService:SetTitle("ToggleCamera", "Cámara")
 
 	-- Al reaparecer, el personaje es nuevo: se vuelve a aplicar la vista elegida

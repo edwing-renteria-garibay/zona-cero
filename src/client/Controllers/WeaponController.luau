@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
+local Actions = require(script.Parent.Actions)
 local Sounds = require(ReplicatedStorage.Shared.Config.Sounds)
 local Weapons = require(ReplicatedStorage.Shared.Config.Weapons)
 local Aim = require(script.Parent.Aim)
@@ -293,7 +294,7 @@ function WeaponController.Start()
 
 	-- Recargar: R en teclado, X (Cuadrado en PlayStation) en control y botón "Recargar" en
 	-- móvil (ese botón es de UI/TouchButtons, por eso el "false")
-	ContextActionService:BindAction("Reload", function(_name, state)
+	Actions.Bind("Reload", function(_name, state)
 		if state == Enum.UserInputState.Begin then
 			reloadWeapon:FireServer()
 			return Enum.ContextActionResult.Sink

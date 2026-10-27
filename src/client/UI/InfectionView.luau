@@ -14,6 +14,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local zombieBoost = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("ZombieBoost") :: RemoteEvent
 
+local Actions = require(script.Parent.Parent.Controllers.Actions)
+
 local player = Players.LocalPlayer
 
 local SURVIVOR_GLOW = Color3.fromRGB(120, 180, 255)
@@ -128,7 +130,7 @@ function InfectionView.Start()
 		local zombie = player:GetAttribute("Side") == "Zombie"
 		if zombie and not bound then
 			bound = true
-			ContextActionService:BindActionAtPriority("ZombieBoost", function(_name, state)
+			Actions.BindAtPriority("ZombieBoost", function(_name, state)
 				if state == Enum.UserInputState.Begin then
 					zombieBoost:FireServer()
 				end
@@ -137,7 +139,7 @@ function InfectionView.Start()
 			ContextActionService:SetTitle("ZombieBoost", "Pócima")
 		elseif not zombie and bound then
 			bound = false
-			ContextActionService:UnbindAction("ZombieBoost")
+			Actions.Unbind("ZombieBoost")
 		end
 	end
 	player:GetAttributeChangedSignal("Side"):Connect(updateBinding)

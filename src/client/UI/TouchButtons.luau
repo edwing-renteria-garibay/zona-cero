@@ -13,8 +13,9 @@
 -- pulgar derecho queda libre para mirar.
 --
 -- Antes usábamos los botones automáticos de Roblox (el "true" de BindAction), pero salían
--- pequeños, con el texto cortado y uno encima de otro. Estos llaman a las mismas acciones
--- con ContextActionService:CallFunction, así que hacen exactamente lo mismo que las teclas.
+-- pequeños, con el texto cortado y uno encima de otro. Estos llaman a las mismas funciones
+-- que las teclas (Controllers/Actions), así que hacen exactamente lo mismo.
+-- (ContextActionService:CallFunction no funcionaba en el celular: los botones no hacían nada.)
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
@@ -22,6 +23,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Movement = require(ReplicatedStorage.Shared.Config.Movement)
+local Actions = require(script.Parent.Parent.Controllers.Actions)
 local GrenadeController = require(script.Parent.Parent.Controllers.GrenadeController)
 local MeleeController = require(script.Parent.Parent.Controllers.MeleeController)
 local Mobile = require(script.Parent.Parent.Controllers.Mobile)
@@ -108,10 +110,8 @@ local function onTouch(button: TextButton, onPress: (InputObject) -> (), onRelea
 	end)
 end
 
--- Hace la acción como si se hubiera apretado su tecla (pcall: por si en ese instante la acción
--- se acaba de quitar, como el golpe con clic al recoger un arma)
 local function call(action: string, state: Enum.UserInputState, input: InputObject)
-	pcall(ContextActionService.CallFunction, ContextActionService, action, state, input)
+	Actions.Call(action, state, input)
 end
 
 local function humanoid(): Humanoid?
@@ -189,7 +189,7 @@ function TouchButtons.Start()
 	local grenade = makeButton(cluster, "Grenade", "Granada", BUTTON)
 	local grenadeAction = "Grenade"
 	onTouch(grenade, function(input)
-		grenadeAction = if player:GetAttribute("Side") == "Zombie" then "ZombieBoost" else "Grenade"
+		grenadeAction = if Actions.IsBound("ZombieBoost") then "ZombieBoost" else "Grenade"
 		call(grenadeAction, Enum.UserInputState.Begin, input)
 	end, function(input)
 		call(grenadeAction, Enum.UserInputState.End, input)
