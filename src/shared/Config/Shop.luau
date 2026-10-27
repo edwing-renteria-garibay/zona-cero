@@ -10,14 +10,16 @@ local Shop = {}
 
 -- Créditos que se ganan jugando
 Shop.rewards = {
-	kill = 10, -- por cada baja
-	headshot = 5, -- extra si la baja fue a la cabeza
-	assist = 5, -- por cada asistencia (le hiciste daño y otro lo remató)
-	match = 25, -- por terminar una partida
-	win = 75, -- extra si tu equipo (o tú, en solitario) gana
+	kill = 5, -- por cada baja
+	headshot = 3, -- extra si la baja fue a la cabeza
+	assist = 2, -- por cada asistencia (le hiciste daño y otro lo remató)
+	match = 20, -- por terminar una partida
+	win = 40, -- extra si tu equipo (o tú, en solitario) gana
 }
+-- Con estos valores una partida de 10 minutos deja unos 80 créditos (unos 500 por hora):
+-- una parte Militar sale en ~5 partidas y la armadura Élite completa en ~100.
 
-Shop.startingCredits = 200 -- con lo que empieza un jugador nuevo
+Shop.startingCredits = 0 -- con lo que empieza un jugador nuevo
 Shop.testingCredits = 5000 -- con Modes.Testing.enabled, para probar la tienda sin jugar
 
 -- Uniforme base: con enabled = true todos aparecen con el mismo cuerpo de bloques, sin la ropa
@@ -45,7 +47,7 @@ Shop.armor = {
 	{
 		id = "Militar",
 		name = "Militar",
-		price = 100,
+		price = 400,
 		primary = Color3.fromRGB(86, 92, 62),
 		secondary = Color3.fromRGB(56, 60, 42),
 		accent = Color3.fromRGB(255, 170, 60),
@@ -54,7 +56,7 @@ Shop.armor = {
 	{
 		id = "Urbano",
 		name = "Urbano",
-		price = 150,
+		price = 600,
 		primary = Color3.fromRGB(110, 114, 120),
 		secondary = Color3.fromRGB(60, 62, 66),
 		accent = Color3.fromRGB(120, 200, 255),
@@ -63,7 +65,7 @@ Shop.armor = {
 	{
 		id = "Desierto",
 		name = "Desierto",
-		price = 150,
+		price = 600,
 		primary = Color3.fromRGB(196, 170, 120),
 		secondary = Color3.fromRGB(140, 112, 76),
 		accent = Color3.fromRGB(255, 120, 40),
@@ -72,7 +74,7 @@ Shop.armor = {
 	{
 		id = "Artico",
 		name = "Ártico",
-		price = 200,
+		price = 800,
 		primary = Color3.fromRGB(228, 232, 236),
 		secondary = Color3.fromRGB(150, 160, 170),
 		accent = Color3.fromRGB(90, 200, 255),
@@ -81,7 +83,7 @@ Shop.armor = {
 	{
 		id = "Noche",
 		name = "Noche",
-		price = 300,
+		price = 1200,
 		primary = Color3.fromRGB(34, 36, 40),
 		secondary = Color3.fromRGB(18, 18, 20),
 		accent = Color3.fromRGB(60, 140, 255),
@@ -90,7 +92,7 @@ Shop.armor = {
 	{
 		id = "Elite",
 		name = "Élite",
-		price = 500,
+		price = 2000,
 		primary = Color3.fromRGB(30, 30, 32),
 		secondary = Color3.fromRGB(212, 168, 60),
 		accent = Color3.fromRGB(255, 210, 80),
@@ -104,24 +106,24 @@ Shop.weaponSkins = {
 	{
 		id = "Desierto",
 		name = "Desierto",
-		price = 150,
+		price = 600,
 		color = Color3.fromRGB(196, 165, 110),
 		material = nil,
 	},
-	{ id = "Bosque", name = "Bosque", price = 150, color = Color3.fromRGB(70, 110, 60), material = nil },
-	{ id = "Artico", name = "Ártico", price = 200, color = Color3.fromRGB(225, 232, 240), material = nil },
-	{ id = "Carmesi", name = "Carmesí", price = 300, color = Color3.fromRGB(170, 30, 40), material = nil },
+	{ id = "Bosque", name = "Bosque", price = 600, color = Color3.fromRGB(70, 110, 60), material = nil },
+	{ id = "Artico", name = "Ártico", price = 800, color = Color3.fromRGB(225, 232, 240), material = nil },
+	{ id = "Carmesi", name = "Carmesí", price = 1200, color = Color3.fromRGB(170, 30, 40), material = nil },
 	{
 		id = "Cromo",
 		name = "Cromo",
-		price = 500,
+		price = 2000,
 		color = Color3.fromRGB(200, 205, 215),
 		material = Enum.Material.Metal,
 	},
 	{
 		id = "Oro",
 		name = "Oro",
-		price = 800,
+		price = 3000,
 		color = Color3.fromRGB(230, 180, 50),
 		material = Enum.Material.Metal,
 	},
@@ -131,9 +133,9 @@ Shop.weaponSkins = {
 -- se crea en el Creator Dashboard (ver docs/aprende/23-tienda.md). Pon aquí su ID; los que
 -- tengan productId = 0 salen en la tienda como "Próximamente".
 Shop.creditPacks = {
-	{ credits = 500, robux = 49, productId = 3721754389 }, -- Paquete básico
-	{ credits = 1200, robux = 99, productId = 3721754556 }, -- Paquete intermedio
-	{ credits = 3000, robux = 199, productId = 3721754667 }, -- Paquete grande
+	{ credits = 1000, robux = 49, productId = 3721754389 }, -- Paquete básico
+	{ credits = 2500, robux = 99, productId = 3721754556 }, -- Paquete intermedio
+	{ credits = 6000, robux = 199, productId = 3721754667 }, -- Paquete grande
 }
 
 -- Busca un objeto de la tienda por su id ("Helmet.Elite", "Skin.Oro"...).
