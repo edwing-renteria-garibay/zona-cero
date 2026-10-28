@@ -8,7 +8,7 @@ botones.
 
 | Botón | Qué hace |
 |---|---|
-| Disparar (el rojo, grande) | Lo mismo que el clic: dispara, usa la torreta, lanza SimiOs o golpea con el machete. Si arrastras el dedo sin soltarlo, también apuntas |
+| Disparar (stick con bolita roja) | Lo mismo que el clic: dispara, usa la torreta, lanza SimiOs o golpea con el machete. Si empujas la bolita, la mira gira hacia ese lado mientras la sostengas |
 | Apuntar | Zoom del francotirador (solo sale con armas que tienen zoom) |
 | Recargar | Recargar |
 | Granada | Mantén para ver a dónde cae y suelta para lanzarla. Siendo zombi es la pócima |
@@ -49,9 +49,15 @@ celular de verdad (publica y entra desde la app de Roblox).
 ## Apuntar mientras disparas
 
 Al principio el botón Disparar solo disparaba: había que apuntar con un dedo y luego
-disparar con otro. Ahora, si dejas el dedo en Disparar y lo arrastras, la cámara gira igual
-que al arrastrar la pantalla (`CameraController.Look`). La velocidad está en
-`LOOK_SPEED` de `UI/TouchButtons.luau` (0.35 grados por punto); súbela si se siente lenta.
+disparar con otro. Ahora Disparar es un **stick**, igual que el de caminar: al tocarlo
+dispara, y si empujas la bolita hacia un lado la mira gira hacia allá mientras la sostengas,
+como el stick derecho de un control (`CameraController.Look`). Entre más la empujas, más
+rápido gira (a medio camino gira a la cuarta parte, para apuntar fino).
+
+En `UI/TouchButtons.luau`:
+- `LOOK_SPEED`: grados por segundo con la bolita hasta el borde (220). Súbelo si se
+  siente lento.
+- `DEAD_ZONE`: un empujón pequeño no gira (0.15), para poder disparar sin mover la mira.
 
 ## El stick izquierdo solo mueve
 
