@@ -201,6 +201,9 @@ function TouchButtons.Start()
 	knobText.Parent = knob
 	-- Qué tanto está empujada la bolita: de (0, 0) en el centro a largo 1 en el borde
 	local stick = Vector2.zero
+	-- Donde pusiste el dedo: el empujón se mide desde ahí, así tocar cerca del borde no gira
+	-- la mira de golpe
+	local origin: Vector2? = nil
 	local firing: string? = nil
 	onTouch(fire, function(input)
 		if VehicleController.IsInTurret() then
@@ -226,12 +229,13 @@ function TouchButtons.Start()
 		end
 		firing = nil
 		stick = Vector2.zero
+		origin = nil
 		knob.Position = UDim2.fromScale(0.5, 0.5) -- la bolita regresa al centro
 	end, function(position)
 		-- La bolita sigue al dedo sin salirse del círculo
 		local radius = fire.AbsoluteSize.X / 2
-		local center = fire.AbsolutePosition + fire.AbsoluteSize / 2
-		local offset = position - center
+		origin = origin or position
+		local offset = position - (origin :: Vector2)
 		if offset.Magnitude > radius then
 			offset = offset.Unit * radius
 		end
@@ -302,6 +306,7 @@ function TouchButtons.Start()
 				firing = nil
 			end
 			stick = Vector2.zero
+			origin = nil
 			knob.Position = UDim2.fromScale(0.5, 0.5)
 			return
 		end
