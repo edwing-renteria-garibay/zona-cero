@@ -8,8 +8,9 @@
 --   Golpe
 --
 -- Disparar hace lo mismo que el clic izquierdo: dispara el arma, la torreta del jeep, lanza
--- SimiOs o golpea (con el machete, el pollo o siendo zombi). Apuntar solo sale con armas que
--- tienen zoom (francotirador). Correr se toca una vez para correr y otra para parar, así el
+-- SimiOs o golpea (con el machete, el pollo o siendo zombi). Si arrastras el dedo sin
+-- soltarlo, también mueve la cámara: así apuntas y disparas al mismo tiempo. Apuntar solo
+-- sale con armas que tienen zoom (francotirador). Correr se toca una vez para correr y otra para parar, así el
 -- pulgar derecho queda libre para mirar.
 --
 -- Antes usábamos los botones automáticos de Roblox (el "true" de BindAction), pero salían
@@ -24,6 +25,7 @@ local RunService = game:GetService("RunService")
 
 local Movement = require(ReplicatedStorage.Shared.Config.Movement)
 local Actions = require(script.Parent.Parent.Controllers.Actions)
+local CameraController = require(script.Parent.Parent.Controllers.CameraController)
 local GrenadeController = require(script.Parent.Parent.Controllers.GrenadeController)
 local MeleeController = require(script.Parent.Parent.Controllers.MeleeController)
 local Mobile = require(script.Parent.Parent.Controllers.Mobile)
@@ -37,6 +39,7 @@ local BUTTON = Color3.fromRGB(20, 20, 20)
 local FIRE = Color3.fromRGB(170, 40, 40)
 local ACTIVE = Color3.fromRGB(230, 170, 50) -- Correr prendido / zoom puesto
 local TEXT = Color3.new(1, 1, 1)
+local LOOK_SPEED = 0.35 -- grados que gira la cámara por cada punto que arrastras Disparar
 
 -- Dónde va cada botón: el centro, medido desde el centro del botón de saltar (que mide 70 en
 -- celular), y su tamaño
@@ -88,19 +91,36 @@ local function makeButton(parent: Instance, key: string, text: string, color: Co
 end
 
 -- Llama a onPress cuando el dedo toca el botón y a onRelease cuando lo suelta (aunque lo
--- suelte fuera del botón)
-local function onTouch(button: TextButton, onPress: (InputObject) -> (), onRelease: ((InputObject) -> ())?)
+-- suelte fuera del botón). onMove, si se da, recibe cuánto se movió el dedo (en píxeles)
+local function onTouch(
+	button: TextButton,
+	onPress: (InputObject) -> (),
+	onRelease: ((InputObject) -> ())?,
+	onMove: ((Vector2) -> ())?
+)
 	button.InputBegan:Connect(function(input)
 		if input.UserInputType ~= Enum.UserInputType.Touch then
 			return
 		end
 		button.BackgroundTransparency = 0.1 -- se ve apretado
 		onPress(input)
+		local last = Vector2.new(input.Position.X, input.Position.Y)
+		local moved
+		if onMove then
+			moved = input:GetPropertyChangedSignal("Position"):Connect(function()
+				local now = Vector2.new(input.Position.X, input.Position.Y)
+				onMove(now - last)
+				last = now
+			end)
+		end
 		local connection
 		connection = input:GetPropertyChangedSignal("UserInputState"):Connect(function()
 			local state = input.UserInputState
 			if state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
 				connection:Disconnect()
+				if moved then
+					moved:Disconnect()
+				end
 				button.BackgroundTransparency = 0.35
 				if onRelease then
 					onRelease(input)
@@ -173,6 +193,10 @@ function TouchButtons.Start()
 			WeaponController.SetTrigger(false)
 		end
 		firing = nil
+	end, function(delta)
+		-- Arrastrar el dedo sobre Disparar mueve la mira. Con zoom gira más despacio
+		local speed = LOOK_SPEED * workspace.CurrentCamera.FieldOfView / 70
+		CameraController.Look(delta.X * speed, -delta.Y * speed)
 	end)
 
 	local reload = makeButton(cluster, "Reload", "Recargar", BUTTON)
