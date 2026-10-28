@@ -8,10 +8,12 @@
 --   Golpe
 --
 -- Disparar hace lo mismo que el clic izquierdo: dispara el arma, la torreta del jeep, lanza
--- SimiOs o golpea (con el machete, el pollo o siendo zombi). Si arrastras el dedo sin
--- soltarlo, también mueve la cámara: así apuntas y disparas al mismo tiempo. Apuntar solo
--- sale con armas que tienen zoom (francotirador). Correr se toca una vez para correr y otra para parar, así el
--- pulgar derecho queda libre para mirar.
+-- SimiOs o golpea (con el machete, el pollo o siendo zombi). Es un stick, como el de caminar:
+-- al tocarlo dispara, y si empujas la bolita hacia un lado la mira gira hacia allá mientras
+-- la sostengas, más rápido entre más la empujes (como el stick derecho de un control). Al
+-- soltarlo la bolita regresa al centro. Apuntar solo sale con armas que tienen zoom
+-- (francotirador). Correr se toca una vez para correr y otra para parar, así el pulgar
+-- derecho queda libre para mirar.
 --
 -- Antes usábamos los botones automáticos de Roblox (el "true" de BindAction), pero salían
 -- pequeños, con el texto cortado y uno encima de otro. Estos llaman a las mismas funciones
@@ -37,9 +39,14 @@ local player = Players.LocalPlayer
 
 local BUTTON = Color3.fromRGB(20, 20, 20)
 local FIRE = Color3.fromRGB(170, 40, 40)
+local STICK_BASE = Color3.fromRGB(40, 40, 40) -- como el fondo del stick de caminar
 local ACTIVE = Color3.fromRGB(230, 170, 50) -- Correr prendido / zoom puesto
 local TEXT = Color3.new(1, 1, 1)
-local LOOK_SPEED = 0.35 -- grados que gira la cámara por cada punto que arrastras Disparar
+-- Stick de Disparar: grados por segundo que gira la mira con la bolita empujada hasta el borde
+-- (a medio camino gira a la cuarta parte, para apuntar fino)
+local LOOK_SPEED = 220
+local DEAD_ZONE = 0.15 -- empujes menores que esto (de 0 a 1) no giran: así puedes disparar quieto
+local KNOB_SIZE = 44
 
 -- Dónde va cada botón: el centro, medido desde el centro del botón de saltar (que mide 70 en
 -- celular), y su tamaño
@@ -91,9 +98,9 @@ local function makeButton(parent: Instance, key: string, text: string, color: Co
 end
 
 -- Llama a onPress cuando el dedo toca el botón y a onRelease cuando lo suelta (aunque lo
--- suelte fuera del botón). onMove, si se da, recibe cuánto se movió el dedo (en píxeles)
+-- suelte fuera del botón). onMove, si se da, recibe dónde está el dedo en la pantalla
 local function onTouch(
-	button: TextButton,
+	button: GuiButton,
 	onPress: (InputObject) -> (),
 	onRelease: ((InputObject) -> ())?,
 	onMove: ((Vector2) -> ())?
@@ -102,15 +109,14 @@ local function onTouch(
 		if input.UserInputType ~= Enum.UserInputType.Touch then
 			return
 		end
-		button.BackgroundTransparency = 0.1 -- se ve apretado
+		local normal = button.BackgroundTransparency
+		button.BackgroundTransparency = normal - 0.25 -- se ve apretado
 		onPress(input)
-		local last = Vector2.new(input.Position.X, input.Position.Y)
 		local moved
 		if onMove then
+			onMove(Vector2.new(input.Position.X, input.Position.Y))
 			moved = input:GetPropertyChangedSignal("Position"):Connect(function()
-				local now = Vector2.new(input.Position.X, input.Position.Y)
-				onMove(now - last)
-				last = now
+				onMove(Vector2.new(input.Position.X, input.Position.Y))
 			end)
 		end
 		local connection
@@ -121,7 +127,7 @@ local function onTouch(
 				if moved then
 					moved:Disconnect()
 				end
-				button.BackgroundTransparency = 0.35
+				button.BackgroundTransparency = normal
 				if onRelease then
 					onRelease(input)
 				end
@@ -167,8 +173,37 @@ function TouchButtons.Start()
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
 	place()
 
-	-- Disparar: lo mismo que el clic izquierdo, según lo que tengas en la mano
-	local fire = makeButton(cluster, "Fire", "Disparar", FIRE)
+	-- Disparar: lo mismo que el clic izquierdo, según lo que tengas en la mano. Es un stick:
+	-- el círculo de fondo (fire) y la bolita que sigue al dedo (knob), con el mismo diseño que
+	-- el stick de caminar de Roblox: fondo oscuro transparente y bolita más oscura
+	local fire = makeButton(cluster, "Fire", "", STICK_BASE)
+	fire.BackgroundTransparency = 0.5
+	local knob = Instance.new("TextLabel")
+	knob.AnchorPoint = Vector2.new(0.5, 0.5)
+	knob.Position = UDim2.fromScale(0.5, 0.5)
+	knob.Size = UDim2.fromOffset(KNOB_SIZE, KNOB_SIZE)
+	knob.BackgroundColor3 = FIRE
+	knob.BackgroundTransparency = 0.25
+	knob.Font = Enum.Font.GothamBold
+	knob.Text = "Disparar"
+	knob.TextColor3 = TEXT
+	knob.TextScaled = true
+	knob.Parent = fire
+	local knobCorner = Instance.new("UICorner")
+	knobCorner.CornerRadius = UDim.new(0.5, 0)
+	knobCorner.Parent = knob
+	local knobPadding = Instance.new("UIPadding")
+	knobPadding.PaddingLeft = UDim.new(0, 4)
+	knobPadding.PaddingRight = UDim.new(0, 4)
+	knobPadding.Parent = knob
+	local knobText = Instance.new("UITextSizeConstraint")
+	knobText.MaxTextSize = 11
+	knobText.Parent = knob
+	-- Qué tanto está empujada la bolita: de (0, 0) en el centro a largo 1 en el borde
+	local stick = Vector2.zero
+	-- Donde pusiste el dedo: el empujón se mide desde ahí, así tocar cerca del borde no gira
+	-- la mira de golpe
+	local origin: Vector2? = nil
 	local firing: string? = nil
 	onTouch(fire, function(input)
 		if VehicleController.IsInTurret() then
@@ -193,10 +228,21 @@ function TouchButtons.Start()
 			WeaponController.SetTrigger(false)
 		end
 		firing = nil
-	end, function(delta)
-		-- Arrastrar el dedo sobre Disparar mueve la mira. Con zoom gira más despacio
-		local speed = LOOK_SPEED * workspace.CurrentCamera.FieldOfView / 70
-		CameraController.Look(delta.X * speed, -delta.Y * speed)
+		stick = Vector2.zero
+		origin = nil
+		knob.Position = UDim2.fromScale(0.5, 0.5) -- la bolita regresa al centro
+	end, function(position)
+		-- La bolita sigue al dedo sin salirse del círculo
+		local radius = fire.AbsoluteSize.X / 2
+		origin = origin or position
+		local offset = position - (origin :: Vector2)
+		if offset.Magnitude > radius then
+			offset = offset.Unit * radius
+		end
+		stick = offset / radius
+		-- AbsoluteSize ya trae el UIScale (tablets): la posición de la bolita va sin él
+		local knobOffset = offset / scale.Scale
+		knob.Position = UDim2.new(0.5, knobOffset.X, 0.5, knobOffset.Y)
 	end)
 
 	local reload = makeButton(cluster, "Reload", "Recargar", BUTTON)
@@ -239,7 +285,16 @@ function TouchButtons.Start()
 		call("ToggleCamera", Enum.UserInputState.Begin, input)
 	end)
 
-	RunService.RenderStepped:Connect(function()
+	RunService.RenderStepped:Connect(function(dt)
+		-- Stick de Disparar empujado: la mira gira mientras lo sostengas. Con zoom, más despacio
+		local push = stick.Magnitude
+		if push > DEAD_ZONE then
+			local strength = ((push - DEAD_ZONE) / (1 - DEAD_ZONE)) ^ 2
+			local direction = stick.Unit * strength
+			local speed = LOOK_SPEED * dt * workspace.CurrentCamera.FieldOfView / 70
+			CameraController.Look(direction.X * speed, -direction.Y * speed)
+		end
+
 		-- Con un menú abierto (tienda, menú de partidas) o muerto, los botones se esconden
 		local h = humanoid()
 		cluster.Visible = not player:GetAttribute("MenuOpen") and h ~= nil and h.Health > 0
@@ -250,6 +305,9 @@ function TouchButtons.Start()
 				VehicleController.SetTrigger(false)
 				firing = nil
 			end
+			stick = Vector2.zero
+			origin = nil
+			knob.Position = UDim2.fromScale(0.5, 0.5)
 			return
 		end
 
