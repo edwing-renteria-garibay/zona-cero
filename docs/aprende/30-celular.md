@@ -8,7 +8,7 @@ botones.
 
 | Botón | Qué hace |
 |---|---|
-| Disparar (stick con bolita roja) | Lo mismo que el clic: dispara, usa la torreta, lanza SimiOs o golpea con el machete. Si empujas la bolita, la mira gira hacia ese lado mientras la sostengas. Las armas de tiro por tiro disparan al soltar |
+| Disparar (stick con bolita roja) | Lo mismo que el clic: dispara, usa la torreta, lanza SimiOs o golpea con el machete. Al mover el dedo la mira lo sigue. Las armas de tiro por tiro disparan al soltar |
 | Apuntar | Zoom del francotirador (solo sale con armas que tienen zoom) |
 | Recargar | Recargar |
 | Granada | Mantén para ver a dónde cae y suelta para lanzarla. Siendo zombi es la pócima |
@@ -48,21 +48,27 @@ celular de verdad (publica y entra desde la app de Roblox).
 
 ## Apuntar mientras disparas
 
-Al principio el botón Disparar solo disparaba: había que apuntar con un dedo y luego
-disparar con otro. Ahora Disparar es un **stick**, igual que el de caminar: al tocarlo
-dispara, y si empujas la bolita hacia un lado la mira gira hacia allá mientras la sostengas,
-como el stick derecho de un control (`CameraController.Look`). Entre más la empujas, más
-rápido gira (a medio camino gira a la cuarta parte, para apuntar fino).
+Disparar se ve como el stick de caminar (bolita roja en un círculo oscuro). Al tocarlo
+dispara, y al mover el dedo la mira se mueve **lo mismo que mueves el dedo**, como al
+arrastrar la pantalla: si paras el dedo, la mira se para. Así lo hacen los juegos de
+disparos de celular.
+
+Primero probamos que la mira siguiera girando mientras empujabas la bolita (como el stick
+derecho de un control), pero en celular se pasaba: con un empujón pequeño se iba hasta el
+techo.
 
 Con las armas de **tiro por tiro** (pistola, escopeta, lanzacohetes, francotirador) el
 disparo sale **al soltar** la bolita, no al tocarla: así acomodas la mira primero y no se te
 escapa la bala (en SWAT explosivo solo tienes 2 cohetes). Las automáticas (rifle,
-ametralladora) disparan mientras la sostienes, como antes.
+ametralladora) disparan mientras la sostienes.
 
 En `UI/TouchButtons.luau`:
-- `LOOK_SPEED`: grados por segundo con la bolita hasta el borde (140). Súbelo si se
-  siente lento, bájalo si la mira se va muy lejos.
-- `DEAD_ZONE`: un empujón pequeño no gira (0.2), para poder disparar sin mover la mira.
+- `LOOK_SPEED`: grados que gira la mira por cada punto que mueves el dedo (0.3). Súbelo si
+  se siente lento, bájalo si la mira se va muy lejos.
+- `VERTICAL`: arriba y abajo giran al 60 %, porque el pulgar se va hacia arriba sin querer.
+- `AIM_FRICTION`: **asistencia de puntería**. Con la mira sobre un enemigo gira al 45 %,
+  para no pasarte de él. `isEnemy` revisa el equipo igual que `Combatants.IsEnemy` en el
+  servidor.
 
 ## El stick izquierdo solo mueve
 

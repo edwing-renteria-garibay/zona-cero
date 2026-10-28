@@ -8,12 +8,11 @@
 --   Golpe
 --
 -- Disparar hace lo mismo que el clic izquierdo: dispara el arma, la torreta del jeep, lanza
--- SimiOs o golpea (con el machete, el pollo o siendo zombi). Es un stick, como el de caminar:
--- al tocarlo dispara, y si empujas la bolita hacia un lado la mira gira hacia allá mientras
--- la sostengas, más rápido entre más la empujes (como el stick derecho de un control). Al
--- soltarlo la bolita regresa al centro. Apuntar solo sale con armas que tienen zoom
--- (francotirador). Correr se toca una vez para correr y otra para parar, así el pulgar
--- derecho queda libre para mirar.
+-- SimiOs o golpea (con el machete, el pollo o siendo zombi). Se ve como el stick de caminar:
+-- al tocarlo dispara, y la mira se mueve lo mismo que mueves el dedo (como arrastrar la
+-- pantalla) y se detiene cuando lo paras. Al soltarlo la bolita regresa al centro. Apuntar
+-- solo sale con armas que tienen zoom (francotirador). Correr se toca una vez para correr y
+-- otra para parar, así el pulgar derecho queda libre para mirar.
 --
 -- Antes usábamos los botones automáticos de Roblox (el "true" de BindAction), pero salían
 -- pequeños, con el texto cortado y uno encima de otro. Estos llaman a las mismas funciones
@@ -24,6 +23,7 @@ local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local Teams = game:GetService("Teams")
 
 local Movement = require(ReplicatedStorage.Shared.Config.Movement)
 local Actions = require(script.Parent.Parent.Controllers.Actions)
@@ -42,10 +42,11 @@ local FIRE = Color3.fromRGB(170, 40, 40)
 local STICK_BASE = Color3.fromRGB(40, 40, 40) -- como el fondo del stick de caminar
 local ACTIVE = Color3.fromRGB(230, 170, 50) -- Correr prendido / zoom puesto
 local TEXT = Color3.new(1, 1, 1)
--- Stick de Disparar: grados por segundo que gira la mira con la bolita empujada hasta el borde
--- (a medio camino gira a la cuarta parte, para apuntar fino)
-local LOOK_SPEED = 140
-local DEAD_ZONE = 0.2 -- empujes menores que esto (de 0 a 1) no giran: así puedes disparar quieto
+-- Stick de Disparar: grados que gira la mira por cada punto que mueves el dedo
+local LOOK_SPEED = 0.3
+local VERTICAL = 0.6 -- arriba y abajo giran más lento: el pulgar se va hacia arriba sin querer
+-- Asistencia: con la mira sobre un enemigo gira más lento, para no pasarte de él
+local AIM_FRICTION = 0.45
 local KNOB_SIZE = 38
 
 -- Dónde va cada botón: el centro, medido desde el centro del botón de saltar (que mide 70 en
@@ -145,6 +146,43 @@ local function humanoid(): Humanoid?
 	return character and character:FindFirstChildOfClass("Humanoid")
 end
 
+-- ¿Es enemigo el dueño de este personaje? Igual que Combatants.IsEnemy en el servidor
+local function isEnemy(model: Model): boolean
+	local who: Instance? = Players:GetPlayerFromCharacter(model)
+	if not who and model.Parent == workspace:FindFirstChild("Bots") then
+		local cards = ReplicatedStorage:FindFirstChild("Bots")
+		who = cards and cards:FindFirstChild(model.Name)
+	end
+	if not who or who == player then
+		return false
+	end
+	local mySide, theirSide = player:GetAttribute("Side"), who:GetAttribute("Side")
+	if mySide and theirSide then
+		return mySide ~= theirSide
+	end
+	local myTeam = if player.Neutral then nil else player.Team
+	local theirTeam
+	if who:IsA("Player") then
+		theirTeam = if who.Neutral then nil else who.Team
+	else
+		local name = who:GetAttribute("Team")
+		theirTeam = name and Teams:FindFirstChild(name)
+	end
+	return not myTeam or not theirTeam or myTeam ~= theirTeam
+end
+
+-- ¿Hay un enemigo justo en la mira (el centro de la pantalla)?
+local rayParams = RaycastParams.new()
+rayParams.FilterType = Enum.RaycastFilterType.Exclude
+local function enemyInSight(): boolean
+	local camera = workspace.CurrentCamera
+	-- Sin contarte a ti ni al arma que ves en primera persona (va dentro de la cámara)
+	rayParams.FilterDescendantsInstances = { camera, player.Character :: Instance }
+	local result = workspace:Raycast(camera.CFrame.Position, camera.CFrame.LookVector * 400, rayParams)
+	local model = result and result.Instance:FindFirstAncestorOfClass("Model")
+	return model ~= nil and model:FindFirstChildOfClass("Humanoid") ~= nil and isEnemy(model)
+end
+
 function TouchButtons.Start()
 	if not Mobile.IsTouch() then
 		return
@@ -199,11 +237,10 @@ function TouchButtons.Start()
 	local knobText = Instance.new("UITextSizeConstraint")
 	knobText.MaxTextSize = 11
 	knobText.Parent = knob
-	-- Qué tanto está empujada la bolita: de (0, 0) en el centro a largo 1 en el borde
-	local stick = Vector2.zero
-	-- Donde pusiste el dedo: el empujón se mide desde ahí, así tocar cerca del borde no gira
-	-- la mira de golpe
+	-- Donde pusiste el dedo (la bolita se mueve desde ahí) y dónde estaba en el último
+	-- movimiento (la mira gira lo que se movió desde entonces)
 	local origin: Vector2? = nil
+	local last: Vector2? = nil
 	local firing: string? = nil
 	onTouch(fire, function(input)
 		if VehicleController.IsInTurret() then
@@ -237,10 +274,20 @@ function TouchButtons.Start()
 			WeaponController.SetTrigger(true) -- un solo tiro: WeaponController suelta el gatillo
 		end
 		firing = nil
-		stick = Vector2.zero
 		origin = nil
+		last = nil
 		knob.Position = UDim2.fromScale(0.5, 0.5) -- la bolita regresa al centro
 	end, function(position)
+		-- La mira gira lo que se movió el dedo (más lento con zoom o sobre un enemigo)
+		if last then
+			local delta = position - last
+			local speed = LOOK_SPEED * workspace.CurrentCamera.FieldOfView / 70
+			if enemyInSight() then
+				speed *= AIM_FRICTION
+			end
+			CameraController.Look(delta.X * speed, -delta.Y * speed * VERTICAL)
+		end
+		last = position
 		-- La bolita sigue al dedo sin salirse del círculo
 		local radius = fire.AbsoluteSize.X / 2
 		origin = origin or position
@@ -248,7 +295,6 @@ function TouchButtons.Start()
 		if offset.Magnitude > radius then
 			offset = offset.Unit * radius
 		end
-		stick = offset / radius
 		-- AbsoluteSize ya trae el UIScale (tablets): la posición de la bolita va sin él
 		local knobOffset = offset / scale.Scale
 		knob.Position = UDim2.new(0.5, knobOffset.X, 0.5, knobOffset.Y)
@@ -294,16 +340,7 @@ function TouchButtons.Start()
 		call("ToggleCamera", Enum.UserInputState.Begin, input)
 	end)
 
-	RunService.RenderStepped:Connect(function(dt)
-		-- Stick de Disparar empujado: la mira gira mientras lo sostengas. Con zoom, más despacio
-		local push = stick.Magnitude
-		if push > DEAD_ZONE then
-			local strength = ((push - DEAD_ZONE) / (1 - DEAD_ZONE)) ^ 2
-			local direction = stick.Unit * strength
-			local speed = LOOK_SPEED * dt * workspace.CurrentCamera.FieldOfView / 70
-			CameraController.Look(direction.X * speed, -direction.Y * speed)
-		end
-
+	RunService.RenderStepped:Connect(function()
 		-- Con un menú abierto (tienda, menú de partidas) o muerto, los botones se esconden
 		local h = humanoid()
 		cluster.Visible = not player:GetAttribute("MenuOpen") and h ~= nil and h.Health > 0
@@ -314,8 +351,8 @@ function TouchButtons.Start()
 				VehicleController.SetTrigger(false)
 				firing = nil
 			end
-			stick = Vector2.zero
 			origin = nil
+			last = nil
 			knob.Position = UDim2.fromScale(0.5, 0.5)
 			return
 		end
