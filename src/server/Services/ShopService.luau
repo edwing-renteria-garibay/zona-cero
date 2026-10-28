@@ -12,6 +12,14 @@
 -- En Studio el DataStore solo funciona si el juego está publicado y activaste "Enable Studio
 -- Access to API Services". Si no, la tienda funciona igual, pero no guarda nada.
 -- Con Modes.Testing.enabled tampoco guarda, y todos empiezan con Shop.testingCredits.
+--
+-- Pases de juego (Shop.gamePasses): Roblox recuerda quién los compró, así que no se guardan
+-- en el perfil. Al entrar se pregunta a Roblox y, si lo tiene, se marca con el atributo
+-- "Pass_VIP", "Pass_Leyenda"... El VIP gana el doble de créditos jugando; el Pack Leyenda
+-- da las cosas de la tienda que tienen pass = "Leyenda".
+--
+-- Premio diario (Shop.daily): al entrar por primera vez en el día. El cliente lo muestra
+-- con los atributos "DailyReward" (créditos) y "DailyStreak" (días seguidos).
 
 local DataStoreService = game:GetService("DataStoreService")
 local MarketplaceService = game:GetService("MarketplaceService")
@@ -45,11 +53,14 @@ type Profile = {
 	-- Sonido apagado por el jugador (menú > Sonido). Se guarda aquí para que no tenga que
 	-- volver a apagarlo cada vez que entra
 	muted: { [string]: boolean },
+	-- Premio diario: el último día que lo cobró (días desde 1970) y cuántos días seguidos lleva
+	daily: { last: number, streak: number },
 }
 
 local SOUND_KINDS = { Music = true, Effects = true }
 
 local profiles: { [Player]: Profile } = {}
+local passes: { [Player]: { [string]: boolean } } = {} -- los pases que tiene cada jugador
 local dirty: { [Player]: boolean } = {} -- cambió algo desde la última vez que se guardó
 
 local testing = Modes.Testing.enabled
@@ -76,6 +87,7 @@ local function newProfile(): Profile
 		equipped = {},
 		receipts = {},
 		muted = {},
+		daily = { last = 0, streak = 0 },
 	}
 end
 
@@ -107,6 +119,10 @@ local function load(player: Player): Profile
 			profile.equipped = if type(data.equipped) == "table" then data.equipped else {}
 			profile.receipts = if type(data.receipts) == "table" then data.receipts else {}
 			profile.muted = if type(data.muted) == "table" then data.muted else {}
+			if type(data.daily) == "table" then
+				profile.daily.last = tonumber(data.daily.last) or 0
+				profile.daily.streak = tonumber(data.daily.streak) or 0
+			end
 		elseif not ok then
 			warn("[Tienda] No se pudo cargar el perfil de", player.Name, data)
 			if RunService:IsStudio() then
@@ -124,10 +140,15 @@ local function snapshot(profile: Profile)
 	return { credits = profile.credits, owned = profile.owned, equipped = profile.equipped }
 end
 
-local function addCredits(player: Player, amount: number)
+-- earned = créditos ganados jugando (o el premio diario): el VIP los recibe dobles. Los
+-- paquetes comprados con Robux no se doblan
+local function addCredits(player: Player, amount: number, earned: boolean?)
 	local profile = profiles[player]
 	if not profile or amount <= 0 then
 		return
+	end
+	if earned and passes[player] and passes[player].VIP then
+		amount *= Shop.vipMultiplier
 	end
 	profile.credits += amount
 	dirty[player] = true
@@ -194,7 +215,8 @@ local function onShopRequest(player: Player, action: any, itemId: any, muted: an
 
 	if action == "buy" then
 		local item, price = Shop.Find(itemId)
-		if item and price and not profile.owned[itemId] and profile.credits >= price then
+		-- Las cosas de un pase no se venden con créditos
+		if item and price and not item.pass and not profile.owned[itemId] and profile.credits >= price then
 			profile.credits -= price
 			profile.owned[itemId] = true
 			profile.equipped[kind] = style -- lo recién comprado se pone de una vez
@@ -276,7 +298,7 @@ local function onKilled(
 	-- Asistencias: créditos para los jugadores que le hicieron daño (y no lo remataron)
 	for _, helper in assisters or {} do
 		if helper:IsA("Player") and Combatants.IsEnemy(helper, victim) then
-			addCredits(helper, Shop.rewards.assist)
+			addCredits(helper, Shop.rewards.assist, true)
 		end
 	end
 	if not killer or killer == victim then
@@ -289,7 +311,7 @@ local function onKilled(
 	if Rules.current.teams and Combatants.TeamOf(killer) == Combatants.TeamOf(victim) then
 		return
 	end
-	addCredits(killer, Shop.rewards.kill + (if headshot then Shop.rewards.headshot else 0))
+	addCredits(killer, Shop.rewards.kill + (if headshot then Shop.rewards.headshot else 0), true)
 end
 
 -- ¿Este jugador está en el lado que ganó?
@@ -310,8 +332,79 @@ local function onMatchEnded(rules, winner)
 		if winner and isWinner(player, rules, winner) then
 			reward += Shop.rewards.win
 		end
-		addCredits(player, reward)
+		addCredits(player, reward, true)
 	end
+end
+
+-- Le da a un jugador un pase: el atributo para el cliente y las cosas de la tienda del pase
+local function grantPass(player: Player, key: string)
+	local profile = profiles[player]
+	if not profile or not passes[player] then
+		return
+	end
+	passes[player][key] = true
+	player:SetAttribute("Pass_" .. key, true)
+	for _, style in Shop.armor do
+		if style.pass == key then
+			for _, slot in Shop.slots do
+				profile.owned[slot.id .. "." .. style.id] = true
+			end
+		end
+	end
+	for _, skin in Shop.weaponSkins do
+		if skin.pass == key then
+			profile.owned["Skin." .. skin.id] = true
+		end
+	end
+end
+
+-- Pregunta a Roblox qué pases tiene el jugador
+local function checkPasses(player: Player)
+	for _, pass in Shop.gamePasses do
+		if pass.id ~= 0 then
+			local ok, owns = pcall(function()
+				return MarketplaceService:UserOwnsGamePassAsync(player.UserId, pass.id)
+			end)
+			if ok and owns then
+				grantPass(player, pass.key)
+			end
+		end
+	end
+end
+
+-- Compró un pase dentro del juego: se le da en seguida, sin tener que salir y volver
+local function onPassPurchased(player: Player, passId: number, purchased: boolean)
+	if not purchased then
+		return
+	end
+	for _, pass in Shop.gamePasses do
+		if pass.id ~= 0 and pass.id == passId then
+			grantPass(player, pass.key)
+		end
+	end
+end
+
+-- Premio diario: si hoy no lo ha cobrado, se le da. Días seguidos = premio más grande
+local function giveDaily(player: Player)
+	local profile = profiles[player]
+	if not profile or testing then
+		return
+	end
+	local today = math.floor(os.time() / 86400) -- días desde 1970 (cambia a medianoche UTC)
+	local daily = profile.daily
+	if daily.last == today then
+		return
+	end
+	daily.streak = if daily.last == today - 1 then daily.streak + 1 else 1
+	daily.last = today
+	local reward = Shop.daily[math.min(daily.streak, #Shop.daily)]
+	if passes[player] and passes[player].VIP then
+		reward *= Shop.vipMultiplier
+	end
+	addCredits(player, reward)
+	save(player)
+	player:SetAttribute("DailyStreak", daily.streak)
+	player:SetAttribute("DailyReward", reward) -- al final: el cliente lo muestra al cambiar
 end
 
 local function onPlayerAdded(player: Player)
@@ -320,6 +413,12 @@ local function onPlayerAdded(player: Player)
 		return -- se fue mientras cargaba
 	end
 	profiles[player] = profile
+	passes[player] = {}
+	checkPasses(player)
+	if not player.Parent then
+		return
+	end
+	giveDaily(player)
 	player:SetAttribute("Credits", profile.credits)
 	for kind in SOUND_KINDS do
 		player:SetAttribute(kind .. "Muted", profile.muted[kind] == true)
@@ -372,12 +471,14 @@ local function onPlayerRemoving(player: Player)
 		save(player)
 	end
 	profiles[player] = nil
+	passes[player] = nil
 	dirty[player] = nil
 end
 
 function ShopService.Start()
 	shopRemote.OnServerInvoke = onShopRequest
 	MarketplaceService.ProcessReceipt = processReceipt
+	MarketplaceService.PromptGamePassPurchaseFinished:Connect(onPassPurchased)
 	HealthService.Killed:Connect(onKilled)
 	MatchService.Ended:Connect(onMatchEnded)
 	Players.PlayerAdded:Connect(onPlayerAdded)

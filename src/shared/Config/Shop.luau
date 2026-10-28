@@ -98,6 +98,17 @@ Shop.armor = {
 		accent = Color3.fromRGB(255, 210, 80),
 		material = Enum.Material.Metal,
 	},
+	-- Solo con el pase "Pack Leyenda" (Shop.gamePasses): no se compra con créditos
+	{
+		id = "Leyenda",
+		name = "Leyenda",
+		price = 0,
+		pass = "Leyenda",
+		primary = Color3.fromRGB(26, 24, 32),
+		secondary = Color3.fromRGB(120, 40, 200),
+		accent = Color3.fromRGB(200, 120, 255),
+		material = Enum.Material.Metal,
+	},
 }
 
 -- Skins de armas: pintan todas tus armas (las piezas que brillan no cambian).
@@ -127,6 +138,15 @@ Shop.weaponSkins = {
 		color = Color3.fromRGB(230, 180, 50),
 		material = Enum.Material.Metal,
 	},
+	-- Solo con el pase "Pack Leyenda"
+	{
+		id = "Leyenda",
+		name = "Leyenda",
+		price = 0,
+		pass = "Leyenda",
+		color = Color3.fromRGB(130, 50, 210),
+		material = Enum.Material.Metal,
+	},
 }
 
 -- Paquetes de créditos que se compran con Robux. Cada uno es un "Developer Product" que
@@ -137,6 +157,33 @@ Shop.creditPacks = {
 	{ credits = 2500, robux = 99, productId = 3721754556 }, -- Paquete intermedio
 	{ credits = 6000, robux = 199, productId = 3721754667 }, -- Paquete grande
 }
+
+-- Pases de juego (Game Passes): se compran una sola vez con Robux y son para siempre. Cada
+-- uno se crea en el Creator Dashboard (ver docs/aprende/31-pases-y-diaria.md). Pon aquí su
+-- ID; los que tengan id = 0 salen en la tienda como "Próximamente".
+Shop.gamePasses = {
+	{
+		key = "VIP",
+		id = 0,
+		name = "VIP",
+		robux = 199,
+		color = Color3.fromRGB(230, 180, 50),
+		description = "Doble de créditos jugando y en el premio diario",
+	},
+	{
+		key = "Leyenda",
+		id = 0,
+		name = "Pack Leyenda",
+		robux = 299,
+		color = Color3.fromRGB(130, 50, 210),
+		description = "Armadura Leyenda completa y skin Leyenda",
+	},
+}
+Shop.vipMultiplier = 2 -- el VIP gana esto por cada crédito de jugar (no en los paquetes)
+
+-- Premio diario: al entrar una vez al día. Si entras días seguidos sube; si faltas un día,
+-- vuelve a empezar. Después del día 7 se repite el 7
+Shop.daily = { 50, 75, 100, 125, 150, 200, 300 }
 
 -- Busca un objeto de la tienda por su id ("Helmet.Elite", "Skin.Oro"...).
 -- Devuelve su información y su precio, o nil si no existe

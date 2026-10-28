@@ -1,6 +1,7 @@
 -- El menú de la tienda: se abre con la tecla B (o el botón "Tienda").
 -- A la izquierda tu personaje girando con lo que llevas puesto; a la derecha las pestañas:
--- Casco, Torso, Brazos, Piernas, Skins de armas y Créditos (paquetes con Robux).
+-- Casco, Torso, Brazos, Piernas, Skins de armas y Robux (pases de juego y paquetes de créditos).
+-- También muestra el aviso del premio diario al entrar.
 --
 -- El menú solo pide cosas al servidor (RemoteFunction "Shop"): "get" para ver tu perfil,
 -- "buy" para comprar y "equip" para ponerte o quitarte algo. El servidor decide y devuelve
@@ -202,6 +203,36 @@ local function card(
 	end
 end
 
+-- Compra de un pase de juego (Config/Shop.gamePasses). La ventana es de Roblox; cuando
+-- termina, el servidor da el pase y la tienda se redibuja sola (atributo "Pass_...")
+local function findPass(key: string)
+	for _, pass in Shop.gamePasses do
+		if pass.key == key then
+			return pass
+		end
+	end
+	return nil
+end
+
+local function promptPass(key: string)
+	local pass = findPass(key)
+	if pass and pass.id ~= 0 then
+		MarketplaceService:PromptGamePassPurchase(player, pass.id)
+	end
+end
+
+-- Botón de una cosa que solo se consigue con un pase
+local function passCard(name: string, colors: { Color3 }, key: string)
+	local pass = findPass(key)
+	if not pass or pass.id == 0 then
+		card(name, colors, "Próximamente", EQUIPPED, nil)
+		return
+	end
+	card(name, colors, string.format("%s: %d Robux", pass.name, pass.robux), TAB_ACTIVE, function()
+		promptPass(key)
+	end)
+end
+
 local function drawArmorTab(slotId: string, data: Profile)
 	local equipped = data.equipped[slotId]
 	card(
@@ -224,6 +255,8 @@ local function drawArmorTab(slotId: string, data: Profile)
 			card(style.name, colors, "Ponerse", EQUIP, function()
 				request("equip", itemId)
 			end)
+		elseif style.pass then
+			passCard(style.name, colors, style.pass)
 		elseif credits() >= style.price then
 			card(style.name, colors, string.format("Comprar: %d créditos", style.price), BUY, function()
 				request("buy", itemId)
@@ -255,6 +288,8 @@ local function drawSkinsTab(data: Profile)
 			card(skin.name, { skin.color }, "Usar", EQUIP, function()
 				request("equip", itemId)
 			end)
+		elseif skin.pass then
+			passCard(skin.name, { skin.color }, skin.pass)
 		elseif credits() >= skin.price then
 			card(
 				skin.name,
@@ -272,6 +307,19 @@ local function drawSkinsTab(data: Profile)
 end
 
 local function drawCreditsTab()
+	-- Primero los pases (para siempre), luego los paquetes de créditos
+	for _, pass in Shop.gamePasses do
+		local name = string.format("%s · %s", pass.name, pass.description)
+		if player:GetAttribute("Pass_" .. pass.key) then
+			card(name, { pass.color }, "Ya lo tienes", EQUIPPED, nil)
+		elseif pass.id == 0 then
+			card(name, { pass.color }, "Próximamente", EQUIPPED, nil)
+		else
+			card(name, { pass.color }, string.format("%d Robux", pass.robux), BUY, function()
+				promptPass(pass.key)
+			end)
+		end
+	end
 	for _, pack in Shop.creditPacks do
 		local name = string.format("%d créditos por %d Robux", pack.credits, pack.robux)
 		if pack.productId == 0 then
@@ -427,7 +475,7 @@ local function build()
 		table.insert(tabList, { id = slot.id, name = slot.name })
 	end
 	table.insert(tabList, { id = "Skin", name = "Skins" })
-	table.insert(tabList, { id = "Credits", name = "Créditos" })
+	table.insert(tabList, { id = "Credits", name = "Robux" })
 	for i, tab in tabList do
 		local button = newButton(tabs, tab.name, UDim2.new(1 / #tabList, -6, 1, 0), TAB)
 		button.LayoutOrder = i
@@ -462,9 +510,45 @@ local function build()
 	gridLayout.Parent = grid
 end
 
+-- Aviso del premio diario: un letrero arriba que se va solo
+local function showDaily()
+	local reward = player:GetAttribute("DailyReward")
+	if type(reward) ~= "number" then
+		return
+	end
+	local streak = player:GetAttribute("DailyStreak") or 1
+	local text = string.format("Premio diario: +%d créditos", reward)
+	if streak > 1 then
+		text ..= string.format("  ·  %d días seguidos", streak)
+	end
+	if player:GetAttribute("Pass_VIP") then
+		text ..= "  ·  VIP x2"
+	end
+	local toast = newLabel(gui, text, UDim2.fromOffset(460, 44), 18)
+	toast.AnchorPoint = Vector2.new(0.5, 0)
+	toast.Position = UDim2.new(0.5, 0, 0, 70)
+	toast.BackgroundColor3 = BACKGROUND
+	toast.BackgroundTransparency = 0.15
+	toast.TextColor3 = TAB_ACTIVE
+	corner(toast, 8)
+	task.delay(6, function()
+		toast:Destroy()
+	end)
+end
+
 function ShopUI.Start()
 	build()
 	updateCredits()
+	showDaily()
+	player:GetAttributeChangedSignal("DailyReward"):Connect(showDaily)
+	-- Al comprar un pase se redibuja (aparece "Ya lo tienes" y lo nuevo para ponerse)
+	for _, pass in Shop.gamePasses do
+		player:GetAttributeChangedSignal("Pass_" .. pass.key):Connect(function()
+			if backdrop.Visible then
+				task.spawn(request, "get")
+			end
+		end)
+	end
 	player:GetAttributeChangedSignal("Credits"):Connect(function()
 		updateCredits()
 		if backdrop.Visible and profile then
