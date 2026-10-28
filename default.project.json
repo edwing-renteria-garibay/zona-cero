@@ -103,7 +103,9 @@
     },
     "StarterPlayer": {
       "$properties": {
-        "LoadCharacterAppearance": true
+        "LoadCharacterAppearance": true,
+        "DevTouchCameraMovementMode": "Classic",
+        "DevTouchMovementMode": "Thumbstick"
       },
       "StarterPlayerScripts": {
         "Client": {

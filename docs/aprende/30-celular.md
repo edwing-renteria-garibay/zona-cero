@@ -52,3 +52,17 @@ Al principio el botón Disparar solo disparaba: había que apuntar con un dedo y
 disparar con otro. Ahora, si dejas el dedo en Disparar y lo arrastras, la cámara gira igual
 que al arrastrar la pantalla (`CameraController.Look`). La velocidad está en
 `LOOK_SPEED` de `UI/TouchButtons.luau` (0.35 grados por punto); súbela si se siente lenta.
+
+## El stick izquierdo solo mueve
+
+En celular Roblox usa por defecto la cámara "Follow": al moverte hacia un lado con el stick
+izquierdo, la cámara gira sola hacia donde caminas. En un juego de disparos eso estorba,
+porque el stick cambiaba hacia dónde apuntabas. En `default.project.json`, dentro de
+`StarterPlayer`, pusimos:
+
+- `DevTouchCameraMovementMode = Classic`: la cámara solo gira cuando tú la mueves (con el
+  botón Disparar o arrastrando la pantalla).
+- `DevTouchMovementMode = Thumbstick`: el stick fijo de siempre, para avanzar, retroceder y
+  moverte de lado.
+
+Si lo cambias en Studio, está en **StarterPlayer** → Propiedades → *Mobile*.
