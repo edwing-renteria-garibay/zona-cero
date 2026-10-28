@@ -8,7 +8,7 @@ botones.
 
 | Botón | Qué hace |
 |---|---|
-| Disparar (stick con bolita roja) | Lo mismo que el clic: dispara, usa la torreta, lanza SimiOs o golpea con el machete. Si empujas la bolita, la mira gira hacia ese lado mientras la sostengas |
+| Disparar (stick con bolita roja) | Lo mismo que el clic: dispara, usa la torreta, lanza SimiOs o golpea con el machete. Si empujas la bolita, la mira gira hacia ese lado mientras la sostengas. Las armas de tiro por tiro disparan al soltar |
 | Apuntar | Zoom del francotirador (solo sale con armas que tienen zoom) |
 | Recargar | Recargar |
 | Granada | Mantén para ver a dónde cae y suelta para lanzarla. Siendo zombi es la pócima |
@@ -54,10 +54,15 @@ dispara, y si empujas la bolita hacia un lado la mira gira hacia allá mientras 
 como el stick derecho de un control (`CameraController.Look`). Entre más la empujas, más
 rápido gira (a medio camino gira a la cuarta parte, para apuntar fino).
 
+Con las armas de **tiro por tiro** (pistola, escopeta, lanzacohetes, francotirador) el
+disparo sale **al soltar** la bolita, no al tocarla: así acomodas la mira primero y no se te
+escapa la bala (en SWAT explosivo solo tienes 2 cohetes). Las automáticas (rifle,
+ametralladora) disparan mientras la sostienes, como antes.
+
 En `UI/TouchButtons.luau`:
-- `LOOK_SPEED`: grados por segundo con la bolita hasta el borde (220). Súbelo si se
-  siente lento.
-- `DEAD_ZONE`: un empujón pequeño no gira (0.15), para poder disparar sin mover la mira.
+- `LOOK_SPEED`: grados por segundo con la bolita hasta el borde (140). Súbelo si se
+  siente lento, bájalo si la mira se va muy lejos.
+- `DEAD_ZONE`: un empujón pequeño no gira (0.2), para poder disparar sin mover la mira.
 
 ## El stick izquierdo solo mueve
 

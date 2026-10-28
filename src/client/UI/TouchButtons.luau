@@ -44,14 +44,14 @@ local ACTIVE = Color3.fromRGB(230, 170, 50) -- Correr prendido / zoom puesto
 local TEXT = Color3.new(1, 1, 1)
 -- Stick de Disparar: grados por segundo que gira la mira con la bolita empujada hasta el borde
 -- (a medio camino gira a la cuarta parte, para apuntar fino)
-local LOOK_SPEED = 220
-local DEAD_ZONE = 0.15 -- empujes menores que esto (de 0 a 1) no giran: así puedes disparar quieto
-local KNOB_SIZE = 44
+local LOOK_SPEED = 140
+local DEAD_ZONE = 0.2 -- empujes menores que esto (de 0 a 1) no giran: así puedes disparar quieto
+local KNOB_SIZE = 38
 
 -- Dónde va cada botón: el centro, medido desde el centro del botón de saltar (que mide 70 en
 -- celular), y su tamaño
 local LAYOUT = {
-	Fire = { x = -105, y = -15, size = 84 },
+	Fire = { x = -100, y = -15, size = 72 },
 	Reload = { x = -15, y = -90, size = 56 },
 	Aim = { x = -95, y = -100, size = 56 },
 	Grenade = { x = -185, y = -65, size = 56 },
@@ -216,8 +216,15 @@ function TouchButtons.Start()
 			firing = "melee"
 			call("ClickMelee", Enum.UserInputState.Begin, input)
 		else
-			firing = "weapon"
-			WeaponController.SetTrigger(true)
+			-- Armas de tiro por tiro (pistola, escopeta, cohetes, francotirador): disparan al
+			-- soltar, así puedes acomodar la mira sin gastar la bala
+			local _, stats = WeaponController.GetEquipped()
+			if stats and not stats.automatic then
+				firing = "release"
+			else
+				firing = "weapon"
+				WeaponController.SetTrigger(true)
+			end
 		end
 	end, function(input)
 		if firing == "turret" then
@@ -226,6 +233,8 @@ function TouchButtons.Start()
 			call("GrenadeFire", Enum.UserInputState.End, input)
 		elseif firing == "weapon" then
 			WeaponController.SetTrigger(false)
+		elseif firing == "release" and input.UserInputState == Enum.UserInputState.End then
+			WeaponController.SetTrigger(true) -- un solo tiro: WeaponController suelta el gatillo
 		end
 		firing = nil
 		stick = Vector2.zero
