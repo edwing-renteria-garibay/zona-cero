@@ -27,6 +27,18 @@ local firstPerson = true
 local recoil = 0 -- grados que la mira debe estar levantada por el retroceso; baja sola
 local recoilApplied = 0 -- grados que ya se le sumaron a la cámara
 
+local lookYaw = 0 -- grados que falta girar la cámara a los lados (botón Disparar en celular)
+local lookPitch = 0 -- y hacia arriba o abajo
+local MAX_PITCH = 80 -- no se puede mirar más arriba ni más abajo que esto
+
+-- Gira la cámara unos grados, como al arrastrar el dedo por la pantalla. Lo usa el botón
+-- "Disparar" en celular (UI/TouchButtons), para apuntar mientras disparas.
+-- yaw > 0 gira a la derecha; pitch > 0 mira hacia arriba
+function CameraController.Look(yaw: number, pitch: number)
+	lookYaw += yaw
+	lookPitch += pitch
+end
+
 -- Retroceso: levanta la mira unos grados (WeaponController lo llama al disparar)
 function CameraController.Kick(degrees: number)
 	recoil += degrees
@@ -121,6 +133,21 @@ function CameraController.Start()
 			local camera = workspace.CurrentCamera
 			camera.CFrame *= CFrame.Angles(math.rad(delta), 0, 0)
 			recoilApplied = recoil
+		end
+		-- Giro pedido con CameraController.Look: a los lados alrededor del eje vertical, y
+		-- arriba o abajo sin pasarse de MAX_PITCH
+		if lookYaw ~= 0 or lookPitch ~= 0 then
+			local camera = workspace.CurrentCamera
+			local current = math.deg(math.asin(math.clamp(camera.CFrame.LookVector.Y, -1, 1)))
+			local pitch = math.clamp(current + lookPitch, -MAX_PITCH, MAX_PITCH) - current
+			local position = camera.CFrame.Position
+			local rotation = camera.CFrame - position
+			camera.CFrame = CFrame.new(position)
+				* CFrame.Angles(0, math.rad(-lookYaw), 0)
+				* rotation
+				* CFrame.Angles(math.rad(pitch), 0, 0)
+			lookYaw = 0
+			lookPitch = 0
 		end
 		hideCarriedFlag()
 		if firstPerson then

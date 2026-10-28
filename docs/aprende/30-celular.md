@@ -8,7 +8,7 @@ botones.
 
 | Botón | Qué hace |
 |---|---|
-| Disparar (el rojo, grande) | Lo mismo que el clic: dispara, usa la torreta, lanza SimiOs o golpea con el machete |
+| Disparar (el rojo, grande) | Lo mismo que el clic: dispara, usa la torreta, lanza SimiOs o golpea con el machete. Si arrastras el dedo sin soltarlo, también apuntas |
 | Apuntar | Zoom del francotirador (solo sale con armas que tienen zoom) |
 | Recargar | Recargar |
 | Granada | Mantén para ver a dónde cae y suelta para lanzarla. Siendo zombi es la pócima |
@@ -45,3 +45,10 @@ En Studio: pestaña **Test** → **Device** (el ícono del celular) → elige un
 ejemplo *iPhone 14*, y gíralo a horizontal. Luego **Play**. Studio simula la pantalla
 táctil y el mouse funciona como dedo. Si ahí no salen los botones, la prueba buena es en el
 celular de verdad (publica y entra desde la app de Roblox).
+
+## Apuntar mientras disparas
+
+Al principio el botón Disparar solo disparaba: había que apuntar con un dedo y luego
+disparar con otro. Ahora, si dejas el dedo en Disparar y lo arrastras, la cámara gira igual
+que al arrastrar la pantalla (`CameraController.Look`). La velocidad está en
+`LOOK_SPEED` de `UI/TouchButtons.luau` (0.35 grados por punto); súbela si se siente lenta.
