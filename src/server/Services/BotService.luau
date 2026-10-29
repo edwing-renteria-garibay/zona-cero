@@ -280,6 +280,7 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 	local checkPosition, checkAt = root.Position, os.clock() -- para saber si avanza
 	local escapeTo: Vector3?, escapeUntil = nil, 0
 	local chasing = false -- a golpes: ve al enemigo pero todavía no lo alcanza
+	local pushing = false -- Captura la bandera: va con prisa a su objetivo aunque vea enemigos
 	local warnedPath = false
 	local wanderGoal: Vector3? = nil
 	local nextGrenade = os.clock() + 2 + math.random() * 3
@@ -562,11 +563,12 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 		end
 		-- Si en 4 s casi no se movió, camina un momento hacia donde no haya muro y vuelve a
 		-- buscar camino (así sale de un cuarto o de una esquina aunque el camino falle).
-		-- También si va a golpes tras alguien que ve pero no alcanza (otro piso, un muro)
+		-- También si va a golpes tras alguien que ve pero no alcanza (otro piso, un muro), o si
+		-- va con prisa a la bandera
 		if now - checkAt >= 4 then
 			local moved = (root.Position - checkPosition).Magnitude
 			checkPosition, checkAt = root.Position, now
-			if moved < 5 and (seenAt == math.huge or chasing) then
+			if moved < 5 and (seenAt == math.huge or chasing or pushing) then
 				local best, bestFree = nil, -1
 				for _ = 1, 8 do
 					local angle = math.random() * 2 * math.pi
@@ -608,6 +610,8 @@ local function think(card: Instance, character: Model, humanoid: Humanoid, root:
 		if rules.scoreBy == "captures" then
 			goal, urgent = FlagService.BotGoal(card, root.Position, defender)
 		end
+		-- (si así se queda atorado, también busca por dónde salir; ya en su objetivo, no)
+		pushing = urgent and goal ~= nil and (goal - root.Position).Magnitude > 8
 
 		local targetCharacter, targetHumanoid, targetRoot
 		if who then

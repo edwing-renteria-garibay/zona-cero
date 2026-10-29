@@ -320,7 +320,9 @@ end
 --   4. Si un compañero lleva la bandera enemiga: lo acompaña.
 --   5. Los atacantes van por la bandera enemiga; los defensores (defender = true) se quedan
 --      en su base (desde ahí disparan a quien se acerque).
--- urgent = true: va aunque tenga enemigos enfrente (dispara mientras camina)
+-- urgent = true: va aunque tenga enemigos enfrente (dispara mientras camina). Los atacantes
+-- siempre van con prisa: si se paran a pelear con cada enemigo que ven, nunca llegan a la
+-- bandera (en Captura la bandera casi siempre hay alguien a la vista)
 function FlagService.BotGoal(
 	who: Combatants.Combatant,
 	position: Vector3,
@@ -343,7 +345,8 @@ function FlagService.BotGoal(
 	if enemy.carrier == who then
 		return ownHome, true
 	end
-	if own.state == "dropped" and (own.lastPosition - position).Magnitude < 120 then
+	-- Los defensores van por su bandera esté donde esté; los atacantes, si les queda cerca
+	if own.state == "dropped" and (defender or (own.lastPosition - position).Magnitude < 120) then
 		return own.lastPosition, true
 	end
 	if own.state == "carried" and own.carrier then
@@ -353,16 +356,18 @@ function FlagService.BotGoal(
 		end
 	end
 	if defender then
-		return ownHome, false
+		-- Cerca de su base pelea normal (se mueve de lado); si se alejó, regresa
+		return ownHome, (ownHome - position).Magnitude > 30
 	end
 	if enemy.state == "carried" and enemy.carrier then
 		local root = getRoot(enemy.carrier)
-		if root and (root.Position - position).Magnitude > 12 then
-			return root.Position, false
+		local distance = if root then (root.Position - position).Magnitude else 0
+		if root and distance > 12 then
+			return root.Position, distance > 25
 		end
 		return nil, false
 	end
-	return enemy.lastPosition, false
+	return enemy.lastPosition, true
 end
 
 -- Quita las banderas al terminar la partida
